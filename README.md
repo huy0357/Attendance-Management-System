@@ -1,4 +1,4 @@
-# Spring boot 3.3.2
+# Spring boot
 
 # Code convention
 ## File Naming
