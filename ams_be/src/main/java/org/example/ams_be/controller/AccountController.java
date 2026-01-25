@@ -1,8 +1,8 @@
 package org.example.ams_be.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.ams_be.dto.AccountResponse;
-import org.example.ams_be.dto.CreateAccountRequest;
+import org.example.ams_be.dto.response.AccountResponse;
+import org.example.ams_be.dto.request.CreateAccountRequest;
 import org.example.ams_be.service.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
