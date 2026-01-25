@@ -1,4 +1,4 @@
-package org.example.ams_be.dto;
+package org.example.ams_be.dto.response;
 
 import lombok.*;
 import org.example.ams_be.entity.Account;

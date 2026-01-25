@@ -1,8 +1,8 @@
 package org.example.ams_be.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.ams_be.dto.AccountResponse;
-import org.example.ams_be.dto.CreateAccountRequest;
+import org.example.ams_be.dto.response.AccountResponse;
+import org.example.ams_be.dto.request.CreateAccountRequest;
 import org.example.ams_be.entity.Account;
 import org.example.ams_be.repository.AccountRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
