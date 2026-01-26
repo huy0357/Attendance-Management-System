@@ -44,6 +44,9 @@ public class AuthService {
         // role là enum Account.Role -> convert sang String
         String role = (acc.getRole() == null) ? "employee" : acc.getRole().name().toLowerCase();
 
+        // Clear all existing refresh tokens for this user before creating new ones
+        tokenStore.revokeAllUserTokens(username);
+
         String access = jwtUtil.generateAccessToken(username, role);
         String refresh = jwtUtil.generateRefreshToken(username, role);
 

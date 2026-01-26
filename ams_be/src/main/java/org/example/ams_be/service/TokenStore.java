@@ -42,4 +42,9 @@ public class TokenStore {
     public void revoke(String username, String refreshToken) {
         redis.delete(key(username, refreshToken));
     }
+
+    public void revokeAllUserTokens(String username) {
+        String pattern = "refresh:" + username + ":*";
+        redis.delete(redis.keys(pattern));
+    }
 }
