@@ -14,9 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController // Đánh dấu đây là API Controller trả về JSON
-@RequestMapping("/api/departments") // Đường dẫn gốc cho tất cả API trong file này
-@RequiredArgsConstructor // Tự động inject DepartmentService
+@RestController
+@RequestMapping("/api/departments")
+@RequiredArgsConstructor 
+
+// AMS-137
 public class DepartmentController {
 
     private final DepartmentService departmentService;
@@ -27,11 +29,9 @@ public class DepartmentController {
      */
     @GetMapping
     public ResponseEntity<Page<DepartmentDto>> getAll(
-            @RequestParam(required = false) String keyword, // Tham số keyword trên URL (có thể không gửi)
-            // @PageableDefault: Cấu hình mặc định nếu client không gửi tham số phân trang
+            @RequestParam(required = false) String keyword,    
             @PageableDefault(page = 0, size = 10, sort = "departmentId", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        // Gọi Service -> Service gọi Repo -> Repo trả Entity -> Service map sang DTO -> Trả về Controller
         Page<DepartmentDto> result = departmentService.getAll(keyword, pageable);
         return ResponseEntity.ok(result);
     }
@@ -54,7 +54,6 @@ public class DepartmentController {
     @PostMapping
     public ResponseEntity<DepartmentDto> create(@RequestBody DepartmentDto request) {
         DepartmentDto result = departmentService.create(request);
-        // Trả về mã 201 Created thay vì 200 OK
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
@@ -76,7 +75,6 @@ public class DepartmentController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         departmentService.delete(id);
-        // Trả về 204 No Content (Thành công nhưng không có nội dung trả về)
         return ResponseEntity.noContent().build();
     }
 

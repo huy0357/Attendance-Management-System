@@ -7,10 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+// AMS-136
 @Repository
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
     
-    // Tìm kiếm theo tên (Case insensitive)
     @Query("SELECT d FROM Department d WHERE :keyword IS NULL OR lower(d.departmentName) LIKE lower(concat('%', :keyword, '%'))")
     Page<Department> search(String keyword, Pageable pageable);
 }
