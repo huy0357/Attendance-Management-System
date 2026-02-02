@@ -1,0 +1,89 @@
+package org.example.ams_be.controller;
+
+import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
+import org.example.ams_be.dto.DepartmentDto;
+import org.example.ams_be.service.DepartmentService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/departments")
+@RequiredArgsConstructor 
+
+// AMS-137
+public class DepartmentController {
+
+    private final DepartmentService departmentService;
+
+    /**
+     * 1. Lấy danh sách phòng ban (Có phân trang + Tìm kiếm)
+     * URL mẫu: GET /api/departments?page=0&size=10&keyword=IT
+     */
+    @GetMapping
+    public ResponseEntity<Page<DepartmentDto>> getAll(
+            @RequestParam(required = false) String keyword,    
+            @PageableDefault(page = 0, size = 10, sort = "departmentId", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<DepartmentDto> result = departmentService.getAll(keyword, pageable);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 2. Lấy chi tiết một phòng ban
+     * URL mẫu: GET /api/departments/1
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<DepartmentDto> getById(@PathVariable Long id) {
+        DepartmentDto result = departmentService.getById(id);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 3. Tạo mới phòng ban
+     * URL mẫu: POST /api/departments
+     * Body: { "departmentName": "Sale", "departmentCode": "SA", ... }
+     */
+    @PostMapping
+    public ResponseEntity<DepartmentDto> create(@RequestBody DepartmentDto request) {
+        DepartmentDto result = departmentService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    /**
+     * 4. Cập nhật phòng ban
+     * URL mẫu: PUT /api/departments/1
+     * Body: { "departmentName": "Sale Update", ... }
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<DepartmentDto> update(@PathVariable Long id, @RequestBody DepartmentDto request) {
+        DepartmentDto result = departmentService.update(id, request);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 5. Xóa phòng ban
+     * URL mẫu: DELETE /api/departments/1
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        departmentService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 6. Lấy danh sách phòng ban theo cấu trúc cây
+     * URL mẫu: GET /api/departments/tree
+     */
+    @GetMapping("/tree")
+    public ResponseEntity<List<DepartmentDto>> getTree() {
+        return ResponseEntity.ok(departmentService.getTree());
+    }
+}
