@@ -25,14 +25,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh","/api/auth/logout").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/api/auth/logout").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                          .requestMatchers(HttpMethod.POST, "/api/accounts").permitAll()
 
-                        // nếu bạn có admin/manager route
+                                // nếu bạn có admin/manager route
                         .requestMatchers("/api/admin/**","/api/employees/**").hasRole("ADMIN")
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/error").permitAll()
-
 
                         .anyRequest().authenticated()
                 )
