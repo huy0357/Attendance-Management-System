@@ -3,6 +3,9 @@ package org.example.ams_be.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import lombok.Data;
+
+@Data
 public class EmployeeDto {
     public Long employeeId;
     public String employeeCode;
