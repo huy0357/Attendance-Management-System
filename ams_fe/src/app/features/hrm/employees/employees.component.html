@@ -1,0 +1,390 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">👥 Employee Management</h1>
+      <p class="text-gray-600 mt-1">Manage your team members and their information</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button (click)="handleExport()"
+        class="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+        <span class="text-gray-600">📥</span>
+        Export
+      </button>
+      <button (click)="openAddModal()"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <span>+</span>
+        Add Employee
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="apiError" class="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg p-4">
+    Unable to load employee data. Please try again.
+  </div>
+
+  <div class="grid grid-cols-4 gap-4">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <p class="text-sm text-gray-600">👥 TOTAL EMPLOYEES</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ totalEmployees }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <p class="text-sm text-gray-600">✅ ACTIVE</p>
+      <p class="text-2xl font-bold text-green-600 mt-1">{{ activeCount }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <p class="text-sm text-gray-600">📅 ON LEAVE</p>
+      <p class="text-2xl font-bold text-yellow-600 mt-1">{{ onLeaveCount }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <p class="text-sm text-gray-600">🚫 INACTIVE</p>
+      <p class="text-2xl font-bold text-gray-600 mt-1">{{ inactiveCount }}</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+    <div class="flex items-center gap-4">
+      <div class="relative flex-1">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">🔍</span>
+        <input type="text" placeholder="Search employees..." [(ngModel)]="searchQuery" (input)="onSearchChange()"
+          class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+      </div>
+      <select [(ngModel)]="selectedDepartment" (ngModelChange)="onFilterChange()"
+        class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 uppercase">
+        <option value="">🏢 ALL DEPARTMENTS</option>
+        <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.name | uppercase }}</option>
+      </select>
+      <select [(ngModel)]="selectedStatus" (ngModelChange)="onFilterChange()"
+        class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 uppercase">
+        <option value="">📊 ALL STATUS</option>
+        <option value="ACTIVE">ACTIVE</option>
+        <option value="ON_LEAVE">ON LEAVE</option>
+        <option value="INACTIVE">INACTIVE</option>
+      </select>
+      <div class="flex items-center gap-2 border border-gray-200 rounded-lg p-1">
+        <button (click)="viewMode = 'table'" class="px-3 py-1 rounded"
+          [ngClass]="viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'">
+          📋 Table
+        </button>
+        <button (click)="viewMode = 'grid'" class="px-3 py-1 rounded"
+          [ngClass]="viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'">
+          📦 Grid
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="viewMode === 'table'" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">👤 Employee</th>
+            <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">🏢 Department</th>
+            <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">💼 Position</th>
+            <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">📊 Status</th>
+            <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">📅 Start Date</th>
+            <th class="text-right px-6 py-3 text-xs font-semibold text-gray-600 uppercase">⚙️ Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <tr *ngFor="let employee of filteredEmployees" class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  {{ employee.avatar }}
+                </div>
+                <div>
+                  <p class="font-medium text-gray-900">{{ employee.name }}</p>
+                  <p class="text-sm text-gray-600">{{ employee.email }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-gray-900">{{ employee.department }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ employee.position }}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="getStatusColor(employee.status)">
+                {{ getStatusLabel(employee.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-gray-900">{{ employee.startDate }}</td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+                <button (click)="openEditModal(employee)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Edit">
+                  ✏️
+                </button>
+                <button (click)="openDeleteModal(employee)" class="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="flex items-center justify-between px-6 py-3 bg-gray-50 border-t border-gray-200">
+      <div class="text-sm text-gray-600">
+        Showing {{ employees.length }} of {{ totalItems }} employees
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="prevPage()" [disabled]="currentPage <= 1 || isLoading"
+          class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+          Prev
+        </button>
+        <span class="text-sm text-gray-600">Page {{ currentPage }} / {{ totalPages || 1 }}</span>
+        <button (click)="nextPage()" [disabled]="currentPage >= totalPages || isLoading"
+          class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="viewMode === 'grid'" class="grid grid-cols-3 gap-4">
+    <div *ngFor="let employee of filteredEmployees" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+            {{ employee.avatar }}
+          </div>
+          <div>
+            <h3 class="font-semibold text-gray-900">{{ employee.name }}</h3>
+            <p class="text-sm text-gray-600">{{ employee.employeeId }}</p>
+          </div>
+        </div>
+        <span class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="getStatusColor(employee.status)">
+          {{ getStatusLabel(employee.status) }}
+        </span>
+      </div>
+      <div class="space-y-2 mb-4">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="w-4 h-4 text-gray-400">📧</span>
+          <span class="text-gray-600">{{ employee.email }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="w-4 h-4 text-gray-400">📞</span>
+          <span class="text-gray-600">{{ employee.phone }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="w-4 h-4 text-gray-400">📍</span>
+          <span class="text-gray-600">{{ employee.location }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="w-4 h-4 text-gray-400">📅</span>
+          <span class="text-gray-600">Started {{ employee.startDate }}</span>
+        </div>
+      </div>
+      <div class="pt-4 border-t border-gray-200">
+        <p class="text-xs text-gray-600 mb-1">🏢 Department</p>
+        <p class="font-medium text-gray-900">{{ employee.department }}</p>
+        <p class="text-sm text-gray-600 mt-1">{{ employee.position }}</p>
+      </div>
+      <div class="flex items-center gap-2 mt-4">
+        <button (click)="openEditModal(employee)"
+          class="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
+          ✏️ Edit
+        </button>
+        <button (click)="openDeleteModal(employee)"
+          class="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+          🗑️
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination Footer for Grid View -->
+  <div *ngIf="viewMode === 'grid'"
+    class="flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200 mt-4">
+    <div class="text-sm text-gray-600">
+      Showing {{ employees.length }} of {{ totalItems }} employees
+    </div>
+    <div class="flex items-center gap-2">
+      <button (click)="prevPage()" [disabled]="currentPage <= 1 || isLoading"
+        class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+        Prev
+      </button>
+      <span class="text-sm text-gray-600">Page {{ currentPage }} / {{ totalPages || 1 }}</span>
+      <button (click)="nextPage()" [disabled]="currentPage >= totalPages || isLoading"
+        class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="showAddModal" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">➕ Add New Employee</h2>
+        <button (click)="showAddModal = false" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">✖️</button>
+      </div>
+
+      <div class="space-y-4" [formGroup]="addForm">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">👤 First Name</label>
+            <input type="text" formControlName="firstName" placeholder="John"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">👤 Last Name</label>
+            <input type="text" formControlName="lastName" placeholder="Doe"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📧 Email Address</label>
+          <input type="email" formControlName="email" placeholder="john.doe@amscore.com"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📞 Phone Number</label>
+          <input type="tel" formControlName="phone" placeholder="0XXXXXXXXX"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🎂 Date of Birth</label>
+            <input type="date" formControlName="dob"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🏷️ Gender</label>
+            <select formControlName="gender"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option value="">Select gender</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Department</label>
+            <select formControlName="departmentId"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option [ngValue]="null">Select department</option>
+              <option *ngFor="let dept of departments" [ngValue]="dept.id">{{ dept.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label>
+            <input type="date" formControlName="hireDate"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+        </div>
+
+        <div class="text-xs text-orange-600"></div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+        <button (click)="showAddModal = false"
+          class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+          ✖️ Cancel
+        </button>
+        <button (click)="handleAddEmployee()"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+          ➕ Add Employee
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showEditModal && selectedEmployee"
+    class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">✏️ Edit Employee</h2>
+        <button (click)="showEditModal = false; selectedEmployee = null"
+          class="p-2 hover:bg-gray-100 rounded-lg transition-colors">✖️</button>
+      </div>
+
+      <div class="space-y-4" [formGroup]="editForm">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">👤 Name</label>
+            <input type="text" formControlName="name"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🆔 Employee ID</label>
+            <input type="text" [value]="selectedEmployee.employeeId" disabled
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📧 Email</label>
+          <input type="email" formControlName="email"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📞 Phone</label>
+          <input type="tel" formControlName="phone"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Department</label>
+            <select formControlName="departmentId"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option [ngValue]="null">Select department</option>
+              <option *ngFor="let dept of departments" [ngValue]="dept.id">{{ dept.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="text-xs text-orange-600"></div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+        <button (click)="showEditModal = false; selectedEmployee = null"
+          class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+          ✖️ Cancel
+        </button>
+        <button (click)="handleEditEmployee()"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+          💾 Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showDeleteModal && selectedEmployee"
+    class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">⚠️</div>
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">Delete Employee</h2>
+          <p class="text-sm text-gray-600">This action cannot be undone</p>
+        </div>
+      </div>
+
+      <p class="text-gray-900 mb-6">
+        Are you sure you want to delete <span class="font-semibold">{{ selectedEmployee.name }}</span>?
+        All data associated with this employee will be permanently removed.
+      </p>
+
+      <div class="flex items-center justify-end gap-3">
+        <button (click)="showDeleteModal = false; selectedEmployee = null"
+          class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+          ✖️ Cancel
+        </button>
+        <button (click)="handleDeleteEmployee()"
+          class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+          🗑️ Delete Employee
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

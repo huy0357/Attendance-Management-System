@@ -1,0 +1,147 @@
+﻿<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 flex items-center justify-center p-4">
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="w-full max-w-md relative">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
+        <span class="text-3xl font-bold text-white">A</span>
+      </div>
+      <h1 class="text-4xl font-bold text-gray-900 mb-2">AMS Core</h1>
+      <p class="text-gray-600">Attendance & HR Management System</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 mb-6">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-1">Welcome back</h2>
+        <p class="text-gray-600 text-sm">Sign in to access your dashboard</p>
+      </div>
+
+      <div *ngIf="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+        <lucide-icon name="alert-circle" class="w-4 h-4 text-red-600 flex-shrink-0"></lucide-icon>
+        <p class="text-sm text-red-700">{{ error }}</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+          <div class="relative">
+            <lucide-icon name="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+            <input
+              id="username"
+              type="email"
+              placeholder="admin@amscore.com"
+              formControlName="username"
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              [disabled]="isLoading"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <div class="relative">
+            <lucide-icon name="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              placeholder="Enter your password"
+              formControlName="password"
+              class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              [disabled]="isLoading"
+            />
+            <button
+              type="button"
+              (click)="showPassword = !showPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              [disabled]="isLoading"
+            >
+              <lucide-icon [name]="showPassword ? 'eye-off' : 'eye'" class="w-5 h-5"></lucide-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              formControlName="rememberMe"
+              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              [disabled]="isLoading"
+            />
+            <span class="text-sm text-gray-700">Remember me</span>
+          </label>
+          <button
+            type="button"
+            class="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            [disabled]="isLoading"
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isLoading"
+          class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <ng-container *ngIf="isLoading; else signIn">
+            <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            Signing in...
+          </ng-container>
+          <ng-template #signIn>
+            <lucide-icon name="check" class="w-5 h-5"></lucide-icon>
+            Sign In
+          </ng-template>
+        </button>
+      </form>
+
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-200"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-4 bg-white text-gray-500">or</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        (click)="demoLogin()"
+        [disabled]="isLoading"
+        class="w-full bg-purple-50 text-purple-700 py-3 rounded-lg font-semibold hover:bg-purple-100 focus:outline-none focus:ring-4 focus:ring-purple-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-purple-200"
+      >
+        <lucide-icon name="sparkles" class="w-5 h-5"></lucide-icon>
+        Try Demo Login
+      </button>
+    </div>
+
+    <div class="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200 p-4">
+      <div class="text-center space-y-2">
+        <p class="text-sm text-gray-700 font-medium">Demo Credentials</p>
+        <div class="flex items-center justify-center gap-6 text-xs text-gray-600">
+          <div class="flex items-center gap-1">
+            <lucide-icon name="mail" class="w-3 h-3"></lucide-icon>
+            <span>admin@amscore.com</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <lucide-icon name="lock" class="w-3 h-3"></lucide-icon>
+            <span>Any password</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-center gap-2 text-sm text-gray-600">
+      <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+      <span>All systems operational</span>
+    </div>
+
+    <div class="mt-8 text-center text-xs text-gray-500">
+      <p>� 2026 AMS Core. All rights reserved.</p>
+      <p class="mt-1">Version 2.4.1 � Enterprise Edition</p>
+    </div>
+  </div>
+</div>

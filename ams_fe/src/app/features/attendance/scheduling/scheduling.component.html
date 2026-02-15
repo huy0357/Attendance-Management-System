@@ -1,0 +1,220 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-slate-900">Shift Scheduling</h1>
+      <p class="text-slate-600 mt-1">Plan and manage employee work schedules</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 bg-blue-100 rounded-lg p-1">
+        <button
+          type="button"
+          (click)="setView('week')"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          [ngClass]="view === 'week' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
+        >
+          Week
+        </button>
+        <button
+          type="button"
+          (click)="setView('month')"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          [ngClass]="view === 'month' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
+        >
+          Month
+        </button>
+      </div>
+      <button
+        type="button"
+        (click)="handleAiAutoSchedule()"
+        class="px-4 py-2 bg-purple-600 text-slate-50 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+      >
+        <lucide-icon name="sparkles" class="w-4 h-4"></lucide-icon>
+        AI Auto-Schedule
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-[280px_1fr] gap-6">
+    <div class="space-y-4">
+      <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 p-5">
+        <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <lucide-icon name="clock" class="w-5 h-5 text-slate-600"></lucide-icon>
+          Shift Templates
+        </h3>
+        <div class="space-y-3">
+          <div
+            *ngFor="let template of templates"
+            draggable="true"
+            (dragstart)="handleDragStart(template)"
+            (dragend)="handleDragEnd()"
+            class="{{ template.color }} border-2 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+          >
+            <p class="font-medium text-sm">{{ template.name }}</p>
+            <p class="text-xs font-mono mt-1">{{ template.time }}</p>
+          </div>
+        </div>
+        <p class="text-xs text-slate-600 mt-4 italic">Drag templates to the schedule grid</p>
+      </div>
+
+      <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 p-5">
+        <h3 class="font-semibold text-slate-900 mb-4">Coverage Stats</h3>
+        <div class="space-y-3">
+          <div>
+            <div class="flex items-center justify-between text-sm mb-1">
+              <span class="text-slate-600">Total Shifts</span>
+              <span class="font-semibold text-slate-900">{{ shifts.length }}</span>
+            </div>
+            <div class="w-full bg-blue-100 rounded-full h-2">
+              <div class="bg-blue-600 h-2 rounded-full" [style.width]="getCoveragePercent()"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-sm mb-1">
+              <span class="text-slate-600">AI Generated</span>
+              <span class="font-semibold text-violet-500">{{ getAiGeneratedCount() }}</span>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-sm mb-1">
+              <span class="text-slate-600">Conflicts</span>
+              <span class="font-semibold text-red-500">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-blue-50 sticky top-0">
+            <tr>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-900 w-48 border-r border-slate-100">
+                Employee
+              </th>
+              <th *ngFor="let day of days" class="text-center px-3 py-3 text-sm font-semibold text-slate-900 min-w-[140px]">
+                {{ day }}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr *ngFor="let employee of employees" class="hover:bg-blue-50">
+              <td class="px-4 py-3 border-r border-slate-100">
+                <div>
+                  <p class="font-medium text-slate-900 text-sm">{{ employee.name }}</p>
+                  <p class="text-xs text-slate-600">{{ employee.department }}</p>
+                </div>
+              </td>
+              <td
+                *ngFor="let day of days; index as dayIndex"
+                (dragover)="onDragOver($event, employee.id, dayIndex)"
+                (dragleave)="onDragLeave()"
+                (drop)="handleDrop(employee.id, dayIndex)"
+                class="px-3 py-3 text-center relative"
+                [ngClass]="{
+                  'bg-emerald-100': isDragOver(employee.id, dayIndex) && !getShift(employee.id, dayIndex),
+                  'bg-red-100 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(239,68,68,0.1)_10px,rgba(239,68,68,0.1)_20px)]':
+                    isDragOver(employee.id, dayIndex) && getShift(employee.id, dayIndex)
+                }"
+              >
+                <ng-container *ngIf="getShift(employee.id, dayIndex) as shift; else emptySlot">
+                  <div
+                    class="{{ getTemplateColor(shift.type) }} {{ shift.isAiGenerated ? 'border-dashed' : 'border-solid' }} border-2 rounded-lg p-2 relative group"
+                  >
+                    <lucide-icon *ngIf="shift.isAiGenerated" name="sparkles" class="w-3 h-3 text-violet-500 absolute -top-1 -right-1"></lucide-icon>
+                    <p class="text-xs font-mono">{{ shift.startTime }} - {{ shift.endTime }}</p>
+                    <button
+                      type="button"
+                      (click)="removeShift(shift.id)"
+                      class="absolute inset-0 bg-red-500 text-slate-50 opacity-0 group-hover:opacity-90 transition-opacity rounded-lg flex items-center justify-center text-xs font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </ng-container>
+                <ng-template #emptySlot>
+                  <div class="h-12 flex items-center justify-center text-slate-300">
+                    <lucide-icon
+                      *ngIf="isDragOver(employee.id, dayIndex) && !getShift(employee.id, dayIndex)"
+                      name="check-circle"
+                      class="w-5 h-5 text-emerald-500"
+                    ></lucide-icon>
+                    <lucide-icon
+                      *ngIf="isDragOver(employee.id, dayIndex) && getShift(employee.id, dayIndex)"
+                      name="alert-triangle"
+                      class="w-5 h-5 text-red-500"
+                    ></lucide-icon>
+                  </div>
+                </ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showAiProposal" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-slate-50 rounded-2xl shadow-2xl max-w-2xl w-full p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+          <lucide-icon name="sparkles" class="w-6 h-6 text-violet-500"></lucide-icon>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">AI Schedule Proposal</h2>
+          <p class="text-slate-600">Review before applying</p>
+        </div>
+      </div>
+
+      <div class="bg-violet-100 border border-violet-200 rounded-lg p-4 mb-6">
+        <h3 class="font-semibold text-violet-900 mb-2">Analysis Summary</h3>
+        <ul class="space-y-1 text-sm text-violet-800">
+          <li class="flex items-center gap-2">
+            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
+            Optimized for balanced coverage across all days
+          </li>
+          <li class="flex items-center gap-2">
+            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
+            No conflicts detected
+          </li>
+          <li class="flex items-center gap-2">
+            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
+            Respects employee availability preferences
+          </li>
+          <li class="flex items-center gap-2">
+            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
+            Department distribution maintained
+          </li>
+        </ul>
+      </div>
+
+      <div class="bg-blue-50 rounded-lg p-4 mb-6">
+        <p class="text-sm text-slate-600 mb-2">AI will generate shifts for empty slots based on:</p>
+        <ul class="text-sm text-slate-900 space-y-1 ml-4">
+          <li>&bull; Historical attendance patterns</li>
+          <li>&bull; Department requirements</li>
+          <li>&bull; Employee skill sets and certifications</li>
+          <li>&bull; Fair distribution of shift types</li>
+        </ul>
+      </div>
+
+      <div class="flex items-center justify-end gap-3">
+        <button
+          type="button"
+          (click)="showAiProposal = false"
+          class="px-6 py-2.5 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors font-medium"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="applyAiSchedule()"
+          class="px-6 py-2.5 bg-violet-500 text-slate-50 rounded-lg hover:bg-violet-600 transition-colors font-medium flex items-center gap-2"
+        >
+          <lucide-icon name="sparkles" class="w-4 h-4"></lucide-icon>
+          Apply AI Schedule
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

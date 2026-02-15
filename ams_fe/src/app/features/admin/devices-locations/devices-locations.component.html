@@ -1,0 +1,480 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Devices &amp; Location Management</h1>
+      <p class="text-gray-600 mt-1">Manage attendance locations and device infrastructure</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div *ngFor="let stat of stats" class="rounded-xl p-6 border border-gray-200" [ngClass]="stat.bg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
+          <p class="text-3xl font-bold mt-2" [ngClass]="stat.color">{{ stat.value }}</p>
+        </div>
+        <lucide-icon [name]="stat.icon" class="w-8 h-8" [ngClass]="stat.color"></lucide-icon>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="offlineDeviceCount > 0" class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+    <lucide-icon name="alert-triangle" class="w-6 h-6 text-red-600 flex-shrink-0 mt-1"></lucide-icon>
+    <div>
+      <h3 class="font-semibold text-red-900">Device Connectivity Issues</h3>
+      <p class="text-sm text-red-700 mt-1">
+        <strong>{{ offlineDeviceCount }} device(s)</strong> are currently offline.
+        Check device connectivity and network status.
+      </p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200">
+    <div class="flex border-b border-gray-200">
+      <button
+        (click)="activeTab = 'locations'"
+        class="flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors"
+        [ngClass]="activeTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-50'"
+      >
+        <lucide-icon name="map-pin" class="w-5 h-5"></lucide-icon>
+        Locations
+      </button>
+      <button
+        (click)="activeTab = 'devices'"
+        class="flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors"
+        [ngClass]="activeTab === 'devices' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-50'"
+      >
+        <lucide-icon name="smartphone" class="w-5 h-5"></lucide-icon>
+        Devices
+      </button>
+    </div>
+
+    <div class="p-6">
+      <div *ngIf="activeTab === 'locations'" class="space-y-6">
+        <div class="flex justify-between items-center">
+          <p class="text-gray-600">Manage office locations and geo-fencing parameters</p>
+          <button
+            (click)="openAddLocationModal()"
+            class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+          >
+            <lucide-icon name="plus" class="w-5 h-5"></lucide-icon>
+            Add Location
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div
+            *ngFor="let location of locations"
+            class="bg-white rounded-xl border-2 border-gray-200 p-6 hover:border-blue-300 transition-colors"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-12 h-12 rounded-full flex items-center justify-center"
+                  [ngClass]="location.enabled ? 'bg-green-100' : 'bg-gray-100'"
+                >
+                  <lucide-icon
+                    name="map-pin"
+                    class="w-6 h-6"
+                    [ngClass]="location.enabled ? 'text-green-600' : 'text-gray-600'"
+                  ></lucide-icon>
+                </div>
+                <div>
+                  <h3 class="font-bold text-gray-900">{{ location.name }}</h3>
+                  <p class="text-sm text-gray-600">{{ location.id }}</p>
+                </div>
+              </div>
+              <button
+                (click)="toggleLocationStatus(location.id)"
+                class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
+                [ngClass]="location.enabled ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-700 border-gray-300'"
+              >
+                <lucide-icon [name]="location.enabled ? 'check-circle' : 'x-circle'" class="w-4 h-4"></lucide-icon>
+                {{ location.enabled ? 'Active' : 'Disabled' }}
+              </button>
+            </div>
+
+            <div class="space-y-2 mb-4">
+              <div class="flex items-start gap-2">
+                <lucide-icon name="building" class="w-4 h-4 text-gray-600 mt-0.5"></lucide-icon>
+                <p class="text-sm text-gray-700">{{ location.address }}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <lucide-icon name="map" class="w-4 h-4 text-gray-600"></lucide-icon>
+                <p class="text-sm text-gray-700">{{ location.latitude.toFixed(4) }}, {{ location.longitude.toFixed(4) }}</p>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-gray-600">Geo-fence:</span>
+                <span class="font-semibold text-blue-600">{{ location.radius }}m radius</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-gray-600">Timezone:</span>
+                <span class="font-semibold text-gray-900">{{ location.timezone }}</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <lucide-icon name="smartphone" class="w-4 h-4 text-gray-600"></lucide-icon>
+                <span class="font-semibold text-purple-600">{{ location.devices }} device(s)</span>
+              </div>
+            </div>
+
+            <div class="flex gap-2 pt-4 border-t border-gray-200">
+              <button
+                (click)="openDetails(location)"
+                class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-semibold"
+              >
+                <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                View
+              </button>
+              <button
+                (click)="openDeleteLocation(location)"
+                class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-semibold"
+              >
+                <lucide-icon name="trash-2" class="w-4 h-4"></lucide-icon>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'devices'" class="space-y-6">
+        <div class="flex justify-between items-center">
+          <p class="text-gray-600">Manage attendance capture devices and monitor connectivity</p>
+          <button
+            (click)="openAddDeviceModal()"
+            class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+          >
+            <lucide-icon name="plus" class="w-5 h-5"></lucide-icon>
+            Add Device
+          </button>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Device</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Type</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Location</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">IP Address</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Last Seen</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr *ngFor="let device of devices" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4">
+                    <div>
+                      <p class="font-semibold text-gray-900">{{ device.name }}</p>
+                      <p class="text-sm text-gray-600">{{ device.id }}</p>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span
+                      class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border"
+                      [ngClass]="getDeviceTypeBadgeClasses(device.deviceType)"
+                    >
+                      {{ getDeviceTypeLabel(device.deviceType) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-gray-900">{{ device.locationName }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="font-mono text-sm text-gray-900">{{ device.ipAddress }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span
+                      class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
+                      [ngClass]="getStatusBadgeClasses(device.status)"
+                    >
+                      <lucide-icon [name]="getStatusIcon(device.status)" class="w-4 h-4"></lucide-icon>
+                      {{ getStatusLabel(device.status) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-sm text-gray-900">{{ device.lastSeen }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                      <button
+                        (click)="toggleDeviceStatus(device.id)"
+                        class="p-2 rounded-lg transition-colors"
+                        [ngClass]="device.enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                        [title]="device.enabled ? 'Enabled' : 'Disabled'"
+                      >
+                        <lucide-icon [name]="device.enabled ? 'check-circle' : 'x-circle'" class="w-4 h-4"></lucide-icon>
+                      </button>
+                      <button
+                        (click)="openDeleteDevice(device)"
+                        class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                        title="Delete"
+                      >
+                        <lucide-icon name="trash-2" class="w-4 h-4"></lucide-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showAddLocationModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Add New Location</h2>
+      </div>
+      <div class="p-6 space-y-4" [formGroup]="newLocationForm">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Location Name *</label>
+          <input
+            type="text"
+            formControlName="name"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., Headquarters - Main Office"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Address *</label>
+          <input
+            type="text"
+            formControlName="address"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Full street address"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Latitude *</label>
+            <input
+              type="number"
+              step="0.0001"
+              formControlName="latitude"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="37.7749"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Longitude *</label>
+            <input
+              type="number"
+              step="0.0001"
+              formControlName="longitude"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="-122.4194"
+            />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Geo-fence Radius (meters) *</label>
+            <input
+              type="number"
+              formControlName="radius"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="100"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Timezone *</label>
+            <select
+              formControlName="timezone"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          (click)="showAddLocationModal = false"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="addLocation()"
+          [disabled]="newLocationForm.invalid"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add Location
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showAddDeviceModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Add New Device</h2>
+      </div>
+      <div class="p-6 space-y-4" [formGroup]="newDeviceForm">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Device Name *</label>
+          <input
+            type="text"
+            formControlName="name"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., Main Entrance - Face Recognition"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Device Type *</label>
+            <select
+              formControlName="deviceType"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option *ngFor="let option of deviceTypeOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+            <select
+              formControlName="locationId"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select location...</option>
+              <option *ngFor="let location of enabledLocations" [value]="location.id">{{ location.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">IP Address</label>
+            <input
+              type="text"
+              formControlName="ipAddress"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="192.168.1.101"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">MAC Address</label>
+            <input
+              type="text"
+              formControlName="macAddress"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="00:1B:44:11:3A:B7"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Firmware Version</label>
+          <input
+            type="text"
+            formControlName="firmware"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="v2.4.1"
+          />
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          (click)="showAddDeviceModal = false"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="addDevice()"
+          [disabled]="newDeviceForm.invalid"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add Device
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showDeleteModal && (selectedLocation || selectedDevice)" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Confirm Deletion</h2>
+      </div>
+      <div class="p-6">
+        <p class="text-gray-700">
+          Are you sure you want to delete <strong>{{ selectedLocation?.name || selectedDevice?.name }}</strong>?
+        </p>
+        <p class="text-sm text-gray-600 mt-2">This action cannot be undone.</p>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          (click)="closeDeleteModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="deleteSelected()"
+          class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showDetailsModal && selectedLocation" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Location Details</h2>
+        <p class="text-gray-600">{{ selectedLocation.id }}</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-3">Location Information</h3>
+          <div class="space-y-2">
+            <div>
+              <p class="text-sm text-gray-600">Name</p>
+              <p class="font-semibold text-gray-900">{{ selectedLocation.name }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Address</p>
+              <p class="font-semibold text-gray-900">{{ selectedLocation.address }}</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <p class="text-sm text-gray-600">Latitude</p>
+                <p class="font-semibold text-gray-900">{{ selectedLocation.latitude.toFixed(4) }}</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-600">Longitude</p>
+                <p class="font-semibold text-gray-900">{{ selectedLocation.longitude.toFixed(4) }}</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <p class="text-sm text-gray-600">Geo-fence Radius</p>
+                <p class="font-semibold text-blue-600">{{ selectedLocation.radius }}m</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-600">Timezone</p>
+                <p class="font-semibold text-gray-900">{{ selectedLocation.timezone }}</p>
+              </div>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Connected Devices</p>
+              <p class="font-semibold text-purple-600">{{ selectedLocation.devices }} device(s)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          (click)="closeDetailsModal()"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

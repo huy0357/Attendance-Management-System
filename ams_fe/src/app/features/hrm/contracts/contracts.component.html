@@ -1,0 +1,603 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Contract Management</h1>
+      <p class="text-gray-600 mt-1">Manage employee contracts, track expirations, and ensure compliance</p>
+    </div>
+    <button
+      type="button"
+      (click)="openAddModal()"
+      class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+    >
+      <lucide-icon name="plus" class="w-5 h-5"></lucide-icon>
+      Add Contract
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div *ngFor="let stat of stats" class="{{ stat.bg }} rounded-xl p-6 border border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
+          <p class="text-3xl font-bold {{ stat.color }} mt-2">{{ stat.value }}</p>
+        </div>
+        <lucide-icon [name]="stat.icon" class="w-8 h-8 {{ stat.color }}"></lucide-icon>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="expiringContracts.length > 0" class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
+    <lucide-icon name="alert-triangle" class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1"></lucide-icon>
+    <div class="flex-1">
+      <h3 class="font-semibold text-yellow-900">Contracts Expiring Soon</h3>
+      <div class="mt-2 space-y-1">
+        <p *ngFor="let contract of expiringContracts" class="text-sm text-yellow-700">
+          <strong>{{ contract.employeeName }}</strong>
+          - Contract expires in <strong>{{ getDaysUntilExpiry(contract.endDate) }} days</strong>
+          ({{ contract.endDate }})
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <form [formGroup]="filterForm" class="flex flex-col lg:flex-row gap-4">
+      <div class="flex-1 relative">
+        <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+        <input
+          type="text"
+          formControlName="searchQuery"
+          placeholder="Search by employee name, contract ID, or position..."
+          class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <select
+        formControlName="contractType"
+        class="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option *ngFor="let type of contractTypes" [value]="type">{{ type }}</option>
+      </select>
+      <select
+        formControlName="status"
+        class="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+      </select>
+      <div class="flex items-center gap-2">
+        <input
+          type="date"
+          formControlName="startDate"
+          class="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <span class="text-sm text-gray-500">to</span>
+        <input
+          type="date"
+          formControlName="endDate"
+          class="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <button
+        type="button"
+        class="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+      >
+        <lucide-icon name="download" class="w-5 h-5"></lucide-icon>
+        Export
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Contract ID</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Employee</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Contract Type</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Start Date</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">End Date</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Compensation</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <tr *ngFor="let contract of filteredContracts" class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4">
+              <p class="font-semibold text-gray-900">{{ contract.id }}</p>
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                  {{ contract.employeeAvatar }}
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-900">{{ contract.employeeName }}</p>
+                  <p class="text-sm text-gray-600">{{ contract.position }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border {{ getContractTypeClass(contract.contractType) }}">
+                {{ getContractTypeLabel(contract.contractType) }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <p class="text-sm text-gray-900">{{ formatDate(contract.startDate) }}</p>
+            </td>
+            <td class="px-6 py-4">
+              <ng-container *ngIf="contract.endDate; else noEndDate">
+                <div>
+                  <p class="text-sm text-gray-900">{{ formatDate(contract.endDate) }}</p>
+                  <p
+                    *ngIf="getDaysUntilExpiry(contract.endDate) !== null && (getDaysUntilExpiry(contract.endDate) || 0) > 0 && (getDaysUntilExpiry(contract.endDate) || 0) <= 90"
+                    class="text-xs text-yellow-600 font-semibold"
+                  >
+                    {{ getDaysUntilExpiry(contract.endDate) }} days left
+                  </p>
+                </div>
+              </ng-container>
+              <ng-template #noEndDate>
+                <span class="text-sm text-gray-500">No end date</span>
+              </ng-template>
+            </td>
+            <td class="px-6 py-4">
+              <p class="font-semibold text-gray-900">
+                ${{ contract.baseSalary.toLocaleString() }} {{ contract.currency }}
+              </p>
+            </td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusClass(contract.status) }}">
+                <lucide-icon [name]="getStatusIcon(contract.status)" class="w-4 h-4"></lucide-icon>
+                {{ getStatusLabel(contract.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="openViewModal(contract)"
+                  class="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  title="View Details"
+                >
+                  <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                </button>
+                <button
+                  type="button"
+                  (click)="openEditModal(contract)"
+                  class="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                  title="Edit Contract"
+                >
+                  <lucide-icon name="edit" class="w-4 h-4"></lucide-icon>
+                </button>
+                <button
+                  type="button"
+                  (click)="openDeleteModal(contract)"
+                  class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                  title="Delete Contract"
+                >
+                  <lucide-icon name="trash-2" class="w-4 h-4"></lucide-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="filteredContracts.length === 0" class="text-center py-12">
+        <lucide-icon name="file-text" class="w-12 h-12 text-gray-400 mx-auto mb-4"></lucide-icon>
+        <p class="text-gray-600 font-medium">No contracts found</p>
+        <p class="text-sm text-gray-500 mt-1">Try adjusting your filters or search query</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Add New Contract</h2>
+      </div>
+
+      <form [formGroup]="addForm" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Employee Name *</label>
+          <input
+            type="text"
+            formControlName="employeeName"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Full name"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Department *</label>
+            <input
+              type="text"
+              formControlName="department"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., Engineering"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Position *</label>
+            <input
+              type="text"
+              formControlName="position"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., Senior Developer"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Contract Type *</label>
+          <select
+            formControlName="contractType"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="permanent">Permanent</option>
+            <option value="contract">Fixed-Term Contract</option>
+            <option value="probation">Probation</option>
+            <option value="intern">Internship</option>
+            <option value="part-time">Part-Time</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date *</label>
+            <input
+              type="date"
+              formControlName="startDate"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">End Date (if applicable)</label>
+            <input
+              type="date"
+              formControlName="endDate"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Salary / Compensation (USD) *</label>
+          <input
+            type="number"
+            formControlName="baseSalary"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Annual salary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Benefits (comma-separated)</label>
+          <input
+            type="text"
+            formControlName="benefits"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., Health Insurance, Dental, 401(k)"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+          <textarea
+            formControlName="notes"
+            rows="3"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Additional contract notes..."
+          ></textarea>
+        </div>
+      </form>
+
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          type="button"
+          (click)="closeAddModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="handleAddContract()"
+          [disabled]="addForm.invalid"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add Contract
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showEditModal && selectedContract" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Edit Contract</h2>
+        <p class="text-gray-600 mt-1">{{ selectedContract.id }}</p>
+      </div>
+
+      <form [formGroup]="editForm" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Employee Name *</label>
+          <input
+            type="text"
+            formControlName="employeeName"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Full name"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Department *</label>
+            <input
+              type="text"
+              formControlName="department"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., Engineering"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Position *</label>
+            <input
+              type="text"
+              formControlName="position"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., Senior Developer"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Contract Type *</label>
+          <select
+            formControlName="contractType"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="permanent">Permanent</option>
+            <option value="contract">Fixed-Term Contract</option>
+            <option value="probation">Probation</option>
+            <option value="intern">Internship</option>
+            <option value="part-time">Part-Time</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date *</label>
+            <input
+              type="date"
+              formControlName="startDate"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">End Date (if applicable)</label>
+            <input
+              type="date"
+              formControlName="endDate"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Salary / Compensation (USD) *</label>
+          <input
+            type="number"
+            formControlName="baseSalary"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Annual salary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Benefits (comma-separated)</label>
+          <input
+            type="text"
+            formControlName="benefits"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., Health Insurance, Dental, 401(k)"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
+          <select
+            formControlName="status"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+            <option value="pending">Pending</option>
+            <option value="terminated">Terminated</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+          <textarea
+            formControlName="notes"
+            rows="3"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Additional contract notes..."
+          ></textarea>
+        </div>
+      </form>
+
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          type="button"
+          (click)="closeEditModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="handleUpdateContract()"
+          [disabled]="editForm.invalid"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showViewModal && selectedContract" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">Contract Details</h2>
+            <p class="text-gray-600">{{ selectedContract.id }}</p>
+          </div>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusClass(selectedContract.status) }}">
+            <lucide-icon [name]="getStatusIcon(selectedContract.status)" class="w-4 h-4"></lucide-icon>
+            {{ getStatusLabel(selectedContract.status) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-6">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <lucide-icon name="user" class="w-5 h-5"></lucide-icon>
+            Employee Information
+          </h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-600">Name</p>
+              <p class="font-semibold text-gray-900">{{ selectedContract.employeeName }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Department</p>
+              <p class="font-semibold text-gray-900">{{ selectedContract.department }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Position</p>
+              <p class="font-semibold text-gray-900">{{ selectedContract.position }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Employee ID</p>
+              <p class="font-semibold text-gray-900">{{ selectedContract.employeeId }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <lucide-icon name="file-text" class="w-5 h-5"></lucide-icon>
+            Contract Details
+          </h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-600">Contract Type</p>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border {{ getContractTypeClass(selectedContract.contractType) }}">
+                  {{ getContractTypeLabel(selectedContract.contractType) }}
+                </span>
+              </div>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Start Date</p>
+              <p class="font-semibold text-gray-900">{{ formatDate(selectedContract.startDate) }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">End Date</p>
+              <p class="font-semibold text-gray-900">
+                {{ selectedContract.endDate ? formatDate(selectedContract.endDate) : 'No end date' }}
+              </p>
+            </div>
+            <div *ngIf="selectedContract.signedDate">
+              <p class="text-sm text-gray-600">Signed Date</p>
+              <p class="font-semibold text-gray-900">{{ formatDate(selectedContract.signedDate) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-green-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <lucide-icon name="dollar-sign" class="w-5 h-5"></lucide-icon>
+            Compensation & Benefits
+          </h3>
+          <div class="space-y-3">
+            <div>
+              <p class="text-sm text-gray-600">Base Salary</p>
+              <p class="text-2xl font-bold text-green-600">
+                ${{ selectedContract.baseSalary.toLocaleString() }} {{ selectedContract.currency }}
+              </p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600 mb-2">Benefits</p>
+              <div class="flex flex-wrap gap-2">
+                <span *ngFor="let benefit of selectedContract.benefits" class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  {{ benefit }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="selectedContract.notes" class="bg-gray-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-2">Notes</h3>
+          <p class="text-gray-700">{{ selectedContract.notes }}</p>
+        </div>
+
+        <div *ngIf="selectedContract.renewalHistory && selectedContract.renewalHistory.length > 0" class="bg-purple-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-3">Renewal History</h3>
+          <div class="space-y-2">
+            <div *ngFor="let renewal of selectedContract.renewalHistory" class="bg-white rounded p-3">
+              <p class="text-sm font-semibold text-gray-900">{{ renewal.date }}</p>
+              <p class="text-sm text-gray-600">{{ renewal.reason }}</p>
+              <p class="text-xs text-gray-500 mt-1">
+                {{ renewal.previousEndDate }} -> {{ renewal.newEndDate }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          *ngIf="selectedContract.documentUrl"
+          type="button"
+          class="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+          Download Contract
+        </button>
+        <button
+          type="button"
+          (click)="closeViewModal()"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showDeleteModal && selectedContract" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Delete Contract</h2>
+      </div>
+      <div class="p-6">
+        <p class="text-gray-700">
+          Are you sure you want to delete the contract for <strong>{{ selectedContract.employeeName }}</strong>?
+        </p>
+        <p class="text-sm text-gray-600 mt-2">This action cannot be undone.</p>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          type="button"
+          (click)="closeDeleteModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="handleDeleteContract()"
+          class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+        >
+          Delete Contract
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,297 @@
+<div class="space-y-6">
+  <div class="flex items-end justify-between">
+    <div>
+      <h1 class="text-4xl font-bold text-gray-900">Dashboard</h1>
+      <p class="text-gray-600 mt-2 text-lg">Real-time attendance overview from all kiosk locations</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <select
+        class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        [(ngModel)]="selectedTimeRange"
+      >
+        <option>Today</option>
+        <option>This Week</option>
+        <option>This Month</option>
+      </select>
+      <button
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+        (click)="showExportModal = true"
+      >
+        Export Report
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-4 gap-6">
+    <div class="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-sm border border-blue-100 {{ cardPadding }} hover:shadow-md transition-shadow">
+      <div class="flex items-start justify-between mb-4">
+        <div class="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+          <lucide-icon name="users" class="w-7 h-7 text-white"></lucide-icon>
+        </div>
+        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center gap-1">
+          <lucide-icon name="trending-up" class="w-3 h-3"></lucide-icon>
+          +2.1%
+        </span>
+      </div>
+      <p class="text-gray-600 text-sm font-medium mb-1">Total Employees</p>
+      <p class="text-4xl font-bold text-gray-900">247</p>
+      <p class="text-xs text-gray-500 mt-2">+5 new this month</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-green-50 to-white rounded-2xl shadow-sm border border-green-100 {{ cardPadding }} hover:shadow-md transition-shadow">
+      <div class="flex items-start justify-between mb-4">
+        <div class="w-14 h-14 bg-green-600 rounded-xl flex items-center justify-center shadow-lg">
+          <lucide-icon name="check-circle" class="w-7 h-7 text-white"></lucide-icon>
+        </div>
+        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+          80.2%
+        </span>
+      </div>
+      <p class="text-gray-600 text-sm font-medium mb-1">Present Today</p>
+      <p class="text-4xl font-bold text-gray-900">198</p>
+      <p class="text-xs text-gray-500 mt-2">of 247 employees</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-yellow-50 to-white rounded-2xl shadow-sm border border-yellow-100 {{ cardPadding }} hover:shadow-md transition-shadow">
+      <div class="flex items-start justify-between mb-4">
+        <div class="w-14 h-14 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+          <lucide-icon name="clock" class="w-7 h-7 text-white"></lucide-icon>
+        </div>
+        <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+          Avg 8 min
+        </span>
+      </div>
+      <p class="text-gray-600 text-sm font-medium mb-1">Late Check-ins</p>
+      <p class="text-4xl font-bold text-gray-900">12</p>
+      <p class="text-xs text-gray-500 mt-2">? 3 from yesterday</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-red-50 to-white rounded-2xl shadow-sm border border-red-100 {{ cardPadding }} hover:shadow-md transition-shadow">
+      <div class="flex items-start justify-between mb-4">
+        <div class="w-14 h-14 bg-red-600 rounded-xl flex items-center justify-center shadow-lg">
+          <lucide-icon name="alert-triangle" class="w-7 h-7 text-white"></lucide-icon>
+        </div>
+        <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+          Urgent
+        </span>
+      </div>
+      <p class="text-gray-600 text-sm font-medium mb-1">Exceptions</p>
+      <p class="text-4xl font-bold text-gray-900">8</p>
+      <p class="text-xs text-gray-500 mt-2">Needs attention</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-6">
+    <div class="col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white {{ cardPadding }} flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold flex items-center gap-2">
+            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            Live Pulse
+          </h3>
+          <p class="text-blue-100 text-sm mt-1">Real-time check-ins from kiosk machines</p>
+        </div>
+        <div class="px-4 py-2 bg-blue-500/50 backdrop-blur rounded-lg">
+          <span class="text-sm font-semibold">Live</span>
+        </div>
+      </div>
+
+      <div class="overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-50 sticky top-0">
+            <tr>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Employee</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr
+              *ngFor="let entry of liveEntries; let i = index"
+              class="hover:bg-gray-50 transition-colors"
+              [ngClass]="i === 0 ? 'animate-slide-up bg-blue-50/50' : ''"
+            >
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+                    {{ entry.avatar }}
+                  </div>
+                  <span class="font-semibold text-gray-900 {{ textSize }}">{{ entry.name }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <span class="font-mono font-semibold text-gray-900 {{ textSize }}">{{ entry.time }}</span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-2 text-gray-600">
+                  <lucide-icon name="map-pin" class="w-4 h-4"></lucide-icon>
+                  <span class="text-sm font-medium">{{ entry.location }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  *ngIf="entry.status === 'on-time'"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold"
+                >
+                  <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
+                  On Time
+                </span>
+                <span
+                  *ngIf="entry.status === 'late'"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold"
+                >
+                  <lucide-icon name="clock" class="w-4 h-4"></lucide-icon>
+                  Late
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="bg-gradient-to-r from-red-600 to-red-700 text-white {{ cardPadding }}">
+        <h3 class="text-xl font-bold flex items-center gap-2">
+          <lucide-icon name="alert-triangle" class="w-5 h-5"></lucide-icon>
+          Exceptions
+        </h3>
+        <p class="text-red-100 text-sm mt-1">Requires attention</p>
+      </div>
+
+      <div class="space-y-3 {{ cardPadding }}">
+        <div
+          *ngFor="let exception of exceptions"
+          class="group p-4 rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer bg-white"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md"
+              [ngClass]="
+                exception.type === 'absent'
+                  ? 'bg-gradient-to-br from-gray-400 to-gray-500'
+                  : exception.type === 'leave-pending'
+                  ? 'bg-gradient-to-br from-yellow-500 to-yellow-600'
+                  : 'bg-gradient-to-br from-red-500 to-red-600'
+              "
+            >
+              {{ exception.avatar }}
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-gray-900 text-sm">{{ exception.name }}</p>
+              <p class="text-xs text-gray-600 mt-1 leading-relaxed">{{ exception.details }}</p>
+
+              <div class="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button class="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                  <lucide-icon name="eye" class="w-3.5 h-3.5"></lucide-icon>
+                  View
+                </button>
+                <button
+                  *ngIf="exception.type === 'leave-pending'"
+                  class="text-xs font-medium text-green-600 hover:text-green-700 flex items-center gap-1"
+                >
+                  <lucide-icon name="check" class="w-3.5 h-3.5"></lucide-icon>
+                  Approve
+                </button>
+                <button
+                  *ngIf="exception.type === 'absent'"
+                  class="text-xs font-medium text-yellow-600 hover:text-yellow-700 flex items-center gap-1"
+                >
+                  <lucide-icon name="send" class="w-3.5 h-3.5"></lucide-icon>
+                  Remind
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="w-2.5 h-2.5 rounded-full"
+              [ngClass]="
+                exception.type === 'absent'
+                  ? 'bg-gray-400'
+                  : exception.type === 'leave-pending'
+                  ? 'bg-yellow-500'
+                  : 'bg-red-500'
+              "
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-bold text-gray-900 mb-6 text-lg">Weekly Attendance Trend</h3>
+      <div class="h-40 flex items-end justify-between gap-3">
+        <div *ngFor="let height of [85, 92, 88, 90, 87, 80, 0]; let i = index" class="flex-1 flex flex-col items-center group">
+          <div class="relative w-full">
+            <div
+              class="w-full rounded-t-lg transition-all group-hover:shadow-lg"
+              [ngClass]="i === 6 ? 'bg-gray-200' : 'bg-gradient-to-t from-blue-600 to-blue-500'"
+              [ngStyle]="{ height: (height * 1.6) + 'px' }"
+            >
+              <div
+                *ngIf="height > 0"
+                class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <span class="text-xs font-bold text-gray-900 bg-white px-2 py-1 rounded shadow-md">
+                  {{ height }}%
+                </span>
+              </div>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-gray-600 mt-3">
+            {{ ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i] }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-bold text-gray-900 mb-6 text-lg">Top Locations</h3>
+      <div class="space-y-4">
+        <div
+          *ngFor="let location of [
+            { name: 'HQ Main', count: 142, percentage: 57 },
+            { name: 'Branch-02', count: 38, percentage: 15 },
+            { name: 'Branch-03', count: 18, percentage: 7 }
+          ]; let i = index"
+          class="group"
+        >
+          <div class="flex items-center justify-between text-sm mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                {{ i + 1 }}
+              </span>
+              <span class="text-gray-900 font-semibold">{{ location.name }}</span>
+            </div>
+            <span class="text-gray-900 font-bold">{{ location.count }}</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div
+              class="bg-gradient-to-r from-blue-600 to-blue-500 h-3 rounded-full transition-all group-hover:shadow-md"
+              [ngStyle]="{ width: location.percentage + '%' }"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-sm border border-blue-100 p-6">
+      <h3 class="font-bold text-gray-900 mb-6 text-lg">Quick Actions</h3>
+      <div class="space-y-3">
+        <button class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold hover:scale-105">
+          Export Daily Report
+        </button>
+        <button class="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl hover:border-blue-600 hover:shadow-md transition-all text-sm font-semibold">
+          Send Reminders
+        </button>
+        <button class="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl hover:border-blue-600 hover:shadow-md transition-all text-sm font-semibold">
+          Review Exceptions
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,506 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">My Profile</h1>
+      <p class="text-gray-600 mt-1">Manage your account settings and preferences</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <ng-container *ngIf="isEditing; else editButton">
+        <button
+          (click)="isEditing = false"
+          class="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="handleSave()"
+          [disabled]="saveStatus !== 'idle'"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+        >
+          <lucide-icon name="save" class="w-4 h-4"></lucide-icon>
+          {{ saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save Changes' }}
+        </button>
+      </ng-container>
+      <ng-template #editButton>
+        <button
+          (click)="isEditing = true"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Edit Profile
+        </button>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-[320px_1fr] gap-6">
+    <div class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-col items-center">
+          <div class="relative">
+            <div class="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+              AU
+            </div>
+            <button
+              *ngIf="isEditing"
+              class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-700 transition-colors"
+            >
+              <lucide-icon name="camera" class="w-4 h-4"></lucide-icon>
+            </button>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900 mt-4">Admin User</h2>
+          <p class="text-gray-600 text-sm">System Administrator</p>
+          <div class="mt-4 flex items-center gap-2">
+            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+              Admin
+            </span>
+            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+              Active
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-4">Quick Stats</h3>
+        <div class="space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-sm text-gray-600">Tasks Completed</span>
+              <span class="text-sm font-bold text-gray-900">127</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-blue-600 h-2 rounded-full" [ngStyle]="{ width: '78%' }"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-sm text-gray-600">Reports Generated</span>
+              <span class="text-sm font-bold text-gray-900">45</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-green-600 h-2 rounded-full" [ngStyle]="{ width: '62%' }"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-sm text-gray-600">Approvals</span>
+              <span class="text-sm font-bold text-gray-900">89</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-purple-600 h-2 rounded-full" [ngStyle]="{ width: '91%' }"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <lucide-icon name="award" class="w-5 h-5 text-yellow-600"></lucide-icon>
+          Achievements
+        </h3>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 p-2 bg-yellow-50 rounded-lg">
+            <div class="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center text-white">
+              ??
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Power User</p>
+              <p class="text-xs text-gray-600">100+ actions completed</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
+            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white">
+              ?
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Speed Demon</p>
+              <p class="text-xs text-gray-600">Fast response time</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
+            <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white">
+              ?
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Perfect Month</p>
+              <p class="text-xs text-gray-600">100% accuracy in Jan</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <lucide-icon name="user" class="w-5 h-5 text-gray-600"></lucide-icon>
+          Personal Information
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+            <input
+              type="text"
+              value="Admin"
+              [disabled]="!isEditing"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+            <input
+              type="text"
+              value="User"
+              [disabled]="!isEditing"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <div class="flex items-center gap-2">
+              <lucide-icon name="mail" class="w-4 h-4 text-gray-400"></lucide-icon>
+              <input
+                type="email"
+                value="admin@amscore.com"
+                [disabled]="!isEditing"
+                class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+            <div class="flex items-center gap-2">
+              <lucide-icon name="phone" class="w-4 h-4 text-gray-400"></lucide-icon>
+              <input
+                type="tel"
+                value="+1 (555) 987-6543"
+                [disabled]="!isEditing"
+                class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+              />
+            </div>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+            <div class="flex items-center gap-2">
+              <lucide-icon name="map-pin" class="w-4 h-4 text-gray-400"></lucide-icon>
+              <input
+                type="text"
+                value="San Francisco, CA"
+                [disabled]="!isEditing"
+                class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <lucide-icon name="briefcase" class="w-5 h-5 text-gray-600"></lucide-icon>
+          Work Information
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
+            <input
+              type="text"
+              value="EMP-0001"
+              disabled
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 font-mono"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+            <input
+              type="text"
+              value="System Administrator"
+              [disabled]="!isEditing"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Department</label>
+            <select
+              [disabled]="!isEditing"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+            >
+              <option>IT</option>
+              <option>Operations</option>
+              <option>HR</option>
+              <option>Sales</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Employment Type</label>
+            <select
+              [disabled]="!isEditing"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-600"
+            >
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+            <div class="flex items-center gap-2">
+              <lucide-icon name="calendar" class="w-4 h-4 text-gray-400"></lucide-icon>
+              <input
+                type="date"
+                value="2020-01-15"
+                disabled
+                class="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Manager</label>
+            <input
+              type="text"
+              value="John Smith"
+              disabled
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <lucide-icon name="lock" class="w-5 h-5 text-gray-600"></lucide-icon>
+          Security Settings
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Change Password</label>
+            <button
+              class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+              (click)="showPasswordModal = true"
+            >
+              Update Password
+            </button>
+          </div>
+          <div class="pt-4 border-t border-gray-200">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <p class="font-medium text-gray-900">Two-Factor Authentication</p>
+                <p class="text-sm text-gray-600">Add an extra layer of security to your account</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                  Enabled
+                </span>
+              </div>
+            </div>
+            <button
+              class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+              (click)="show2FAModal = true"
+            >
+              Manage 2FA
+            </button>
+          </div>
+          <div class="pt-4 border-t border-gray-200">
+            <p class="font-medium text-gray-900 mb-2">Active Sessions</p>
+            <div class="space-y-2">
+              <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">Chrome on Windows</p>
+                    <p class="text-xs text-gray-600">Current session • San Francisco, CA</p>
+                  </div>
+                  <span class="text-xs text-green-600 font-medium">Active</span>
+                </div>
+              </div>
+              <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">Mobile App on iPhone</p>
+                    <p class="text-xs text-gray-600">2 hours ago • San Francisco, CA</p>
+                  </div>
+                  <button
+                    class="text-xs text-red-600 hover:text-red-700"
+                    (click)="handleRevokeSession('Mobile App on iPhone')"
+                  >
+                    Revoke
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              class="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              (click)="showSessionModal = true"
+            >
+              View All Sessions ?
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <lucide-icon name="activity" class="w-5 h-5 text-gray-600"></lucide-icon>
+          Recent Activity
+        </h3>
+        <div class="space-y-3">
+          <div
+            *ngFor="let activity of activityLog"
+            class="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0"
+          >
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              [ngClass]="
+                activity.type === 'edit'
+                  ? 'bg-blue-100'
+                  : activity.type === 'approval'
+                  ? 'bg-green-100'
+                  : activity.type === 'report'
+                  ? 'bg-purple-100'
+                  : 'bg-gray-100'
+              "
+            >
+              <div
+                class="w-2 h-2 rounded-full"
+                [ngClass]="
+                  activity.type === 'edit'
+                    ? 'bg-blue-600'
+                    : activity.type === 'approval'
+                    ? 'bg-green-600'
+                    : activity.type === 'report'
+                    ? 'bg-purple-600'
+                    : 'bg-gray-600'
+                "
+              ></div>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm text-gray-900">{{ activity.action }}</p>
+              <p class="text-xs text-gray-600 mt-1">{{ activity.time }}</p>
+            </div>
+          </div>
+        </div>
+        <button class="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium">
+          View All Activity ?
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 w-96">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Change Password</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+          <input
+            type="password"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+          <input
+            type="password"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+          <input
+            type="password"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+      </div>
+      <div class="flex items-center justify-end mt-4">
+        <button
+          class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+          (click)="showPasswordModal = false"
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          (click)="handlePasswordChange()"
+        >
+          Update Password
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="show2FAModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 w-96">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Manage 2FA</h2>
+      <p class="text-sm text-gray-600 mb-4">Two-Factor Authentication is currently enabled.</p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Authentication App</label>
+          <select class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option>Google Authenticator</option>
+            <option>Authy</option>
+            <option>Microsoft Authenticator</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Secret Key</label>
+          <input
+            type="text"
+            value="JBSWY3DPEHPK3PXP"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+      </div>
+      <div class="flex items-center justify-end mt-4">
+        <button
+          class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+          (click)="show2FAModal = false"
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showSessionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 w-96">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Active Sessions</h2>
+      <div class="space-y-2">
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-900">Chrome on Windows</p>
+              <p class="text-xs text-gray-600">Current session • San Francisco, CA</p>
+            </div>
+            <span class="text-xs text-green-600 font-medium">Active</span>
+          </div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-900">Mobile App on iPhone</p>
+              <p class="text-xs text-gray-600">2 hours ago • San Francisco, CA</p>
+            </div>
+            <button
+              class="text-xs text-red-600 hover:text-red-700"
+              (click)="handleRevokeSession('Mobile App on iPhone')"
+            >
+              Revoke
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-end mt-4">
+        <button
+          class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+          (click)="showSessionModal = false"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

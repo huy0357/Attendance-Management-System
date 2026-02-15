@@ -1,0 +1,499 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Employee Self-Service Portal</h1>
+      <p class="text-gray-600 mt-1">View your information and submit requests</p>
+    </div>
+    <div class="flex items-center gap-3" *ngIf="employee">
+      <div class="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+        {{ employee.avatar }}
+      </div>
+      <div>
+        <p class="font-semibold text-gray-900">{{ employee.name }}</p>
+        <p class="text-sm text-gray-600">{{ employee.position }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200">
+    <div class="flex border-b border-gray-200">
+      <button
+        *ngFor="let tab of tabs"
+        (click)="setTab(tab.id)"
+        class="flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors"
+        [ngClass]="activeTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-50'"
+      >
+        <lucide-icon [name]="tab.icon" class="w-5 h-5"></lucide-icon>
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <div class="p-6">
+      <div *ngIf="activeTab === 'profile'" class="space-y-6" [ngClass]="employee ? '' : 'opacity-60'">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" *ngIf="employee">
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Employee ID</p>
+            <p class="font-semibold text-gray-900">{{ employee.id }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Email</p>
+            <p class="font-semibold text-gray-900">{{ employee.email }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Department</p>
+            <p class="font-semibold text-gray-900">{{ employee.department }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Position</p>
+            <p class="font-semibold text-gray-900">{{ employee.position }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Manager</p>
+            <p class="font-semibold text-gray-900">{{ employee.manager }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Employment Type</p>
+            <p class="font-semibold text-gray-900">{{ employee.employeeType }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Join Date</p>
+            <p class="font-semibold text-gray-900">{{ formatDate(employee.joinDate) }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Base Salary</p>
+            <p class="font-semibold text-gray-900">${{ employee.baseSalary | number }}/year</p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'attendance'" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-gradient-to-br from-green-50 to-white rounded-xl border border-green-200 p-6">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-semibold text-gray-600">Total Hours</h3>
+              <lucide-icon name="clock" class="w-6 h-6 text-green-600"></lucide-icon>
+            </div>
+            <p class="text-3xl font-bold text-green-600">{{ attendanceTotalHours | number: '1.1-1' }}h</p>
+            <p class="text-sm text-gray-600 mt-1">Regular working hours</p>
+          </div>
+          <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-6">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-semibold text-gray-600">Overtime Hours</h3>
+              <lucide-icon name="trending-up" class="w-6 h-6 text-blue-600"></lucide-icon>
+            </div>
+            <p class="text-3xl font-bold text-blue-600">{{ attendanceOvertimeHours | number: '1.1-1' }}h</p>
+            <p class="text-sm text-gray-600 mt-1">Extra hours worked</p>
+          </div>
+          <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-6">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-semibold text-gray-600">Attendance Rate</h3>
+              <lucide-icon name="check-circle" class="w-6 h-6 text-purple-600"></lucide-icon>
+            </div>
+            <p class="text-3xl font-bold text-purple-600">{{ attendanceRate }}%</p>
+            <p class="text-sm text-gray-600 mt-1">This month</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Check In</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Check Out</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Regular Hours</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Overtime</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr *ngFor="let record of attendanceRecords" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4">
+                  <p class="font-semibold text-gray-900">{{ formatDate(record.date) }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-gray-900">{{ record.checkIn }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-gray-900">{{ record.checkOut }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="font-semibold text-green-600">{{ record.regularHours }}h</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="font-semibold text-blue-600">{{ record.overtimeHours }}h</p>
+                </td>
+                <td class="px-6 py-4">
+                  <span
+                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
+                    [ngClass]="getStatusBadgeClasses(record.status)"
+                  >
+                    <lucide-icon [name]="getStatusIcon(record.status)" class="w-4 h-4"></lucide-icon>
+                    {{ getStatusLabel(record.status) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'payroll'" class="space-y-6">
+        <div *ngIf="currentPayroll as payroll" class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-gray-200 p-6">
+          <h3 class="font-bold text-gray-900 mb-4">Current Period Summary</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p class="text-sm text-gray-600">Base Salary</p>
+              <p class="text-xl font-bold text-gray-900">${{ payroll.baseSalary | number: '1.0-2' }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Overtime</p>
+              <p class="text-xl font-bold text-blue-600">+${{ payroll.overtime | number: '1.0-2' }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Deductions</p>
+              <p class="text-xl font-bold text-red-600">-${{ payroll.deductions | number: '1.0-2' }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Net Pay</p>
+              <p class="text-2xl font-bold text-green-600">${{ payroll.netPay | number: '1.0-2' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Period</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Base Salary</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Overtime</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Bonus</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Tax</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Net Pay</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr *ngFor="let record of payrollRecords" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4">
+                  <p class="font-semibold text-gray-900">{{ record.period }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-gray-900">${{ record.baseSalary | number: '1.0-2' }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-blue-600 font-semibold">${{ record.overtime | number: '1.0-2' }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-green-600 font-semibold">${{ record.bonus | number: '1.0-2' }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-red-600 font-semibold">${{ record.tax | number: '1.0-2' }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-xl font-bold text-green-600">${{ record.netPay | number: '1.0-2' }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <span
+                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
+                    [ngClass]="getStatusBadgeClasses(record.status)"
+                  >
+                    <lucide-icon [name]="getStatusIcon(record.status)" class="w-4 h-4"></lucide-icon>
+                    {{ getStatusLabel(record.status) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <button
+                    (click)="openPayrollDetails(record)"
+                    class="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                    title="View Details"
+                  >
+                    <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'requests'" class="space-y-6">
+        <div class="flex gap-3">
+          <button
+            (click)="openOTModal()"
+            class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+          >
+            <lucide-icon name="send" class="w-5 h-5"></lucide-icon>
+            Request Overtime
+          </button>
+          <button
+            (click)="openShiftModal()"
+            class="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+          >
+            <lucide-icon name="calendar" class="w-5 h-5"></lucide-icon>
+            Request Shift Change
+          </button>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Overtime Requests</h3>
+          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Request ID</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Hours</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Reason</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr *ngFor="let request of otRequests" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4">
+                    <p class="font-semibold text-gray-900">{{ request.id }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-gray-900">{{ formatDate(request.date) }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="font-semibold text-blue-600">{{ request.hours }}h</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-gray-900">{{ request.reason }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span
+                      class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
+                      [ngClass]="getStatusBadgeClasses(request.status)"
+                    >
+                      <lucide-icon [name]="getStatusIcon(request.status)" class="w-4 h-4"></lucide-icon>
+                      {{ getStatusLabel(request.status) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Shift Change Requests</h3>
+          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Request ID</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Current Date</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Requested Date</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Reason</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr *ngFor="let request of shiftRequests" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4">
+                    <p class="font-semibold text-gray-900">{{ request.id }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-gray-900">{{ formatDate(request.currentDate) }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-gray-900">{{ formatDate(request.requestedDate) }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-gray-900">{{ request.reason }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span
+                      class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
+                      [ngClass]="getStatusBadgeClasses(request.status)"
+                    >
+                      <lucide-icon [name]="getStatusIcon(request.status)" class="w-4 h-4"></lucide-icon>
+                      {{ getStatusLabel(request.status) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showOTModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Request Overtime</h2>
+      </div>
+      <div class="p-6 space-y-4" [formGroup]="otRequestForm">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Date *</label>
+          <input
+            type="date"
+            formControlName="date"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Hours *</label>
+          <input
+            type="number"
+            step="0.5"
+            formControlName="hours"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., 2.5"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Reason *</label>
+          <textarea
+            rows="3"
+            formControlName="reason"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Explain why overtime is needed..."
+          ></textarea>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          (click)="closeOTModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="submitOTRequest()"
+          [disabled]="otRequestForm.invalid"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Submit Request
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showShiftModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Request Shift Change</h2>
+      </div>
+      <div class="p-6 space-y-4" [formGroup]="shiftRequestForm">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Current Shift Date *</label>
+          <input
+            type="date"
+            formControlName="currentDate"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Requested Shift Date *</label>
+          <input
+            type="date"
+            formControlName="requestedDate"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Reason *</label>
+          <textarea
+            rows="3"
+            formControlName="reason"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Explain reason for shift change..."
+          ></textarea>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          (click)="closeShiftModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="submitShiftRequest()"
+          [disabled]="shiftRequestForm.invalid"
+          class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Submit Request
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showPayrollDetailsModal && selectedPayroll" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Payroll Details</h2>
+        <p class="text-gray-600">{{ selectedPayroll.period }}</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="bg-green-50 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-3">Earnings</h3>
+          <div class="space-y-2">
+            <div class="flex justify-between">
+              <span class="text-gray-700">Base Salary</span>
+              <span class="font-semibold text-gray-900">${{ selectedPayroll.baseSalary | number: '1.0-2' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Overtime Pay</span>
+              <span class="font-semibold text-blue-600">${{ selectedPayroll.overtime | number: '1.0-2' }}</span>
+            </div>
+            <div *ngIf="selectedPayroll.bonus > 0" class="flex justify-between">
+              <span class="text-gray-700">Bonus</span>
+              <span class="font-semibold text-green-600">${{ selectedPayroll.bonus | number: '1.0-2' }}</span>
+            </div>
+            <div class="border-t border-gray-300 pt-2 mt-2 flex justify-between">
+              <span class="font-semibold text-gray-900">Gross Pay</span>
+              <span class="font-bold text-gray-900">${{ selectedPayrollGrossPay | number: '1.0-2' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-red-50 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-3">Deductions</h3>
+          <div class="space-y-2">
+            <div class="flex justify-between">
+              <span class="text-gray-700">Tax Withholding</span>
+              <span class="font-semibold text-red-600">-${{ selectedPayroll.tax | number: '1.0-2' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Other Deductions</span>
+              <span class="font-semibold text-red-600">-${{ selectedPayroll.deductions | number: '1.0-2' }}</span>
+            </div>
+            <div class="border-t border-gray-300 pt-2 mt-2 flex justify-between">
+              <span class="font-semibold text-gray-900">Total Deductions</span>
+              <span class="font-bold text-red-600">-${{ selectedPayrollTotalDeductions | number: '1.0-2' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4">
+          <div class="flex justify-between items-center">
+            <span class="text-xl font-bold text-gray-900">Net Pay</span>
+            <span class="text-3xl font-bold text-green-600">${{ selectedPayroll.netPay | number: '1.0-2' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          class="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+          Download Payslip
+        </button>
+        <button
+          (click)="closePayrollDetails()"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

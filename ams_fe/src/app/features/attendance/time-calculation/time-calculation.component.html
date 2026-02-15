@@ -1,0 +1,337 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Time & Attendance Calculation</h1>
+      <p class="text-gray-600 mt-1">Transparent calculation engine with detailed breakdowns</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        (click)="openRulesModal()"
+        class="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+      >
+        <lucide-icon name="calculator" class="w-5 h-5"></lucide-icon>
+        Calculation Rules
+      </button>
+      <button
+        type="button"
+        class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+      >
+        <lucide-icon name="download" class="w-5 h-5"></lucide-icon>
+        Export Report
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <form [formGroup]="filterForm" class="flex gap-4">
+      <div class="flex-1">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Select Employee</label>
+        <select
+          formControlName="employeeId"
+          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option *ngFor="let emp of employeesData" [value]="emp.id">
+            {{ emp.name }} - {{ emp.position }}
+          </option>
+        </select>
+      </div>
+      <div class="flex-1">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Select Period</label>
+        <select
+          formControlName="period"
+          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="2026-01">January 2026</option>
+          <option value="2025-12">December 2025</option>
+          <option value="2025-11">November 2025</option>
+        </select>
+      </div>
+    </form>
+  </div>
+
+  <ng-container *ngIf="selectedEmployeeData as employee">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-gray-900">Employee Info</h3>
+          <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+            {{ employee.avatar }}
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-gray-900">{{ employee.name }}</p>
+        <p class="text-sm text-gray-600">{{ employee.position }}</p>
+        <p class="text-sm text-gray-600">{{ employee.department }}</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-green-50 to-white rounded-xl border border-green-200 p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-600">Regular Hours</h3>
+          <lucide-icon name="clock" class="w-6 h-6 text-green-600"></lucide-icon>
+        </div>
+        <p class="text-3xl font-bold text-green-600">{{ employee.summary.totalRegularHours }}</p>
+        <p class="text-sm text-gray-600 mt-1">Standard working hours</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-600">Overtime Hours</h3>
+          <lucide-icon name="trending-up" class="w-6 h-6 text-blue-600"></lucide-icon>
+        </div>
+        <p class="text-3xl font-bold text-blue-600">{{ employee.summary.totalOvertimeHours }}</p>
+        <p class="text-sm text-gray-600 mt-1">Extra hours worked</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-gradient-to-br from-red-50 to-white rounded-xl border border-red-200 p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-600">Late Minutes</h3>
+          <lucide-icon name="alert-triangle" class="w-6 h-6 text-red-600"></lucide-icon>
+        </div>
+        <p class="text-3xl font-bold text-red-600">{{ employee.summary.totalLateMinutes }}</p>
+        <p class="text-sm text-gray-600 mt-1">Total late check-ins</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-yellow-50 to-white rounded-xl border border-yellow-200 p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-600">Early Leave Minutes</h3>
+          <lucide-icon name="trending-down" class="w-6 h-6 text-yellow-600"></lucide-icon>
+        </div>
+        <p class="text-3xl font-bold text-yellow-600">{{ employee.summary.totalEarlyLeaveMinutes }}</p>
+        <p class="text-sm text-gray-600 mt-1">Early departures</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-semibold text-gray-600">Violations</h3>
+          <lucide-icon name="alert-circle" class="w-6 h-6 text-purple-600"></lucide-icon>
+        </div>
+        <p class="text-3xl font-bold text-purple-600">{{ employee.summary.totalViolations }}</p>
+        <p class="text-sm text-gray-600 mt-1">Policy violations</p>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-6">
+      <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="calculator" class="w-6 h-6 text-blue-600"></lucide-icon>
+        Time Calculation Formula
+      </h3>
+      <div class="bg-white rounded-lg p-4 font-mono text-sm space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="text-gray-600">Regular Hours =</span>
+          <span class="font-semibold text-gray-900">MIN(Actual Hours Worked, Standard Hours)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-600">Overtime Hours =</span>
+          <span class="font-semibold text-gray-900">MAX(0, Actual Hours - Standard Hours)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-600">Late Penalty =</span>
+          <span class="font-semibold text-gray-900">IF (Late Minutes &gt; 5) THEN (Late Minutes + 15 min deduction)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-600">Weekday OT Rate =</span>
+          <span class="font-semibold text-blue-600">1.5&times; Hourly Rate</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-600">Weekend OT Rate =</span>
+          <span class="font-semibold text-blue-600">2.0&times; Hourly Rate</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <h3 class="font-bold text-gray-900 flex items-center gap-2">
+          <lucide-icon name="calendar" class="w-5 h-5"></lucide-icon>
+          Daily Time Records
+        </h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Check In</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Check Out</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Scheduled</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Regular</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Overtime</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Late</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr *ngFor="let record of employee.records" class="hover:bg-gray-50 transition-colors">
+              <td class="px-6 py-4">
+                <p class="font-semibold text-gray-900">{{ formatDate(record.date) }}</p>
+                <p class="text-xs text-gray-600">{{ formatWeekday(record.date) }}</p>
+              </td>
+              <td class="px-6 py-4">
+                <p class="font-semibold text-gray-900">{{ record.checkIn }}</p>
+                <p *ngIf="record.lateMinutes > 0" class="text-xs text-red-600">+{{ record.lateMinutes }} min late</p>
+              </td>
+              <td class="px-6 py-4">
+                <p class="font-semibold text-gray-900">{{ record.checkOut }}</p>
+                <p *ngIf="record.earlyLeaveMinutes > 0" class="text-xs text-yellow-600">-{{ record.earlyLeaveMinutes }} min early</p>
+              </td>
+              <td class="px-6 py-4">
+                <p class="text-sm text-gray-600">{{ record.scheduledIn }} - {{ record.scheduledOut }}</p>
+              </td>
+              <td class="px-6 py-4">
+                <p class="font-semibold text-green-600">{{ record.regularHours }}h</p>
+              </td>
+              <td class="px-6 py-4">
+                <p class="font-semibold text-blue-600">{{ record.overtimeHours }}h</p>
+              </td>
+              <td class="px-6 py-4">
+                <p class="font-semibold text-red-600">{{ record.lateMinutes }}m</p>
+              </td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusBadgeClass(record.status) }}">
+                  {{ getStatusLabel(record.status) }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <button
+                  type="button"
+                  (click)="openCalculationDetails(record)"
+                  class="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  title="View Calculation Details"
+                >
+                  <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div *ngIf="employee.summary.totalViolations > 0" class="bg-red-50 border border-red-200 rounded-xl p-6">
+      <h3 class="font-bold text-red-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="alert-triangle" class="w-6 h-6"></lucide-icon>
+        Violations & Penalties
+      </h3>
+      <div class="space-y-2">
+        <div *ngFor="let record of getViolationRecords(employee)" class="bg-white rounded-lg p-3">
+          <p class="text-sm font-semibold text-gray-900">{{ formatDate(record.date) }}</p>
+          <p *ngFor="let violation of record.violations" class="text-sm text-red-700">&bull; {{ violation }}</p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <div *ngIf="showRulesModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Time Calculation Rules</h2>
+        <p class="text-gray-600 mt-1">Active calculation and penalty rules</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div *ngFor="let rule of calculationRules" class="border-2 rounded-lg p-4" [ngClass]="rule.enabled ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-900">{{ rule.name }}</h3>
+              <p class="text-sm text-gray-600 mt-1">{{ rule.condition }}</p>
+              <p *ngIf="rule.multiplier" class="text-sm text-blue-600 font-semibold mt-1">Rate: {{ rule.multiplier }}&times; base pay</p>
+              <p *ngIf="rule.penalty" class="text-sm text-red-600 font-semibold mt-1">Penalty: {{ rule.penalty }}</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold" [ngClass]="rule.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'">
+              {{ rule.enabled ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          type="button"
+          (click)="closeRulesModal()"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showCalculationDetailsModal && selectedRecord" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Calculation Breakdown</h2>
+        <p class="text-gray-600">{{ formatDate(selectedRecord.date) }}</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+          <h3 class="font-semibold text-gray-900">Step-by-Step Calculation</h3>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">1. Actual Hours Worked</span>
+              <span class="font-semibold text-gray-900">
+                {{ calculateTimeDifference(selectedRecord.checkIn, selectedRecord.checkOut).toFixed(2) }}h
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">2. Scheduled Hours</span>
+              <span class="font-semibold text-gray-900">
+                {{ calculateTimeDifference(selectedRecord.scheduledIn, selectedRecord.scheduledOut).toFixed(2) }}h
+              </span>
+            </div>
+
+            <div class="border-t border-gray-200 pt-2 flex items-center justify-between">
+              <span class="text-sm font-semibold text-gray-900">3. Regular Hours</span>
+              <span class="font-bold text-green-600">{{ selectedRecord.regularHours }}h</span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-semibold text-gray-900">4. Overtime Hours</span>
+              <span class="font-bold text-blue-600">{{ selectedRecord.overtimeHours }}h</span>
+            </div>
+
+            <div *ngIf="selectedRecord.lateMinutes > 0" class="flex items-center justify-between bg-red-50 p-2 rounded">
+              <span class="text-sm font-semibold text-red-900">5. Late Penalty</span>
+              <span class="font-bold text-red-600">{{ selectedRecord.lateMinutes }} minutes</span>
+            </div>
+
+            <div *ngIf="selectedRecord.earlyLeaveMinutes > 0" class="flex items-center justify-between bg-yellow-50 p-2 rounded">
+              <span class="text-sm font-semibold text-yellow-900">6. Early Leave Penalty</span>
+              <span class="font-bold text-yellow-600">{{ selectedRecord.earlyLeaveMinutes }} minutes</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg p-4">
+          <h3 class="font-semibold text-blue-900 mb-2">Formula Applied</h3>
+          <div class="font-mono text-sm space-y-1">
+            <p class="text-gray-700">
+              Regular = MIN({{ calculateTimeDifference(selectedRecord.checkIn, selectedRecord.checkOut).toFixed(2) }}, {{ calculateTimeDifference(selectedRecord.scheduledIn, selectedRecord.scheduledOut).toFixed(2) }}) = <strong>{{ selectedRecord.regularHours }}h</strong>
+            </p>
+            <p class="text-gray-700">
+              Overtime = MAX(0, {{ calculateTimeDifference(selectedRecord.checkIn, selectedRecord.checkOut).toFixed(2) }} - {{ calculateTimeDifference(selectedRecord.scheduledIn, selectedRecord.scheduledOut).toFixed(2) }}) = <strong>{{ selectedRecord.overtimeHours }}h</strong>
+            </p>
+          </div>
+        </div>
+
+        <div *ngIf="selectedRecord.violations.length > 0" class="bg-red-50 rounded-lg p-4">
+          <h3 class="font-semibold text-red-900 mb-2">Violations Detected</h3>
+          <ul class="space-y-1">
+            <li *ngFor="let violation of selectedRecord.violations" class="text-sm text-red-700">&bull; {{ violation }}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          type="button"
+          (click)="closeCalculationDetails()"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
