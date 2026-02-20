@@ -124,19 +124,24 @@ export class OtRequestsComponent implements OnInit {
   handleReview(): void {
     if (!this.selectedRequest) return;
     const notes = (this.reviewForm.value as { notes: string }).notes || '';
-    this.requests = this.requests.map((r) =>
-      r.id === this.selectedRequest?.id
-        ? {
-            ...r,
-            status: this.reviewAction === 'approve' ? 'approved' : 'rejected',
-            reviewedBy: 'Admin User',
-            reviewedDate: new Date().toISOString().split('T')[0],
-            reviewNotes: notes,
-          }
-        : r,
-    );
-    this.applyFilters();
-    this.closeReviewModal();
+    const requestId = Number(this.selectedRequest.id);
+    if (!Number.isFinite(requestId)) {
+      alert('Invalid request ID.');
+      return;
+    }
+    const status = this.reviewAction === 'approve' ? 'APPROVED' : 'REJECTED';
+    this.attendanceService.approveRequest(requestId, status, notes).subscribe({
+      next: () => {
+        this.attendanceService.getOtRequests().subscribe((data) => {
+          this.requests = data;
+          this.applyFilters();
+          this.closeReviewModal();
+        });
+      },
+      error: () => {
+        alert('Unable to update request. Please try again.');
+      },
+    });
   }
 
   getStatusBadgeClass(status: OtRequest['status']): string {

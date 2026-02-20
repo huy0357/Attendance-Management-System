@@ -19,13 +19,14 @@ export class DepartmentService {
         size: number = 10,
         keyword: string = '',
         sortBy: string = 'departmentId',
-        sortDir: 'asc' | 'desc' = 'asc'
+        sortDir: 'asc' | 'desc' = 'desc'
     ): Observable<PageResponse<DepartmentDto>> {
+        // Spring Pageable resolves sort as: sort=field,DIRECTION (comma-joined)
+        // NOT as separate sortBy + direction params
         let params = new HttpParams()
             .set('page', (page - 1).toString()) // Backend uses 0-based page index
             .set('size', size.toString())
-            .set('sortBy', sortBy)
-            .set('direction', sortDir.toUpperCase());
+            .set('sort', `${sortBy},${sortDir.toUpperCase()}`);
 
         if (keyword) {
             params = params.set('keyword', keyword);

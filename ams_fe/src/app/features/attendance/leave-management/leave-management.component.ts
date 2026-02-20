@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { switchMap } from 'rxjs/operators';
 import { AttendanceService, LeaveRequest } from '../attendance.service';
 
 @Component({
@@ -137,34 +138,41 @@ export class LeaveManagementComponent implements OnInit {
       reason: string;
     };
 
-    const days = this.calculateDays(formValue.startDate, formValue.endDate);
-    const request: LeaveRequest = {
-      id: `LR${String(this.leaveRequests.length + 1).padStart(3, '0')}`,
-      employeeId: `EMP${String(this.leaveRequests.length + 1).padStart(3, '0')}`,
-      employeeName: formValue.employeeName,
-      department: formValue.department,
-      email: formValue.email,
-      leaveType: formValue.leaveType,
-      startDate: formValue.startDate,
-      endDate: formValue.endDate,
-      days,
-      reason: formValue.reason,
-      status: 'Pending',
-      submittedVia: 'Manual',
-      submittedDate: new Date().toISOString().split('T')[0],
-    };
-
-    this.leaveRequests = [...this.leaveRequests, request];
-    this.newRequestForm.reset({
-      employeeName: '',
-      department: '',
-      email: '',
-      leaveType: 'Annual',
-      startDate: '',
-      endDate: '',
-      reason: '',
-    });
-    this.showAddModal = false;
+    this.attendanceService
+      .findEmployeeByNameOrEmail(formValue.employeeName, formValue.email)
+      .pipe(
+        switchMap((employee) => {
+          if (!employee) {
+            throw new Error('Employee not found');
+          }
+          return this.attendanceService.createRequest({
+            employeeId: employee.employeeId,
+            requestType: 'LEAVE',
+            title: formValue.leaveType,
+            reason: formValue.reason,
+            startDatetime: `${formValue.startDate}T00:00:00`,
+            endDatetime: `${formValue.endDate}T23:59:59`,
+          });
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.attendanceService.getLeaveRequests().subscribe((data) => (this.leaveRequests = data));
+          this.newRequestForm.reset({
+            employeeName: '',
+            department: '',
+            email: '',
+            leaveType: 'Annual',
+            startDate: '',
+            endDate: '',
+            reason: '',
+          });
+          this.showAddModal = false;
+        },
+        error: () => {
+          alert('Unable to submit leave request. Please verify employee info and try again.');
+        },
+      });
   }
 
   openReviewModal(request: LeaveRequest, action?: 'Approved' | 'Rejected'): void {
@@ -184,19 +192,22 @@ export class LeaveManagementComponent implements OnInit {
   handleReview(): void {
     if (!this.selectedRequest) return;
     const { action, notes } = this.reviewForm.value as { action: 'Approved' | 'Rejected'; notes: string };
-    this.leaveRequests = this.leaveRequests.map((req) =>
-      req.id === this.selectedRequest?.id
-        ? {
-            ...req,
-            status: action,
-            reviewedBy: 'Admin User',
-            reviewedDate: new Date().toISOString().split('T')[0],
-            reviewNotes: notes,
-          }
-        : req,
-    );
-    this.showReviewModal = false;
-    this.selectedRequest = null;
+    const requestId = Number(this.selectedRequest.id);
+    if (!Number.isFinite(requestId)) {
+      alert('Invalid request ID.');
+      return;
+    }
+    const status = action === 'Approved' ? 'APPROVED' : 'REJECTED';
+    this.attendanceService.approveRequest(requestId, status, notes).subscribe({
+      next: () => {
+        this.attendanceService.getLeaveRequests().subscribe((data) => (this.leaveRequests = data));
+        this.showReviewModal = false;
+        this.selectedRequest = null;
+      },
+      error: () => {
+        alert('Unable to update request. Please try again.');
+      },
+    });
   }
 
   getStatusColor(status: LeaveRequest['status']): string {

@@ -157,16 +157,21 @@ export class EmployeePortalComponent implements OnInit {
       reason: string;
     };
 
-    const request: OTRequest = {
-      id: `OT-${String(this.otRequests.length + 1).padStart(3, '0')}`,
+    this.hrmService.createOtRequest({
       date: value.date,
       hours: parseFloat(value.hours),
       reason: value.reason,
-      status: 'pending',
-    };
-
-    this.otRequests = [request, ...this.otRequests];
-    this.showOTModal = false;
+    }).subscribe({
+      next: () => {
+        this.hrmService.getOtRequests().subscribe((requests) => {
+          this.otRequests = requests;
+          this.showOTModal = false;
+        });
+      },
+      error: () => {
+        alert('Unable to submit OT request. Please try again.');
+      },
+    });
   }
 
   submitShiftRequest(): void {
@@ -180,16 +185,21 @@ export class EmployeePortalComponent implements OnInit {
       reason: string;
     };
 
-    const request: ShiftChangeRequest = {
-      id: `SH-${String(this.shiftRequests.length + 1).padStart(3, '0')}`,
+    this.hrmService.createShiftChangeRequest({
       currentDate: value.currentDate,
       requestedDate: value.requestedDate,
       reason: value.reason,
-      status: 'pending',
-    };
-
-    this.shiftRequests = [request, ...this.shiftRequests];
-    this.showShiftModal = false;
+    }).subscribe({
+      next: () => {
+        this.hrmService.getShiftChangeRequests().subscribe((requests) => {
+          this.shiftRequests = requests;
+          this.showShiftModal = false;
+        });
+      },
+      error: () => {
+        alert('Unable to submit shift request. Please try again.');
+      },
+    });
   }
 
   getStatusBadgeClasses(status: StatusBadge): string {
