@@ -1,5 +1,6 @@
 package org.example.ams_be.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,7 +26,7 @@ public class RequestsService {
     private final EmployeeRepository employeeRepository;
 
     @Transactional
-    public RequestsResponse create(RequestsUpsertRequest input) {
+    public RequestsResponse createDraft(RequestsUpsertRequest input) {
         if (input.startDatetime.isAfter(input.endDatetime)) {
             throw new IllegalArgumentException("Start time must be before end time");
         }
@@ -44,6 +45,22 @@ public class RequestsService {
         entity.setReason(input.reason);
         entity.setStartDatetime(input.startDatetime);
         entity.setEndDatetime(input.endDatetime);
+        entity.setStatus(RequestStatus.DRAFT); 
+
+        return mapToDto(requestRepository.save(entity));
+    }
+    
+    @Transactional
+    public RequestsResponse submit(Long id) {
+        Requests entity = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+
+        if (entity.getStatus() != RequestStatus.DRAFT) {
+            throw new IllegalStateException("Chỉ được nộp đơn khi đang ở trạng thái nháp");
+        }
+
+        entity.setStatus(RequestStatus.SUBMITTED); 
+        entity.setSubmittedAt(LocalDateTime.now()); 
 
         return mapToDto(requestRepository.save(entity));
     }
@@ -87,6 +104,9 @@ public class RequestsService {
         Requests request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
+        if (request.getStatus() != RequestStatus.SUBMITTED) {
+            throw new IllegalStateException("Đơn này hiện không ở trạng thái chờ duyệt (SUBMITTED).");
+        }
         org.example.ams_be.dto.EmployeeDto approverDto = employeeRepository.findById(approvalDto.approverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Approver not found"));
 
