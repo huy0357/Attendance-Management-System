@@ -35,7 +35,7 @@ public class RequestsController {
      * URL: POST /api/requests
      */
     @PutMapping("/{id}/submit")
-    public ResponseEntity<RequestsResponse> submitRequest(@PathVariable Long id) {
+    public ResponseEntity<RequestsResponse> submitRequest(@PathVariable("id") Long id) {
         return ResponseEntity.ok(requestsService.submit(id));
     }
     /**
@@ -43,7 +43,7 @@ public class RequestsController {
      * URL: GET /api/requests?employeeId=1
      */
     @GetMapping
-    public ResponseEntity<List<RequestsResponse>> getMyRequests(@RequestParam Long employeeId) {
+    public ResponseEntity<List<RequestsResponse>> getMyRequests(@RequestParam("employeeId") Long employeeId) {
         // Gọi service lấy list đơn
         return ResponseEntity.ok(requestsService.getMyRequests(employeeId));
     }
@@ -54,7 +54,7 @@ public class RequestsController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<RequestsResponse> update(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody RequestsUpsertRequest request) {
         return ResponseEntity.ok(requestsService.update(id, request));
     }
@@ -64,7 +64,7 @@ public class RequestsController {
      * URL: DELETE /api/requests/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         requestsService.delete(id);
         // Trả về 204 No Content (Thành công nhưng không có body)
         return ResponseEntity.noContent().build();
@@ -77,7 +77,7 @@ public class RequestsController {
     @PutMapping("/{id}/approval")
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<RequestsResponse> approveOrReject(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody RequestsApprovalRequest request) {
         return ResponseEntity.ok(requestsService.approveOrReject(id, request));
     }

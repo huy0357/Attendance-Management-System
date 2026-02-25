@@ -65,6 +65,7 @@ public class RequestsService {
         return mapToDto(requestRepository.save(entity));
     }
 
+    @Transactional
     public List<RequestsResponse> getMyRequests(Long employeeId) {
         return requestRepository.findByEmployee_EmployeeIdOrderByCreatedAtDesc(employeeId)
                 .stream().map(this::mapToDto).collect(Collectors.toList());
