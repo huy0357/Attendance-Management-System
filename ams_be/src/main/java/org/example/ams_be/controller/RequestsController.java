@@ -7,6 +7,7 @@ import org.example.ams_be.dto.response.RequestsResponse;
 import org.example.ams_be.service.RequestsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,22 +20,30 @@ public class RequestsController {
     private final RequestsService requestsService;
 
     /**
-     * 1. Tạo đơn mới
+     * 1A. Tạo đơn mới
      * URL: POST /api/requests
      */
     @PostMapping
     public ResponseEntity<RequestsResponse> create(@RequestBody RequestsUpsertRequest request) {
-        RequestsResponse createdRequest = requestsService.create(request);
+        RequestsResponse createdRequest = requestsService.createDraft(request);
         // Trả về mã 201 Created
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRequest);
     }
-
+    
+    /**
+     * 1B. Chuyển trạng thái đã nộp
+     * URL: POST /api/requests
+     */
+    @PutMapping("/{id}/submit")
+    public ResponseEntity<RequestsResponse> submitRequest(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(requestsService.submit(id));
+    }
     /**
      * 2. Lấy danh sách đơn của cá nhân
      * URL: GET /api/requests?employeeId=1
      */
     @GetMapping
-    public ResponseEntity<List<RequestsResponse>> getMyRequests(@RequestParam Long employeeId) {
+    public ResponseEntity<List<RequestsResponse>> getMyRequests(@RequestParam("employeeId") Long employeeId) {
         // Gọi service lấy list đơn
         return ResponseEntity.ok(requestsService.getMyRequests(employeeId));
     }
@@ -45,7 +54,7 @@ public class RequestsController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<RequestsResponse> update(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody RequestsUpsertRequest request) {
         return ResponseEntity.ok(requestsService.update(id, request));
     }
@@ -55,7 +64,7 @@ public class RequestsController {
      * URL: DELETE /api/requests/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         requestsService.delete(id);
         // Trả về 204 No Content (Thành công nhưng không có body)
         return ResponseEntity.noContent().build();
@@ -66,8 +75,9 @@ public class RequestsController {
      * URL: PUT /api/requests/{id}/approval
      */
     @PutMapping("/{id}/approval")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<RequestsResponse> approveOrReject(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody RequestsApprovalRequest request) {
         return ResponseEntity.ok(requestsService.approveOrReject(id, request));
     }
