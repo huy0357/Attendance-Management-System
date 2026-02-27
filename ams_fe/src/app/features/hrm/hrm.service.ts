@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { DepartmentDto, DepartmentRequest } from '../../shared/models/department.model';
+import { RequestsResponse, RequestsUpsertRequest } from '../../shared/models/requests.model';
 
 export interface EmployeeProfile {
   id: string;
@@ -54,6 +55,25 @@ export interface ShiftChangeRequest {
   requestedDate: string;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
+}
+
+interface EmployeeLookupDto {
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  email: string;
+}
+
+export interface CreateOtRequestPayload {
+  date: string;
+  hours: number;
+  reason: string;
+}
+
+export interface CreateShiftChangeRequestPayload {
+  currentDate: string;
+  requestedDate: string;
+  reason: string;
 }
 
 export type ContractType = 'permanent' | 'contract' | 'probation' | 'intern' | 'part-time';
@@ -239,6 +259,8 @@ export interface NewProcessPayload {
 export class HrmService {
   private readonly baseUrl = `${environment.apiBaseUrl}/hrm`;
   private readonly departmentsUrl = `${environment.apiBaseUrl}/departments`;
+  private readonly employeesUrl = `${environment.apiBaseUrl}/employees`;
+  private readonly requestsUrl = `${environment.apiBaseUrl}/requests`;
 
   constructor(private http: HttpClient) { }
 
@@ -391,6 +413,44 @@ export class HrmService {
     ]);
   }
 
+  createOtRequest(payload: CreateOtRequestPayload): Observable<RequestsResponse> {
+    return this.resolveCurrentEmployeeId().pipe(
+      switchMap((employeeId) => {
+        const upsertPayload: RequestsUpsertRequest = {
+          employeeId,
+          requestType: 'OVERTIME',
+          title: `Overtime (${payload.hours}h)`,
+          reason: payload.reason,
+          startDatetime: `${payload.date}T00:00:00`,
+          endDatetime: `${payload.date}T23:59:59`,
+        };
+        return this.http.post<RequestsResponse>(this.requestsUrl, upsertPayload);
+      }),
+      switchMap((created) =>
+        this.http.put<RequestsResponse>(`${this.requestsUrl}/${created.requestId}/submit`, null),
+      ),
+    );
+  }
+
+  createShiftChangeRequest(payload: CreateShiftChangeRequestPayload): Observable<RequestsResponse> {
+    return this.resolveCurrentEmployeeId().pipe(
+      switchMap((employeeId) => {
+        const upsertPayload: RequestsUpsertRequest = {
+          employeeId,
+          requestType: 'LATE_EARLY',
+          title: `Shift change ${payload.currentDate} -> ${payload.requestedDate}`,
+          reason: payload.reason,
+          startDatetime: `${payload.currentDate}T00:00:00`,
+          endDatetime: `${payload.requestedDate}T23:59:59`,
+        };
+        return this.http.post<RequestsResponse>(this.requestsUrl, upsertPayload);
+      }),
+      switchMap((created) =>
+        this.http.put<RequestsResponse>(`${this.requestsUrl}/${created.requestId}/submit`, null),
+      ),
+    );
+  }
+
   // TODO (NO API YET): Contracts endpoints are not available in ams_be. Replace with /api/hrm/contracts when ready.
   getContracts(): Observable<ContractRecord[]> {
     return of(this.getMockContracts());
@@ -413,6 +473,28 @@ export class HrmService {
       expiringSoon,
       expired: contracts.filter((contract) => contract.status === 'expired').length,
     });
+  }
+
+  private resolveCurrentEmployeeId(): Observable<number> {
+    const username = (localStorage.getItem('ams.username') || '').trim().toLowerCase();
+    if (!username) {
+      return throwError(() => new Error('Missing username in auth context.'));
+    }
+
+    return this.http.get<EmployeeLookupDto[]>(this.employeesUrl).pipe(
+      map((employees) => {
+        const match = employees.find((employee) => {
+          const email = employee.email?.toLowerCase() ?? '';
+          const fullName = employee.fullName?.toLowerCase() ?? '';
+          const employeeCode = employee.employeeCode?.toLowerCase() ?? '';
+          return email === username || fullName === username || employeeCode === username;
+        });
+        if (!match) {
+          throw new Error(`Employee not found for username '${username}'.`);
+        }
+        return match.employeeId;
+      }),
+    );
   }
 
   getContractHistory(contractId: string): Observable<ContractRenewal[]> {

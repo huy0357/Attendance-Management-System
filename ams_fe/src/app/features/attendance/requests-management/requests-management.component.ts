@@ -58,7 +58,7 @@ export class RequestsManagementComponent implements OnInit {
     }
     this.isLoading = true;
     this.attendanceService.getRequestsByEmployee(this.selectedEmployeeId).subscribe({
-      next: (data) => {
+      next: (data: RequestsResponse[]) => {
         this.requests = data;
         this.isLoading = false;
       },

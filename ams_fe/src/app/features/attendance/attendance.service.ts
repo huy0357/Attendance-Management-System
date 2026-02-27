@@ -1,7 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, forkJoin, of, throwError } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import {
+  RequestStatus,
+  RequestsApprovalRequest,
+  RequestsResponse,
+  RequestsUpsertRequest,
+} from '../../shared/models/requests.model';
 
 export interface LeaveRequest {
   id: string;
@@ -62,6 +69,8 @@ export interface Shift {
   startTime: string;
   endTime: string;
   type: 'morning' | 'afternoon' | 'night';
+  shiftId?: number;
+  workDate?: string;
   isAiGenerated?: boolean;
   hasConflict?: boolean;
 }
@@ -109,17 +118,68 @@ export interface CalculationRule {
 }
 
 export interface ShiftTemplateResponse {
-  id: number;
+  shiftId: number;
+  shiftCode: string;
   shiftName: string;
   startTime: string;
   endTime: string;
+  breakMinutes: number;
+  graceInMinutes: number;
+  graceOutMinutes: number;
+  isNightShift: boolean;
+  minWorkMinutes: number;
   isActive: boolean;
-  shiftType: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface EmployeeLookupDto {
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  email: string;
+}
+
+interface EmployeeScheduleDayResponseDto {
+  scheduleId: number;
+  employeeId: number;
+  workDate: string;
+  shiftId: number;
+  shiftCode: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  breakMinutes: number;
+  isNightShift: boolean;
+  scheduleSource: 'MANUAL' | 'IMPORT';
+  note?: string;
+}
+
+export interface AssignShiftRangeRequest {
+  employeeId: number;
+  shiftId: number;
+  startDate: string;
+  endDate: string;
+  scheduleSource: 'MANUAL' | 'IMPORT';
+  note?: string;
+  overwrite: boolean;
+}
+
+export interface AssignShiftRangeResponse {
+  employeeId: number;
+  shiftId: number;
+  startDate: string;
+  endDate: string;
+  created: number;
+  updated: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AttendanceService {
   private readonly baseUrl = `${environment.apiBaseUrl}/attendance`;
+  private readonly requestsUrl = `${environment.apiBaseUrl}/requests`;
+  private readonly employeesUrl = `${environment.apiBaseUrl}/employees`;
+  private readonly schedulesUrl = `${environment.apiBaseUrl}/v1/schedules`;
   private readonly shiftsUrl = `${environment.apiBaseUrl}/v1/shifts`;
 
   constructor(private http: HttpClient) { }
@@ -157,6 +217,60 @@ export class AttendanceService {
 
   deleteShiftTemplate(id: number): Observable<void> {
     return this.http.delete<void>(`${this.shiftsUrl}/${id}`);
+  }
+
+  findEmployeeByNameOrEmail(nameOrEmail: string, email?: string): Observable<EmployeeLookupDto | null> {
+    const nameQuery = nameOrEmail.trim().toLowerCase();
+    const emailQuery = (email ?? '').trim().toLowerCase();
+    return this.http.get<EmployeeLookupDto[]>(this.employeesUrl).pipe(
+      map((employees) => {
+        const matched = employees.find((employee) => {
+          const employeeName = employee.fullName?.toLowerCase() ?? '';
+          const employeeEmail = employee.email?.toLowerCase() ?? '';
+          return (
+            employeeName === nameQuery ||
+            employeeEmail === emailQuery ||
+            employeeEmail === nameQuery ||
+            employeeName.includes(nameQuery)
+          );
+        });
+        return matched ?? null;
+      }),
+    );
+  }
+
+  createRequest(payload: RequestsUpsertRequest): Observable<RequestsResponse> {
+    return this.http.post<RequestsResponse>(this.requestsUrl, payload);
+  }
+
+  approveRequest(requestId: number, status: RequestStatus, note?: string): Observable<RequestsResponse> {
+    return this.resolveEmployeeIdFromUsername().pipe(
+      switchMap((approverId) => {
+        const payload: RequestsApprovalRequest = {
+          approverId,
+          status,
+          decisionNote: note,
+        };
+        return this.http.put<RequestsResponse>(`${this.requestsUrl}/${requestId}/approval`, payload);
+      }),
+    );
+  }
+
+  getRequestsByEmployee(employeeId: number): Observable<RequestsResponse[]> {
+    const params = new HttpParams().set('employeeId', employeeId.toString());
+    return this.http.get<RequestsResponse[]>(this.requestsUrl, { params });
+  }
+
+  updateRequest(requestId: number, payload: RequestsUpsertRequest): Observable<RequestsResponse> {
+    return this.http.put<RequestsResponse>(`${this.requestsUrl}/${requestId}`, payload);
+  }
+
+  deleteRequest(requestId: number): Observable<void> {
+    return this.http.delete<void>(`${this.requestsUrl}/${requestId}`);
+  }
+
+  assignShiftRange(payload: AssignShiftRangeRequest): Observable<AssignShiftRangeResponse> {
+    return this.http.post<AssignShiftRangeResponse>(`${this.schedulesUrl}/assign-range`, payload);
   }
 
   // --- LEAVE & OT (MOCKS) ---
@@ -327,13 +441,49 @@ export class AttendanceService {
     ]);
   }
 
-  getInitialShifts(): Observable<Shift[]> {
-    return of([
-      { id: '1', employeeId: '1', employeeName: 'Sarah Chen', day: 0, startTime: '08:00', endTime: '16:00', type: 'morning' },
-      { id: '2', employeeId: '1', employeeName: 'Sarah Chen', day: 1, startTime: '08:00', endTime: '16:00', type: 'morning' },
-      { id: '3', employeeId: '2', employeeName: 'Michael Ross', day: 0, startTime: '12:00', endTime: '20:00', type: 'afternoon' },
-      { id: '4', employeeId: '3', employeeName: 'Emma Wilson', day: 2, startTime: '08:00', endTime: '16:00', type: 'morning' }
-    ]);
+  getInitialShifts(employeeIds: number[] = [], weekStart?: Date): Observable<Shift[]> {
+    if (employeeIds.length === 0) {
+      return of([]);
+    }
+
+    const normalizedWeekStart = this.normalizeStartOfDay(weekStart ?? new Date());
+    const weekDates = Array.from({ length: 7 }, (_, dayOffset) => {
+      const date = new Date(normalizedWeekStart);
+      date.setDate(normalizedWeekStart.getDate() + dayOffset);
+      return this.formatDate(date);
+    });
+
+    const requests = employeeIds.flatMap((employeeId) =>
+      weekDates.map((date) =>
+        this.http.get<EmployeeScheduleDayResponseDto[]>(`${this.schedulesUrl}/by-employee/day`, {
+          params: new HttpParams()
+            .set('employeeId', employeeId.toString())
+            .set('date', date),
+        }),
+      ),
+    );
+
+    return forkJoin(requests).pipe(
+      map((responses) =>
+        responses
+          .flat()
+          .map((item) => {
+            const day = this.diffDays(normalizedWeekStart, item.workDate);
+            return {
+              id: item.scheduleId.toString(),
+              employeeId: item.employeeId.toString(),
+              employeeName: '',
+              day,
+              startTime: this.toHourMinute(item.startTime),
+              endTime: this.toHourMinute(item.endTime),
+              type: this.deriveShiftType(item.isNightShift, item.startTime),
+              shiftId: item.shiftId,
+              workDate: item.workDate,
+            } satisfies Shift;
+          })
+          .filter((item) => item.day >= 0 && item.day <= 6),
+      ),
+    );
   }
 
   getCalculationRules(): Observable<CalculationRule[]> {
@@ -566,5 +716,61 @@ export class AttendanceService {
         },
       },
     ]);
+  }
+
+  private resolveEmployeeIdFromUsername(): Observable<number> {
+    const username = (localStorage.getItem('ams.username') || '').trim().toLowerCase();
+    if (!username) {
+      return throwError(() => new Error('Missing username in auth context.'));
+    }
+
+    return this.http.get<EmployeeLookupDto[]>(this.employeesUrl).pipe(
+      map((employees) => {
+        const match = employees.find((employee) => {
+          const name = employee.fullName?.toLowerCase() ?? '';
+          const email = employee.email?.toLowerCase() ?? '';
+          const code = employee.employeeCode?.toLowerCase() ?? '';
+          return email === username || name === username || code === username;
+        });
+        if (!match) {
+          throw new Error(`Employee not found for username '${username}'.`);
+        }
+        return match.employeeId;
+      }),
+    );
+  }
+
+  private toHourMinute(value: string): string {
+    return value ? value.substring(0, 5) : '';
+  }
+
+  private deriveShiftType(isNightShift: boolean, startTime: string): Shift['type'] {
+    if (isNightShift) {
+      return 'night';
+    }
+    const hour = Number((startTime || '').split(':')[0]);
+    if (!Number.isFinite(hour)) {
+      return 'morning';
+    }
+    return hour < 12 ? 'morning' : 'afternoon';
+  }
+
+  private normalizeStartOfDay(date: Date): Date {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }
+
+  private formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private diffDays(weekStart: Date, workDate: string): number {
+    const work = new Date(`${workDate}T00:00:00`);
+    const diffMs = work.getTime() - weekStart.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
   }
 }
