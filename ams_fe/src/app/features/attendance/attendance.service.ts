@@ -313,121 +313,17 @@ export class AttendanceService {
   }
 
   getOtRequests(): Observable<OtRequest[]> {
-    return of([
-      {
-        id: 'OT-001',
-        employeeId: 'EMP-042',
-        employeeName: 'John Smith',
-        employeeAvatar: 'JS',
-        department: 'Engineering',
-        position: 'Senior Developer',
-        date: '2026-01-25',
-        hours: 3,
-        reason: 'Critical project deadline - need to complete authentication module',
-        status: 'pending',
-        submittedDate: '2026-01-22',
-        estimatedPay: 150.0,
-      },
-      {
-        id: 'OT-002',
-        employeeId: 'EMP-015',
-        employeeName: 'Alice Johnson',
-        employeeAvatar: 'AJ',
-        department: 'Engineering',
-        position: 'Developer',
-        date: '2026-01-24',
-        hours: 2,
-        reason: 'System maintenance and database optimization',
-        status: 'pending',
-        submittedDate: '2026-01-21',
-        estimatedPay: 90.0,
-      },
-      {
-        id: 'OT-003',
-        employeeId: 'EMP-028',
-        employeeName: 'Bob Williams',
-        employeeAvatar: 'BW',
-        department: 'Operations',
-        position: 'Operations Specialist',
-        date: '2026-01-23',
-        hours: 4,
-        reason: 'End of month reporting and data reconciliation',
-        status: 'approved',
-        submittedDate: '2026-01-20',
-        reviewedBy: 'Sarah Chen',
-        reviewedDate: '2026-01-20',
-        reviewNotes: 'Approved - critical month-end tasks',
-        estimatedPay: 180.0,
-      },
-      {
-        id: 'OT-004',
-        employeeId: 'EMP-055',
-        employeeName: 'Carol Davis',
-        employeeAvatar: 'CD',
-        department: 'Sales',
-        position: 'Sales Representative',
-        date: '2026-01-22',
-        hours: 2.5,
-        reason: 'Client presentation preparation',
-        status: 'approved',
-        submittedDate: '2026-01-19',
-        reviewedBy: 'Michael Ross',
-        reviewedDate: '2026-01-19',
-        reviewNotes: 'Approved - important client meeting',
-        estimatedPay: 112.5,
-      },
-      {
-        id: 'OT-005',
-        employeeId: 'EMP-033',
-        employeeName: 'David Martinez',
-        employeeAvatar: 'DM',
-        department: 'IT',
-        position: 'IT Support',
-        date: '2026-01-20',
-        hours: 1.5,
-        reason: 'Server upgrade after hours',
-        status: 'rejected',
-        submittedDate: '2026-01-18',
-        reviewedBy: 'Sarah Chen',
-        reviewedDate: '2026-01-18',
-        reviewNotes: 'Rejected - can be done during regular hours with planning',
-        estimatedPay: 67.5,
-      },
-      {
-        id: 'OT-006',
-        employeeId: 'EMP-042',
-        employeeName: 'John Smith',
-        employeeAvatar: 'JS',
-        department: 'Engineering',
-        position: 'Senior Developer',
-        date: '2026-01-20',
-        hours: 2,
-        reason: 'System maintenance',
-        status: 'approved',
-        submittedDate: '2026-01-17',
-        reviewedBy: 'Sarah Chen',
-        reviewedDate: '2026-01-17',
-        reviewNotes: 'Approved',
-        estimatedPay: 100.0,
-      },
-      {
-        id: 'OT-007',
-        employeeId: 'EMP-042',
-        employeeName: 'John Smith',
-        employeeAvatar: 'JS',
-        department: 'Engineering',
-        position: 'Senior Developer',
-        date: '2026-01-18',
-        hours: 1.5,
-        reason: 'Client demo preparation',
-        status: 'approved',
-        submittedDate: '2026-01-15',
-        reviewedBy: 'Sarah Chen',
-        reviewedDate: '2026-01-15',
-        reviewNotes: 'Approved',
-        estimatedPay: 75.0,
-      }
-    ]);
+    return this.resolveEmployeeIdFromUsername().pipe(
+      switchMap((employeeId) => {
+        const params = new HttpParams().set('employeeId', employeeId.toString());
+        return this.http.get<RequestsResponse[]>(this.requestsUrl, { params });
+      }),
+      map((requests) =>
+        requests
+          .filter((request) => request.requestType === 'OVERTIME')
+          .map((request) => this.mapRequestToOt(request)),
+      ),
+    );
   }
 
   getScheduleEmployees(): Observable<ScheduleEmployee[]> {
@@ -738,6 +634,61 @@ export class AttendanceService {
         return match.employeeId;
       }),
     );
+  }
+
+  private mapRequestToOt(request: RequestsResponse): OtRequest {
+    const employeeName = request.employeeName ?? '';
+    return {
+      id: String(request.requestId),
+      employeeId: String(request.employeeId ?? ''),
+      employeeName,
+      employeeAvatar: this.toInitials(employeeName),
+      department: '',
+      position: '',
+      date: request.startDatetime ?? request.endDatetime ?? request.submittedAt ?? '',
+      hours: this.calculateHours(request.startDatetime, request.endDatetime),
+      reason: request.reason ?? '',
+      status: this.mapRequestStatus(request.status),
+      submittedDate: request.submittedAt ?? request.startDatetime ?? '',
+      reviewedBy: request.approverName ?? undefined,
+      reviewNotes: request.decisionNote ?? undefined,
+      estimatedPay: undefined,
+    };
+  }
+
+  private mapRequestStatus(status: RequestStatus): OtRequest['status'] {
+    if (status === 'APPROVED') {
+      return 'approved';
+    }
+    if (status === 'REJECTED' || status === 'CANCELLED') {
+      return 'rejected';
+    }
+    return 'pending';
+  }
+
+  private calculateHours(start?: string, end?: string): number {
+    if (!start || !end) {
+      return 0;
+    }
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return 0;
+    }
+    const diffMs = endDate.getTime() - startDate.getTime();
+    if (diffMs <= 0) {
+      return 0;
+    }
+    return Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+  }
+
+  private toInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) {
+      return '';
+    }
+    const initials = parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '');
+    return initials.join('');
   }
 
   private toHourMinute(value: string): string {

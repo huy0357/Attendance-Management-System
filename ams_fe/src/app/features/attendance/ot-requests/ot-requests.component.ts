@@ -1,6 +1,30 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { AttendanceService, OtRequest } from '../attendance.service';
+import { RequestsService } from '../../../core/services/requests.service';
+import { AuthService } from '../../../core/auth/auth.service';
+import { AccountService } from '../../../core/services/account.service';
+import { RequestsApprovalRequest, RequestsResponse } from '../../../shared/models/requests.model';
+import { map, switchMap } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+
+interface OtRequest {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeAvatar: string;
+  department: string;
+  position: string;
+  date: string;
+  hours: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedDate: string;
+  reviewedBy?: string;
+  reviewedDate?: string;
+  reviewNotes?: string;
+  estimatedPay?: number;
+}
 
 @Component({
   standalone: false,
@@ -11,6 +35,7 @@ import { AttendanceService, OtRequest } from '../attendance.service';
 export class OtRequestsComponent implements OnInit {
   requests: OtRequest[] = [];
   filteredRequests: OtRequest[] = [];
+  errorMessage: string | null = null;
 
   filterForm: FormGroup;
   reviewForm: FormGroup;
@@ -22,7 +47,12 @@ export class OtRequestsComponent implements OnInit {
 
   readonly statuses = ['All Status', 'Pending', 'Approved', 'Rejected'];
 
-  constructor(private attendanceService: AttendanceService, private fb: FormBuilder) {
+  constructor(
+    private requestsService: RequestsService,
+    private authService: AuthService,
+    private accountService: AccountService,
+    private fb: FormBuilder,
+  ) {
     this.filterForm = this.fb.group({
       searchQuery: [''],
       status: ['All Status'],
@@ -34,10 +64,7 @@ export class OtRequestsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.attendanceService.getOtRequests().subscribe((data) => {
-      this.requests = data;
-      this.applyFilters();
-    });
+    this.loadRequests();
 
     this.filterForm.valueChanges.subscribe(() => this.applyFilters());
   }
@@ -130,16 +157,21 @@ export class OtRequestsComponent implements OnInit {
       return;
     }
     const status = this.reviewAction === 'approve' ? 'APPROVED' : 'REJECTED';
-    this.attendanceService.approveRequest(requestId, status, notes).subscribe({
+    this.resolveEmployeeId().pipe(
+      switchMap((approverId) => {
+        const payload: RequestsApprovalRequest = {
+          approverId,
+          status,
+          decisionNote: notes,
+        };
+        return this.requestsService.approveOrReject(requestId, payload);
+      }),
+    ).subscribe({
       next: () => {
-        this.attendanceService.getOtRequests().subscribe((data) => {
-          this.requests = data;
-          this.applyFilters();
-          this.closeReviewModal();
-        });
+        this.loadRequests(() => this.closeReviewModal());
       },
-      error: () => {
-        alert('Unable to update request. Please try again.');
+      error: (error: HttpErrorResponse) => {
+        alert(this.resolveErrorMessage(error, 'Unable to update request. Please try again.'));
       },
     });
   }
@@ -174,5 +206,139 @@ export class OtRequestsComponent implements OnInit {
   formatDate(dateValue: string): string {
     return new Date(dateValue).toLocaleDateString();
   }
-}
 
+  private loadRequests(afterLoad?: () => void): void {
+    this.requests = [];
+    this.filteredRequests = [];
+    this.errorMessage = null;
+
+    this.resolveEmployeeId().pipe(
+      switchMap((employeeId) => this.requestsService.getOvertimeRequests(employeeId)),
+    ).subscribe({
+      next: (data) => {
+        this.requests = data.map((request) => this.mapRequestToOt(request));
+        this.applyFilters();
+        if (afterLoad) {
+          afterLoad();
+        }
+      },
+      error: (error: HttpErrorResponse) => {
+        this.requests = [];
+        this.filteredRequests = [];
+        const message = this.resolveErrorMessage(error, 'Unable to load OT requests.');
+        this.errorMessage = message;
+        alert(message);
+      },
+    });
+  }
+
+  private resolveEmployeeId(): Observable<number> {
+    const username = this.getEffectiveUsername();
+    if (!username) {
+      this.errorMessage = 'Kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c employeeId \u0111\u1ec3 t\u1ea3i y\u00eau c\u1ea7u.';
+      return throwError(() => new Error('Missing username in auth context.'));
+    }
+
+    return this.accountService.findByUsername(username).pipe(
+      map((account) => {
+        const employeeId = account?.employeeId;
+        if (!employeeId) {
+          throw new Error('Employee not found for username.');
+        }
+        return employeeId;
+      }),
+    );
+  }
+
+  private getEffectiveUsername(): string | null {
+    const stored = (this.authService.getUsername() || '').trim();
+    if (stored) {
+      return stored;
+    }
+    const token = this.authService.getAccessToken();
+    if (!token) {
+      return null;
+    }
+    const parts = token.split('.');
+    if (parts.length < 2) {
+      return null;
+    }
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    try {
+      const json = atob(padded);
+      const payload = JSON.parse(json) as { sub?: string; username?: string; email?: string };
+      return (payload.username || payload.email || payload.sub || '').trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  private mapRequestToOt(request: RequestsResponse): OtRequest {
+    const employeeName = request.employeeName ?? '';
+    return {
+      id: String(request.requestId),
+      employeeId: String(request.employeeId ?? ''),
+      employeeName,
+      employeeAvatar: this.toInitials(employeeName),
+      department: '',
+      position: '',
+      date: request.startDatetime ?? request.endDatetime ?? request.submittedAt ?? '',
+      hours: this.calculateHours(request.startDatetime, request.endDatetime),
+      reason: request.reason ?? '',
+      status: this.mapRequestStatus(request.status),
+      submittedDate: request.submittedAt ?? request.startDatetime ?? '',
+      reviewedBy: request.approverName ?? undefined,
+      reviewNotes: request.decisionNote ?? undefined,
+      estimatedPay: undefined,
+    };
+  }
+
+  private mapRequestStatus(status: RequestsResponse['status']): OtRequest['status'] {
+    if (status === 'APPROVED') {
+      return 'approved';
+    }
+    if (status === 'REJECTED' || status === 'CANCELLED') {
+      return 'rejected';
+    }
+    return 'pending';
+  }
+
+  private calculateHours(start?: string, end?: string): number {
+    if (!start || !end) {
+      return 0;
+    }
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return 0;
+    }
+    const diffMs = endDate.getTime() - startDate.getTime();
+    if (diffMs <= 0) {
+      return 0;
+    }
+    return Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+  }
+
+  private toInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) {
+      return '';
+    }
+    const initials = parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '');
+    return initials.join('');
+  }
+
+  private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
+    if (error.status === 403) {
+      return 'Kh\u00f4ng c\u00f3 quy\u1ec1n';
+    }
+    if (error.status === 400 || error.status === 422) {
+      return error.error?.message || error.error?.error || fallback;
+    }
+    if (error.status >= 500) {
+      return 'C\u00f3 l\u1ed7i x\u1ea3y ra. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+    }
+    return fallback;
+  }
+}

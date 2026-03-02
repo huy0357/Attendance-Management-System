@@ -268,8 +268,8 @@ export class HrmService {
   getEmployeeProfile(): Observable<EmployeeProfile> {
     return of({
       id: 'EMP-042',
-      name: 'John Smith',
-      email: 'john.smith@company.com',
+      name: 'Employee One',
+      email: 'employee.one@company.com',
       department: 'Engineering',
       position: 'Senior Developer',
       joinDate: '2023-06-15',
@@ -369,29 +369,18 @@ export class HrmService {
   }
 
   getOtRequests(): Observable<OTRequest[]> {
-    return of([
-      {
-        id: 'OT-001',
-        date: '2026-01-25',
-        hours: 3,
-        reason: 'Critical project deadline',
-        status: 'approved',
-      },
-      {
-        id: 'OT-002',
-        date: '2026-01-20',
-        hours: 2,
-        reason: 'System maintenance',
-        status: 'approved',
-      },
-      {
-        id: 'OT-003',
-        date: '2026-01-18',
-        hours: 1.5,
-        reason: 'Client demo preparation',
-        status: 'pending',
-      },
-    ]);
+    return this.resolveCurrentEmployeeId().pipe(
+      switchMap((employeeId) =>
+        this.http.get<RequestsResponse[]>(this.requestsUrl, {
+          params: { employeeId: employeeId.toString() },
+        }),
+      ),
+      map((requests) =>
+        requests
+          .filter((request) => request.requestType === 'OVERTIME')
+          .map((request) => this.mapRequestToOt(request)),
+      ),
+    );
   }
 
   getShiftChangeRequests(): Observable<ShiftChangeRequest[]> {
@@ -495,6 +484,42 @@ export class HrmService {
         return match.employeeId;
       }),
     );
+  }
+
+  private mapRequestToOt(request: RequestsResponse): OTRequest {
+    return {
+      id: String(request.requestId),
+      date: request.startDatetime ?? request.endDatetime ?? request.submittedAt ?? '',
+      hours: this.calculateHours(request.startDatetime, request.endDatetime),
+      reason: request.reason ?? '',
+      status: this.mapRequestStatus(request.status),
+    };
+  }
+
+  private mapRequestStatus(status: RequestsResponse['status']): OTRequest['status'] {
+    if (status === 'APPROVED') {
+      return 'approved';
+    }
+    if (status === 'REJECTED' || status === 'CANCELLED') {
+      return 'rejected';
+    }
+    return 'pending';
+  }
+
+  private calculateHours(start?: string, end?: string): number {
+    if (!start || !end) {
+      return 0;
+    }
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return 0;
+    }
+    const diffMs = endDate.getTime() - startDate.getTime();
+    if (diffMs <= 0) {
+      return 0;
+    }
+    return Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
   }
 
   getContractHistory(contractId: string): Observable<ContractRenewal[]> {
@@ -819,7 +844,7 @@ export class HrmService {
     return [
       {
         id: 'ceo',
-        name: 'John Smith',
+        name: 'Employee One',
         title: 'CEO',
         avatar: 'JS',
         departmentId: 'executive',

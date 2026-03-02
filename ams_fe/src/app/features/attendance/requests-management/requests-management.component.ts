@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AttendanceService } from '../attendance.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { RequestsService } from '../../../core/services/requests.service';
 import { EmployeeService, EmployeeDto } from '../../hrm/employees/employee.service';
 import { RequestsResponse } from '../../../shared/models/requests.model';
 
@@ -23,7 +24,7 @@ export class RequestsManagementComponent implements OnInit {
   selectedRequestId: number | null = null;
 
   constructor(
-    private attendanceService: AttendanceService,
+    private requestsService: RequestsService,
     private employeeService: EmployeeService,
     private fb: FormBuilder,
   ) {
@@ -57,14 +58,16 @@ export class RequestsManagementComponent implements OnInit {
       return;
     }
     this.isLoading = true;
-    this.attendanceService.getRequestsByEmployee(this.selectedEmployeeId).subscribe({
+    this.errorMessage = '';
+    this.requestsService.getMyRequests(this.selectedEmployeeId).subscribe({
       next: (data: RequestsResponse[]) => {
         this.requests = data;
         this.isLoading = false;
       },
-      error: () => {
+      error: (error: HttpErrorResponse) => {
         this.requests = [];
         this.isLoading = false;
+        this.handleError(error, 'Unable to load requests.');
       },
     });
   }
@@ -97,7 +100,8 @@ export class RequestsManagementComponent implements OnInit {
       startDatetime: string;
       endDatetime: string;
     };
-    this.attendanceService.updateRequest(this.selectedRequestId, {
+    this.errorMessage = '';
+    this.requestsService.updateRequest(this.selectedRequestId, {
       employeeId: this.selectedEmployeeId,
       requestType: value.requestType,
       title: value.title,
@@ -110,8 +114,8 @@ export class RequestsManagementComponent implements OnInit {
         this.selectedRequestId = null;
         this.onSelectEmployee();
       },
-      error: () => {
-        this.errorMessage = 'Unable to update request.';
+      error: (error: HttpErrorResponse) => {
+        this.handleError(error, 'Unable to update request.');
       },
     });
   }
@@ -119,12 +123,13 @@ export class RequestsManagementComponent implements OnInit {
   deleteRequest(request: RequestsResponse): void {
     const confirmed = window.confirm(`Delete request ${request.requestId}?`);
     if (!confirmed) return;
-    this.attendanceService.deleteRequest(request.requestId).subscribe({
+    this.errorMessage = '';
+    this.requestsService.deleteRequest(request.requestId).subscribe({
       next: () => {
         this.onSelectEmployee();
       },
-      error: () => {
-        this.errorMessage = 'Unable to delete request.';
+      error: (error: HttpErrorResponse) => {
+        this.handleError(error, 'Unable to delete request.');
       },
     });
   }
@@ -132,5 +137,22 @@ export class RequestsManagementComponent implements OnInit {
   private toDatetimeLocal(value: string): string {
     if (!value) return '';
     return value.replace('Z', '').substring(0, 16);
+  }
+
+  private handleError(error: HttpErrorResponse, fallback: string): void {
+    if (error.status === 403) {
+      this.errorMessage = 'Không có quyền';
+      return;
+    }
+    if (error.status === 400 || error.status === 422) {
+      const message = error.error?.message || error.error?.error;
+      this.errorMessage = message || fallback;
+      return;
+    }
+    if (error.status >= 500) {
+      this.errorMessage = 'Có lỗi xảy ra. Vui lòng thử lại.';
+      return;
+    }
+    this.errorMessage = fallback;
   }
 }
