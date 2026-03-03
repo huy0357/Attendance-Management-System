@@ -1,6 +1,5 @@
 package org.example.ams_be.entity;
 
-import org.example.ams_be.dto.EmployeeDto;
 import org.example.ams_be.enums.RequestStatus;
 import org.example.ams_be.enums.RequestType;
 
