@@ -6,9 +6,15 @@ import { LeaveManagementComponent } from './leave-management/leave-management.co
 import { OtRequestsComponent } from './ot-requests/ot-requests.component';
 import { ShiftTemplatesComponent } from './shift-templates/shift-templates.component';
 import { RequestsManagementComponent } from './requests-management/requests-management.component';
+import { RoleGuard } from '../../core/auth/role.guard';
 
 const routes: Routes = [
-  { path: 'scheduling', component: SchedulingComponent },
+  {
+    path: 'scheduling',
+    component: SchedulingComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN'] },
+  },
   { path: 'shift-templates', component: ShiftTemplatesComponent },
   { path: 'time-calculation', component: TimeCalculationComponent },
   { path: 'leave-management', component: LeaveManagementComponent },

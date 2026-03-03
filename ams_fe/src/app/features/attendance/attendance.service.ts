@@ -59,6 +59,7 @@ export interface ScheduleEmployee {
   id: string;
   name: string;
   department: string;
+  employeeCode?: string;
 }
 
 export interface Shift {
@@ -209,8 +210,8 @@ export class AttendanceService {
     return this.http.put<ShiftTemplateResponse>(`${this.shiftsUrl}/${id}`, shift);
   }
 
-  setShiftTemplateActive(id: number, active: boolean): Observable<void> {
-    return this.http.patch<void>(`${this.shiftsUrl}/${id}/active`, null, {
+  setShiftTemplateActive(id: number, active: boolean): Observable<ShiftTemplateResponse> {
+    return this.http.patch<ShiftTemplateResponse>(`${this.shiftsUrl}/${id}/active`, null, {
       params: { active: active.toString() }
     });
   }
@@ -327,14 +328,27 @@ export class AttendanceService {
   }
 
   getScheduleEmployees(): Observable<ScheduleEmployee[]> {
-    return of([
-      { id: '1', name: 'Sarah Chen', department: 'Operations' },
-      { id: '2', name: 'Michael Ross', department: 'Operations' },
-      { id: '3', name: 'Emma Wilson', department: 'Customer Service' },
-      { id: '4', name: 'James Kim', department: 'Customer Service' },
-      { id: '5', name: 'Lisa Wong', department: 'Sales' },
-      { id: '6', name: 'David Kumar', department: 'Sales' }
-    ]);
+    return this.http.get<EmployeeLookupDto[]>(this.employeesUrl).pipe(
+      map((employees) =>
+        employees.map((employee) => ({
+          id: String(employee.employeeId),
+          name: employee.fullName ?? '',
+          department: '',
+          employeeCode: employee.employeeCode ?? '',
+        })),
+      ),
+    );
+  }
+
+  getScheduleByEmployeeDay(employeeId: number, date: string): Observable<EmployeeScheduleDayResponseDto[]> {
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      return throwError(() => new Error('employeeId must be a positive integer.'));
+    }
+    return this.http.get<EmployeeScheduleDayResponseDto[]>(`${this.schedulesUrl}/by-employee/day`, {
+      params: new HttpParams()
+        .set('employeeId', employeeId.toString())
+        .set('date', date),
+    });
   }
 
   getInitialShifts(employeeIds: number[] = [], weekStart?: Date): Observable<Shift[]> {

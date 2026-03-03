@@ -51,7 +51,7 @@ export class AdminLayoutComponent {
     { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user' },
     { label: 'Departments', path: '/hrm/departments', icon: 'building', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Contracts', path: '/hrm/contracts', icon: 'file-text', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar' },
+    { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar', requiredRoles: ['ADMIN'] },
     { label: 'Shift Templates', path: '/attendance/shift-templates', icon: 'calendar' },
     { label: 'Time & Attendance', path: '/attendance/time-calculation', icon: 'clock' },
     { label: 'Leave Management', path: '/attendance/leave-management', icon: 'clipboard-check' },
