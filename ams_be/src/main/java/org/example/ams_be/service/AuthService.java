@@ -14,15 +14,18 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final TokenStore tokenStore;
+    private final AuditLogService auditLogService;
 
     public AuthService(AccountRepository accountRepo,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
-                       TokenStore tokenStore) {
+                       TokenStore tokenStore,
+                       AuditLogService auditLogService) {
         this.accountRepo = accountRepo;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.tokenStore = tokenStore;
+        this.auditLogService = auditLogService;
     }
 
     public AuthResponse login(String username, String password) {
@@ -49,7 +52,11 @@ public class AuthService {
 
         tokenStore.storeRefreshToken(username, refresh, jwtUtil.getRefreshTtlSeconds());
 
-        return new AuthResponse(access, refresh, jwtUtil.getAccessTtlSeconds(), username, role);
+        Long empId = acc.getEmployeeId();
+        auditLogService.saveAuditLog("LOGIN", "ACCOUNT", acc.getAccountId(), empId, null, "Login successful");
+        
+        AuthResponse response = new AuthResponse(access, refresh, jwtUtil.getAccessTtlSeconds(), username, role);
+        return response;
     }
 
 
@@ -102,6 +109,17 @@ public class AuthService {
             return;
         }
         String username = jwtUtil.getUsername(refreshToken);
+        Account acc = accountRepo.findByUsername(username).orElse(null);
+        if (acc != null) {
+            Long actorId = (acc.getEmployeeId() != null) ? acc.getEmployeeId() : null;
+            auditLogService.saveAuditLog(
+                    "LOGOUT",
+                    "ACCOUNT",
+                    acc.getAccountId(),
+                    actorId,
+                    "Username: " + username,
+                    "Logout successful");
+        }
         tokenStore.revoke(username, refreshToken);
     }
 }

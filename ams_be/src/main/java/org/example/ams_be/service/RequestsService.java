@@ -24,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 public class RequestsService {
     private final RequestRepository requestRepository;
     private final EmployeeRepository employeeRepository;
+    private final AuditLogService auditLogService;
+
 
     @Transactional
     public RequestsResponse createDraft(RequestsUpsertRequest input) {
@@ -38,37 +40,41 @@ public class RequestsService {
         employeeRef.setEmployeeId(empDto.employeeId);
 
         Requests entity = new Requests();
-        entity.setEmployee(employeeRef); 
-
+        entity.setEmployee(employeeRef);
         entity.setRequestType(input.requestType);
         entity.setTitle(input.title);
         entity.setReason(input.reason);
         entity.setStartDatetime(input.startDatetime);
         entity.setEndDatetime(input.endDatetime);
-        entity.setStatus(RequestStatus.DRAFT); 
+        entity.setStatus(RequestStatus.DRAFT);
 
-        return mapToDto(requestRepository.save(entity));
+        Requests saved = requestRepository.save(entity);
+        RequestsResponse response = mapToDto(saved);
+        auditLogService.saveAuditLog("CREATE", "REQUEST", saved.getRequestId(), input.employeeId, null, response);
+        return response;
     }
-    
+
     @Transactional
     public RequestsResponse submit(Long id) {
         Requests entity = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
+        RequestsResponse oldDto = mapToDto(entity);
+
         if (entity.getStatus() != RequestStatus.DRAFT) {
             throw new IllegalStateException("Chỉ được nộp đơn khi đang ở trạng thái nháp");
         }
 
-        entity.setStatus(RequestStatus.SUBMITTED); 
-        entity.setSubmittedAt(LocalDateTime.now()); 
+        entity.setStatus(RequestStatus.SUBMITTED);
+        entity.setSubmittedAt(LocalDateTime.now());
 
-        return mapToDto(requestRepository.save(entity));
-    }
+        Requests saved = requestRepository.save(entity);
+        RequestsResponse newDto = mapToDto(saved);
 
-    @Transactional
-    public List<RequestsResponse> getMyRequests(Long employeeId) {
-        return requestRepository.findByEmployee_EmployeeIdOrderByCreatedAtDesc(employeeId)
-                .stream().map(this::mapToDto).collect(Collectors.toList());
+        // Ghi Log: Hành động nộp đơn
+        auditLogService.saveAuditLog("SUBMIT", "REQUEST", id, newDto.employeeId, oldDto, newDto);
+
+        return newDto;
     }
 
     @Transactional
@@ -76,7 +82,9 @@ public class RequestsService {
         Requests request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
-        if (request.getStatus() != RequestStatus.SUBMITTED) {
+        RequestsResponse oldDto = mapToDto(request);
+
+        if (request.getStatus() != RequestStatus.DRAFT && request.getStatus() != RequestStatus.SUBMITTED) {
             throw new IllegalStateException("Cannot update request that is already processed");
         }
 
@@ -86,18 +94,25 @@ public class RequestsService {
         request.setEndDatetime(input.endDatetime);
         request.setRequestType(input.requestType);
 
-        return mapToDto(requestRepository.save(request));
+        Requests saved = requestRepository.save(request);
+        RequestsResponse newDto = mapToDto(saved);
+        auditLogService.saveAuditLog("UPDATE", "REQUEST", requestId, newDto.employeeId, oldDto, newDto);
+
+        return newDto;
     }
 
     @Transactional
     public void delete(Long requestId) {
         Requests request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
-        
+
         if (request.getStatus() != RequestStatus.DRAFT) {
             throw new IllegalStateException("Cannot delete request that is already processed");
         }
+
+        RequestsResponse oldDto = mapToDto(request);
         requestRepository.delete(request);
+        auditLogService.saveAuditLog("DELETE", "REQUEST", requestId, oldDto.employeeId, oldDto, null);
     }
 
     @Transactional
@@ -108,24 +123,36 @@ public class RequestsService {
         if (request.getStatus() != RequestStatus.SUBMITTED) {
             throw new IllegalStateException("Đơn này hiện không ở trạng thái chờ duyệt (SUBMITTED).");
         }
-        org.example.ams_be.dto.EmployeeDto approverDto = employeeRepository.findById(approvalDto.approverId)
-                .orElseThrow(() -> new ResourceNotFoundException("Approver not found"));
+
+        RequestsResponse oldDto = mapToDto(request);
 
         Employee approverRef = new Employee();
-        approverRef.setEmployeeId(approverDto.employeeId);
+        approverRef.setEmployeeId(approvalDto.approverId);
 
         request.setStatus(approvalDto.status);
         request.setApprover(approverRef);
         request.setDecisionNote(approvalDto.decisionNote);
 
-        return mapToDto(requestRepository.save(request));
+        Requests savedRequest = requestRepository.save(request);
+        RequestsResponse newDto = mapToDto(savedRequest);
+        auditLogService.saveAuditLog(approvalDto.status.name(), "REQUEST", requestId, approvalDto.approverId, oldDto, newDto);
+
+        return newDto;
+    }
+
+    @Transactional
+    public List<RequestsResponse> getMyRequests(Long employeeId) {
+        return requestRepository.findByEmployee_EmployeeIdOrderByCreatedAtDesc(employeeId)
+                .stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     private RequestsResponse mapToDto(Requests entity) {
         RequestsResponse dto = new RequestsResponse();
         dto.requestId = entity.getRequestId();
-        dto.employeeId = entity.getEmployee().getEmployeeId();
-        dto.employeeName = entity.getEmployee().getFullName();
+        if (entity.getEmployee() != null) {
+            dto.employeeId = entity.getEmployee().getEmployeeId();
+            dto.employeeName = entity.getEmployee().getFullName();
+        }
         dto.requestType = entity.getRequestType();
         dto.title = entity.getTitle();
         dto.reason = entity.getReason();
@@ -142,4 +169,3 @@ public class RequestsService {
         return dto;
     }
 }
-
