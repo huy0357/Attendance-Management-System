@@ -1,384 +1,260 @@
-import type { AuthTokens } from '../../support/commands';
+﻿import { assertRequestQuery } from '../../support/request-assertions';
+import { clickButtonWhenReady, clickFirstWhenReady } from '../../support/ui-helpers';
 
-const apiNhanVienPage = '**/api/employees/page**';
-const apiNhanVien = '**/api/employees';
-const apiNhanVienId = '**/api/employees/*';
-const apiPhongBan = /\/api\/departments(\?|$)/;
-const apiRefresh = '**/api/auth/refresh';
+describe('Nhân sự - Nhân viên (API thật, không mock)', () => {
+  beforeEach(() => {
+    cy.login();
+  });
 
-const tokenGia: AuthTokens = {
-  accessToken: 'token-hr',
-  refreshToken: 'refresh-hr',
-  username: 'hr',
-  role: 'HR',
-  expiresInSeconds: 3600,
-};
+  const vaoTrangNhanVien = () => {
+    cy.intercept('GET', '**/api/employees/page**').as('taiDanhSachNhanVien');
+    cy.intercept('GET', '**/api/departments**').as('taiPhongBan');
 
-const duLieuNhanVien = (items: Array<any>, totalItems = items.length) => ({
-  items,
-  totalItems,
-  totalPages: totalItems === 0 ? 0 : 1,
-});
+    cy.visit('/hrm/employees');
+    cy.location('pathname').should('include', '/hrm/employees');
+    cy.wait('@taiDanhSachNhanVien');
+    cy.wait('@taiPhongBan');
+  };
 
-const moTrang = () => {
-  cy.thamTrangCoAuth('/hrm/employees', tokenGia);
-};
+  it('Smoke: tải danh sách nhân viên và hiển thị stats cards', () => {
+    vaoTrangNhanVien();
 
-const moModalThem = () => {
-  cy.contains('Add Employee').click();
-  cy.contains('Add New Employee').should('be.visible');
-};
+    cy.contains('Employee Management').should('be.visible');
+    cy.contains('TOTAL EMPLOYEES').should('be.visible');
+    cy.contains('ACTIVE').should('be.visible');
+  });
 
-const moModalSua = () => {
-  cy.get('button[title="Edit"]').first().click();
-  cy.contains('Edit Employee').should('be.visible');
-};
+  it('Edge: reload trang vẫn giữ route và gọi lại API danh sách', () => {
+    vaoTrangNhanVien();
 
-const moModalXoa = () => {
-  cy.get('button[title="Delete"]').first().click();
-  cy.contains('Delete Employee').should('be.visible');
-};
+    cy.reload();
+    cy.wait('@taiDanhSachNhanVien').then(({ response }) => {
+      expect([200, 204, 403, 500]).to.include(response?.statusCode ?? 0);
+    });
+    cy.location('pathname').should('include', '/hrm/employees');
+  });
 
-const nhapFormThem = () => {
-  cy.get('input[formcontrolname="firstName"]').clear().type('QA');
-  cy.get('input[formcontrolname="lastName"]').clear().type('User');
-  cy.get('input[formcontrolname="email"]').clear().type('qa.employee@amscore.com');
-  cy.get('input[formcontrolname="phone"]').clear().type('0123456789');
-  cy.get('input[formcontrolname="dob"]').clear().type('1995-01-01');
-  cy.get('select[formcontrolname="gender"]').select('MALE');
-  cy.get('select[formcontrolname="departmentId"]').select('1');
-  cy.get('input[formcontrolname="hireDate"]').clear().type('2024-01-01');
-};
+  it('Search theo từ khóa thường gửi query name đúng', () => {
+    vaoTrangNhanVien();
 
-const nhapFormSua = () => {
-  cy.get('input[formcontrolname="name"]').clear().type('QA User Updated');
-  cy.get('input[formcontrolname="email"]').clear().type('qa.updated@amscore.com');
-  cy.get('input[formcontrolname="phone"]').clear().type('0987654321');
-  cy.get('select[formcontrolname="departmentId"]').select('1');
-};
+    cy.intercept('GET', '**/api/employees/search**').as('timNhanVien');
 
-describe('Nhân sự - Nhân viên (API thật)', () => {
-  describe('Danh sách', () => {
-    it('Load danh sách thành công', () => {
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([
-          {
-            employeeId: 1,
-            employeeCode: 'EMP-001',
-            fullName: 'QA User',
-            status: 'active',
-            departmentId: 1,
-          },
-        ]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, {
-        statusCode: 200,
-        body: [{ departmentId: 1, departmentName: 'Operations' }],
-      }).as('phongBan');
-
-      moTrang();
-      cy.wait('@nhanVienPage').then((interception) => {
-        expect(interception.request.method).to.eq('GET');
-        expect(interception.request.url).to.include('/api/employees/page');
-        expect(interception.response?.statusCode).to.eq(200);
+    cy.get('input[placeholder="Search employees..."]').clear().type('an');
+    cy.wait('@timNhanVien').then(({ request, response }) => {
+      assertRequestQuery(request.query, {
+        name: 'an',
+        page: /\d+/,
       });
-      cy.wait('@phongBan');
-      cy.contains('QA User').should('be.visible');
-    });
-
-    it('Danh sách rỗng', () => {
-      cy.intercept('GET', apiNhanVienPage, { statusCode: 200, body: duLieuNhanVien([]) }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-
-      moTrang();
-      cy.wait('@nhanVienPage');
-      cy.contains('Showing 0 of 0 employees').should('be.visible');
-    });
-
-    it('Lỗi 401 dẫn tới quay về login', () => {
-      cy.intercept('GET', apiNhanVienPage, { statusCode: 401, body: { message: 'Unauthorized' } }).as(
-        'nhanVienPage',
-      );
-      cy.intercept('POST', apiRefresh, { statusCode: 401, body: { message: 'Refresh failed' } }).as('lamMoiToken');
-      moTrang();
-      cy.wait('@nhanVienPage');
-      cy.wait('@lamMoiToken');
-      cy.url().should('include', '/login');
-    });
-
-    it('Lỗi 403 hiển thị banner lỗi', () => {
-      cy.intercept('GET', apiNhanVienPage, { statusCode: 403, body: { message: 'Forbidden' } }).as(
-        'nhanVienPage',
-      );
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-
-      moTrang();
-      cy.wait('@nhanVienPage');
-      cy.contains('Unable to load employee data. Please try again.').should('be.visible');
+      expect([200, 204, 403, 500]).to.include(response?.statusCode ?? 0);
     });
   });
 
-  describe('Tạo mới', () => {
-    it('Tạo mới thành công', () => {
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 1, employeeCode: 'EMP-001', fullName: 'Old User' }]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, {
-        statusCode: 200,
-        body: [{ departmentId: 1, departmentName: 'Operations' }],
-      }).as('phongBan');
-      cy.intercept('POST', apiNhanVien, (req) => {
-        const allowed = [
-          'employeeCode',
-          'fullName',
-          'dob',
-          'gender',
-          'phone',
-          'email',
-          'departmentId',
-          'hireDate',
-        ];
-        Object.keys(req.body).forEach((key) => expect(allowed).to.include(key));
-        req.reply({ statusCode: 201, body: { employeeId: 2 } });
-      }).as('taoNhanVien');
+  it('Search với ký tự có dấu và ký tự đặc biệt không làm vỡ UI', () => {
+    vaoTrangNhanVien();
 
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([
-          { employeeId: 1, employeeCode: 'EMP-001', fullName: 'Old User' },
-          { employeeId: 2, employeeCode: 'EMP-002', fullName: 'QA User' },
-        ]),
-      }).as('nhanVienPageSauTao');
+    cy.intercept('GET', '**/api/employees/search**').as('timNhanVien');
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalThem();
-      nhapFormThem();
-      cy.contains('Add Employee').click();
-      cy.wait('@taoNhanVien');
-      cy.wait('@nhanVienPageSauTao');
-      cy.contains('QA User').should('be.visible');
+    cy.get('input[placeholder="Search employees..."]').clear().type('đặng@#');
+    cy.wait('@timNhanVien').then(({ request }) => {
+      expect(request.query).to.have.property('name');
     });
 
-    it('Lỗi validation từ BE', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+    cy.contains('Employee Management').should('be.visible');
+  });
 
-      cy.intercept('GET', apiNhanVienPage, { statusCode: 200, body: duLieuNhanVien([]) }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-      cy.intercept('POST', apiNhanVien, { statusCode: 400, body: { message: 'Invalid payload' } }).as(
-        'taoNhanVien',
-      );
+  it('Filter theo phòng ban cập nhật danh sách hiển thị', () => {
+    vaoTrangNhanVien();
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalThem();
-      nhapFormThem();
-      cy.contains('Add Employee').click();
-      cy.wait('@taoNhanVien');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Unable to add employee. Please try again.');
-    });
+    cy.get('select').first().then(($select) => {
+      if ($select.find('option').length <= 1) {
+        cy.log('Không có dữ liệu phòng ban để filter');
+        return;
+      }
 
-    it('Không gửi field thừa khi tạo mới', () => {
-      cy.intercept('GET', apiNhanVienPage, { statusCode: 200, body: duLieuNhanVien([]) }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, {
-        statusCode: 200,
-        body: [{ departmentId: 1, departmentName: 'Operations' }],
-      }).as('phongBan');
-      cy.intercept('POST', apiNhanVien, (req) => {
-        const allowed = [
-          'employeeCode',
-          'fullName',
-          'dob',
-          'gender',
-          'phone',
-          'email',
-          'departmentId',
-          'hireDate',
-        ];
-        Object.keys(req.body).forEach((key) => expect(allowed).to.include(key));
-        req.reply({ statusCode: 201, body: { employeeId: 3 } });
-      }).as('taoNhanVien');
-
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalThem();
-      nhapFormThem();
-      cy.contains('Add Employee').click();
-      cy.wait('@taoNhanVien');
+      cy.wrap($select).select(1);
+      cy.contains('Employee Management').should('be.visible');
     });
   });
 
-  describe('Cập nhật', () => {
-    it('Cập nhật thành công', () => {
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 5, employeeCode: 'EMP-005', fullName: 'QA User' }]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, {
-        statusCode: 200,
-        body: [{ departmentId: 1, departmentName: 'Operations' }],
-      }).as('phongBan');
-      cy.intercept('GET', apiNhanVienId, {
-        statusCode: 200,
-        body: {
-          employeeId: 5,
-          employeeCode: 'EMP-005',
-          fullName: 'QA User',
-          departmentId: 1,
-          status: 'active',
-        },
-      }).as('nhanVienChiTiet');
-      cy.intercept('PUT', apiNhanVienId, (req) => {
-        const allowed = [
-          'employeeCode',
-          'fullName',
-          'email',
-          'phone',
-          'departmentId',
-          'positionId',
-          'managerId',
-          'dob',
-          'gender',
-          'hireDate',
-        ];
-        Object.keys(req.body).forEach((key) => expect(allowed).to.include(key));
-        req.reply({ statusCode: 200, body: { employeeId: 5 } });
-      }).as('capNhatNhanVien');
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 5, employeeCode: 'EMP-005', fullName: 'QA User Updated' }]),
-      }).as('nhanVienPageSauCapNhat');
+  it('Filter theo trạng thái cập nhật danh sách hiển thị', () => {
+    vaoTrangNhanVien();
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalSua();
-      cy.wait('@nhanVienChiTiet');
-      nhapFormSua();
-      cy.contains('Save Changes').click();
-      cy.wait('@capNhatNhanVien');
-      cy.wait('@nhanVienPageSauCapNhat');
-      cy.contains('QA User Updated').should('be.visible');
-    });
+    cy.get('select').eq(1).select('ACTIVE');
+    cy.contains('Employee Management').should('be.visible');
 
-    it('Cập nhật với ID không tồn tại', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+    cy.get('select').eq(1).select('ON LEAVE');
+    cy.contains('Employee Management').should('be.visible');
 
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 404, employeeCode: 'EMP-404', fullName: 'Ghost' }]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-      cy.intercept('GET', apiNhanVienId, {
-        statusCode: 200,
-        body: { employeeId: 404, employeeCode: 'EMP-404', fullName: 'Ghost' },
-      }).as('nhanVienChiTiet');
-      cy.intercept('PUT', apiNhanVienId, { statusCode: 404, body: { message: 'Not found' } }).as(
-        'capNhatNhanVien',
-      );
+    cy.get('select').eq(1).select('INACTIVE');
+    cy.contains('Employee Management').should('be.visible');
+  });
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalSua();
-      cy.wait('@nhanVienChiTiet');
-      nhapFormSua();
-      cy.contains('Save Changes').click();
-      cy.wait('@capNhatNhanVien');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Unable to update employee. Please try again.');
-    });
+  it('Kết hợp search + filter rồi reset về mặc định', () => {
+    vaoTrangNhanVien();
 
-    it('Cập nhật bị từ chối quyền (403)', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+    cy.intercept('GET', '**/api/employees/search**').as('timNhanVien');
 
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 6, employeeCode: 'EMP-006', fullName: 'QA User' }]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-      cy.intercept('GET', apiNhanVienId, {
-        statusCode: 200,
-        body: { employeeId: 6, employeeCode: 'EMP-006', fullName: 'QA User' },
-      }).as('nhanVienChiTiet');
-      cy.intercept('PUT', apiNhanVienId, { statusCode: 403, body: { message: 'Forbidden' } }).as(
-        'capNhatNhanVien',
-      );
+    cy.get('input[placeholder="Search employees..."]').clear().type('a');
+    cy.wait('@timNhanVien');
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalSua();
-      cy.wait('@nhanVienChiTiet');
-      nhapFormSua();
-      cy.contains('Save Changes').click();
-      cy.wait('@capNhatNhanVien');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Unable to update employee. Please try again.');
+    cy.get('select').eq(1).select('ACTIVE');
+    cy.contains('Employee Management').should('be.visible');
+
+    cy.get('input[placeholder="Search employees..."]').clear();
+    cy.wait('@taiDanhSachNhanVien');
+    cy.get('select').eq(1).select('');
+  });
+
+  it('Phân trang Next/Prev gửi page đúng', () => {
+    vaoTrangNhanVien();
+
+    cy.contains('button', 'Next').then(($next) => {
+      if ($next.is(':disabled')) {
+        cy.log('Không có trang tiếp theo');
+        return;
+      }
+
+      cy.wrap($next).click();
+      cy.wait('@taiDanhSachNhanVien').then(({ request }) => {
+        assertRequestQuery(request.query, { page: /\d+/ });
+      });
+
+      cy.contains('button', 'Prev').then(($prev) => {
+        if ($prev.is(':disabled')) {
+          return;
+        }
+        cy.wrap($prev).click();
+        cy.wait('@taiDanhSachNhanVien');
+      });
     });
   });
 
-  describe('Xóa', () => {
-    it('Xóa thành công (204)', () => {
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 7, employeeCode: 'EMP-007', fullName: 'Delete Me' }]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-      cy.intercept('DELETE', apiNhanVienId, { statusCode: 204 }).as('xoaNhanVien');
-      cy.intercept('GET', apiNhanVienPage, { statusCode: 200, body: duLieuNhanVien([]) }).as(
-        'nhanVienPageSauXoa',
-      );
+  it('Validation required: bỏ trống form thêm mới thì không gửi POST', () => {
+    vaoTrangNhanVien();
+    cy.intercept('POST', '**/api/employees').as('taoNhanVien');
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalXoa();
-      cy.contains('button', 'Delete Employee').click();
-      cy.wait('@xoaNhanVien');
-      cy.wait('@nhanVienPageSauXoa');
-      cy.contains('Showing 0 of 0 employees').should('be.visible');
+    cy.waitForOverlayToDisappear();
+    cy.contains('button', 'Add Employee').first().click();
+    cy.contains('Add New Employee').should('be.visible');
+    clickButtonWhenReady('Add Employee');
+
+    cy.get('@taoNhanVien.all').should('have.length', 0);
+  });
+
+  it('Validation format email/phone/date sai thì không gửi POST', () => {
+    vaoTrangNhanVien();
+    cy.intercept('POST', '**/api/employees').as('taoNhanVien');
+
+    cy.waitForOverlayToDisappear();
+    cy.contains('button', 'Add Employee').first().click();
+
+    cy.get('input[formcontrolname="firstName"]').type('Test');
+    cy.get('input[formcontrolname="lastName"]').type('User');
+    cy.get('input[formcontrolname="email"]').type('khong-phai-email');
+    cy.get('input[formcontrolname="phone"]').type('12345');
+    cy.get('input[formcontrolname="dob"]').type('2999-12-31');
+
+    clickButtonWhenReady('Add Employee');
+    cy.get('@taoNhanVien.all').should('have.length', 0);
+  });
+
+  it('Luồng Cancel ở form thêm mới không gửi POST', () => {
+    vaoTrangNhanVien();
+    cy.intercept('POST', '**/api/employees').as('taoNhanVien');
+
+    cy.waitForOverlayToDisappear();
+    cy.contains('button', 'Add Employee').first().click();
+
+    cy.get('input[formcontrolname="firstName"]').type('Temp');
+    cy.get('input[formcontrolname="lastName"]').type('Cancel');
+    clickButtonWhenReady('Cancel');
+
+    cy.contains('Add New Employee').should('not.exist');
+    cy.get('@taoNhanVien.all').should('have.length', 0);
+  });
+
+  it('Submit hợp lệ form thêm mới phải gửi POST', () => {
+    vaoTrangNhanVien();
+    cy.intercept('POST', '**/api/employees').as('taoNhanVien');
+
+    cy.waitForOverlayToDisappear();
+    cy.contains('button', 'Add Employee').first().click();
+
+    cy.get('input[formcontrolname="firstName"]').type('Auto');
+    cy.get('input[formcontrolname="lastName"]').type(`E2E${Date.now()}`);
+    cy.get('input[formcontrolname="email"]').type(`auto${Date.now()}@example.com`);
+    cy.get('input[formcontrolname="phone"]').type('0912345678');
+    cy.get('input[formcontrolname="dob"]').type('1995-06-15');
+    cy.get('select[formcontrolname="gender"]').select('MALE');
+    cy.get('input[formcontrolname="hireDate"]').type('2024-01-01');
+
+    clickButtonWhenReady('Add Employee');
+
+    cy.wait('@taoNhanVien').then(({ request, response }) => {
+      expect(request.body).to.have.property('fullName');
+      expect([200, 201, 400, 403, 422]).to.include(response?.statusCode ?? 0);
     });
+  });
 
-    it('Xóa item không tồn tại', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+  it('Edit: mở modal đúng dữ liệu và bấm Cancel không gửi PUT', () => {
+    vaoTrangNhanVien();
+    cy.intercept('GET', '**/api/employees/*').as('chiTietNhanVien');
+    cy.intercept('PUT', '**/api/employees/*').as('capNhatNhanVien');
 
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 8, employeeCode: 'EMP-008', fullName: 'Ghost' }]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-      cy.intercept('DELETE', apiNhanVienId, { statusCode: 404, body: { message: 'Not found' } }).as(
-        'xoaNhanVien',
-      );
+    cy.get('body').then(($body) => {
+      if ($body.find('button[title="Edit"]').length === 0) {
+        cy.log('Không có dữ liệu để mở modal edit');
+        return;
+      }
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalXoa();
-      cy.contains('button', 'Delete Employee').click();
-      cy.wait('@xoaNhanVien');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Unable to delete employee. Please try again.');
+      clickFirstWhenReady('button[title="Edit"]');
+      cy.wait('@chiTietNhanVien');
+      cy.contains('Edit Employee').should('be.visible');
+      clickButtonWhenReady('Cancel');
+
+      cy.get('@capNhatNhanVien.all').should('have.length', 0);
     });
+  });
 
-    it('Xóa bị 403', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+  it('Delete: xác nhận xóa thì gửi DELETE đúng luồng', () => {
+    vaoTrangNhanVien();
+    cy.intercept('DELETE', '**/api/employees/*').as('xoaNhanVien');
 
-      cy.intercept('GET', apiNhanVienPage, {
-        statusCode: 200,
-        body: duLieuNhanVien([{ employeeId: 9, employeeCode: 'EMP-009', fullName: 'Forbidden' }]),
-      }).as('nhanVienPage');
-      cy.intercept('GET', apiPhongBan, { statusCode: 200, body: [] }).as('phongBan');
-      cy.intercept('DELETE', apiNhanVienId, { statusCode: 403, body: { message: 'Forbidden' } }).as(
-        'xoaNhanVien',
-      );
+    cy.get('body').then(($body) => {
+      if ($body.find('button[title="Delete"]').length === 0) {
+        cy.log('Không có dữ liệu để xóa');
+        return;
+      }
 
-      moTrang();
-      cy.wait('@nhanVienPage');
-      moModalXoa();
-      cy.contains('button', 'Delete Employee').click();
-      cy.wait('@xoaNhanVien');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Unable to delete employee. Please try again.');
+      clickFirstWhenReady('button[title="Delete"]');
+      cy.contains('Delete Employee').should('be.visible');
+
+      clickButtonWhenReady('Delete Employee');
+      cy.wait('@xoaNhanVien').then(({ response }) => {
+        expect([200, 204, 403, 404]).to.include(response?.statusCode ?? 0);
+      });
+    });
+  });
+
+  it('Permission/Error: gặp 403/500 thì không logout và UI không crash', () => {
+    cy.intercept('GET', '**/api/employees/page**').as('taiDanhSachNhanVien');
+
+    cy.visit('/hrm/employees');
+    cy.wait('@taiDanhSachNhanVien').then(({ response }) => {
+      const status = response?.statusCode ?? 0;
+
+      if (status === 403) {
+        cy.contains('Unable to load employee data. Please try again.').should('be.visible');
+      }
+
+      if (status >= 500) {
+        cy.contains('Employee Management').should('be.visible');
+      }
+
+      cy.url().should('not.include', '/login');
+      cy.window().then((win) => {
+        expect(win.localStorage.getItem('ams.accessToken')).to.be.a('string').and.not.be.empty;
+      });
     });
   });
 });

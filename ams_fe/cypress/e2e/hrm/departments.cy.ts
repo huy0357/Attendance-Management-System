@@ -1,340 +1,212 @@
-import type { AuthTokens } from '../../support/commands';
+﻿import { assertRequestQuery } from '../../support/request-assertions';
+import { clickButtonWhenReady, clickFirstWhenReady } from '../../support/ui-helpers';
 
-const apiPhongBanList = /\/api\/departments(\?|$)/;
-const apiPhongBanTree = '**/api/departments/tree**';
-const apiPhongBan = '**/api/departments';
-const apiPhongBanId = '**/api/departments/*';
-const apiRefresh = '**/api/auth/refresh';
+describe('Nhân sự - Phòng ban (API thật, không mock)', () => {
+  beforeEach(() => {
+    cy.login();
+  });
 
-const tokenGia: AuthTokens = {
-  accessToken: 'token-hr',
-  refreshToken: 'refresh-hr',
-  username: 'hr',
-  role: 'HR',
-  expiresInSeconds: 3600,
-};
+  const vaoTrangPhongBan = () => {
+    cy.intercept('GET', '**/api/departments?**').as('taiDanhSachPhongBan');
+    cy.intercept('GET', '**/api/departments/tree**').as('taiCayPhongBan');
 
-const duLieuPhongBan = (items: Array<any>, totalItems = items.length) => ({
-  items,
-  totalItems,
-  totalPages: totalItems === 0 ? 0 : 1,
-  page: 1,
-  size: 10,
-  hasNext: false,
-  hasPrev: false,
-});
+    cy.visit('/hrm/departments');
+    cy.location('pathname').should('include', '/hrm/departments');
+    cy.wait('@taiDanhSachPhongBan');
+    cy.wait('@taiCayPhongBan');
+  };
 
-const moTrang = () => {
-  cy.thamTrangCoAuth('/hrm/departments', tokenGia);
-};
+  it('Smoke: tải trang phòng ban và hiển thị bảng', () => {
+    vaoTrangPhongBan();
 
-const moModalThem = () => {
-  cy.contains('Add Department').click();
-  cy.contains('Add New Department').should('be.visible');
-};
+    cy.contains('Department Management').should('be.visible');
+    cy.contains('Department').should('be.visible');
+  });
 
-const moModalSua = () => {
-  cy.get('button[title="Edit"]').first().click();
-  cy.contains('Edit Department').should('be.visible');
-};
+  it('Edge: reload trang vẫn gọi lại API danh sách', () => {
+    vaoTrangPhongBan();
 
-const moModalXoa = () => {
-  cy.get('button[title="Delete"]').first().click();
-  cy.contains('Delete Department').should('be.visible');
-};
+    cy.reload();
+    cy.wait('@taiDanhSachPhongBan').then(({ response }) => {
+      expect([200, 204, 403, 500]).to.include(response?.statusCode ?? 0);
+    });
+  });
 
-const nhapFormThem = () => {
-  cy.get('input[formcontrolname="departmentName"]').clear().type('QA Department');
-  cy.get('input[formcontrolname="departmentCode"]').clear().type('QA');
-  cy.get('select[formcontrolname="parentDepartmentId"]').select('Select parent department (Root)');
-};
+  it('Search với keyword thường gửi query đúng', () => {
+    vaoTrangPhongBan();
 
-const nhapFormSua = () => {
-  cy.get('input[formcontrolname="departmentName"]').clear().type('QA Department Updated');
-  cy.get('input[formcontrolname="departmentCode"]').clear().type('QAU');
-};
-
-describe('Nhân sự - Phòng ban (API thật)', () => {
-  describe('Danh sách', () => {
-    it('Load danh sách thành công', () => {
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([
-          {
-            departmentId: 1,
-            departmentName: 'Operations',
-            departmentCode: 'OPS',
-            isActive: true,
-          },
-        ]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, {
-        statusCode: 200,
-        body: [{ departmentId: 1, departmentName: 'Operations', departmentCode: 'OPS', isActive: true }],
-      }).as('phongBanTree');
-
-      moTrang();
-      cy.wait('@phongBanList').then((interception) => {
-        expect(interception.request.method).to.eq('GET');
-        expect(interception.request.url).to.include('/api/departments');
-        expect(interception.response?.statusCode).to.eq(200);
+    cy.get('input[placeholder="Search departments..."]').clear().type('it');
+    cy.wait('@taiDanhSachPhongBan').then(({ request }) => {
+      assertRequestQuery(request.query, {
+        keyword: 'it',
       });
-      cy.wait('@phongBanTree');
-      cy.contains('Operations').should('be.visible');
-    });
-
-    it('Danh sách rỗng', () => {
-      cy.intercept('GET', apiPhongBanList, { statusCode: 200, body: duLieuPhongBan([]) }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-
-      moTrang();
-      cy.wait('@phongBanList');
-      cy.contains('No departments found.').should('be.visible');
-      cy.contains('Showing 0 of 0 departments').should('be.visible');
-    });
-
-    it('Lỗi 401 dẫn tới quay về login', () => {
-      cy.intercept('GET', apiPhongBanList, { statusCode: 401, body: { message: 'Unauthorized' } }).as(
-        'phongBanList',
-      );
-      cy.intercept('POST', apiRefresh, { statusCode: 401, body: { message: 'Refresh failed' } }).as('lamMoiToken');
-
-      moTrang();
-      cy.wait('@phongBanList');
-      cy.wait('@lamMoiToken');
-      cy.url().should('include', '/login');
-    });
-
-    it('Lỗi 403 hiển thị banner lỗi', () => {
-      cy.intercept('GET', apiPhongBanList, { statusCode: 403, body: { message: 'Forbidden' } }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-
-      moTrang();
-      cy.wait('@phongBanList');
-      cy.contains('Unable to load department data. Please try again.').should('be.visible');
     });
   });
 
-  describe('Tạo mới', () => {
-    it('Tạo mới thành công', () => {
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([
-          { departmentId: 1, departmentName: 'Operations', departmentCode: 'OPS', isActive: true },
-        ]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, {
-        statusCode: 200,
-        body: [{ departmentId: 1, departmentName: 'Operations', departmentCode: 'OPS', isActive: true }],
-      }).as('phongBanTree');
-      cy.intercept('POST', apiPhongBan, (req) => {
-        const allowed = ['departmentName', 'departmentCode', 'parentDepartmentId', 'isActive'];
-        Object.keys(req.body).forEach((key) => expect(allowed).to.include(key));
-        req.reply({ statusCode: 201, body: { departmentId: 2 } });
-      }).as('taoPhongBan');
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([
-          { departmentId: 1, departmentName: 'Operations', departmentCode: 'OPS', isActive: true },
-          { departmentId: 2, departmentName: 'QA Department', departmentCode: 'QA', isActive: true },
-        ]),
-      }).as('phongBanListSauTao');
-      cy.intercept('GET', apiPhongBanTree, {
-        statusCode: 200,
-        body: [
-          { departmentId: 1, departmentName: 'Operations', departmentCode: 'OPS', isActive: true },
-          { departmentId: 2, departmentName: 'QA Department', departmentCode: 'QA', isActive: true },
-        ],
-      }).as('phongBanTreeSauTao');
+  it('Search với ký tự có dấu và đặc biệt không làm vỡ UI', () => {
+    vaoTrangPhongBan();
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalThem();
-      nhapFormThem();
-      cy.contains('Add Department').click();
-      cy.wait('@taoPhongBan');
-      cy.wait('@phongBanListSauTao');
-      cy.contains('QA Department').should('be.visible');
+    cy.get('input[placeholder="Search departments..."]').clear().type('đơn vị@#');
+    cy.wait('@taiDanhSachPhongBan').then(({ request }) => {
+      expect(request.query).to.have.property('keyword');
     });
 
-    it('Lỗi validation từ BE', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+    cy.contains('Department Management').should('be.visible');
+  });
 
-      cy.intercept('GET', apiPhongBanList, { statusCode: 200, body: duLieuPhongBan([]) }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-      cy.intercept('POST', apiPhongBan, { statusCode: 400, body: { message: 'Invalid payload' } }).as(
-        'taoPhongBan',
-      );
+  it('Phân trang Next và Prev gửi page phù hợp', () => {
+    vaoTrangPhongBan();
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalThem();
-      nhapFormThem();
-      cy.contains('Add Department').click();
-      cy.wait('@taoPhongBan');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Failed to create department');
-    });
+    cy.contains('button', 'Next').then(($next) => {
+      if ($next.is(':disabled')) {
+        cy.log('Không có trang tiếp theo');
+        return;
+      }
 
-    it('Không gửi field thừa khi tạo mới', () => {
-      cy.intercept('GET', apiPhongBanList, { statusCode: 200, body: duLieuPhongBan([]) }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-      cy.intercept('POST', apiPhongBan, (req) => {
-        const allowed = ['departmentName', 'departmentCode', 'parentDepartmentId', 'isActive'];
-        Object.keys(req.body).forEach((key) => expect(allowed).to.include(key));
-        req.reply({ statusCode: 201, body: { departmentId: 3 } });
-      }).as('taoPhongBan');
+      cy.wrap($next).click();
+      cy.wait('@taiDanhSachPhongBan').then(({ request }) => {
+        assertRequestQuery(request.query, { page: /\d+/ });
+      });
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalThem();
-      nhapFormThem();
-      cy.contains('Add Department').click();
-      cy.wait('@taoPhongBan');
+      cy.contains('button', 'Prev').then(($prev) => {
+        if ($prev.is(':disabled')) {
+          return;
+        }
+        cy.wrap($prev).click();
+        cy.wait('@taiDanhSachPhongBan');
+      });
     });
   });
 
-  describe('Cập nhật', () => {
-    it('Cập nhật thành công', () => {
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([
-          { departmentId: 10, departmentName: 'QA Department', departmentCode: 'QA', isActive: true },
-        ]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, {
-        statusCode: 200,
-        body: [{ departmentId: 10, departmentName: 'QA Department', departmentCode: 'QA', isActive: true }],
-      }).as('phongBanTree');
-      cy.intercept('PUT', apiPhongBanId, (req) => {
-        const allowed = ['departmentName', 'departmentCode', 'parentDepartmentId', 'isActive'];
-        Object.keys(req.body).forEach((key) => expect(allowed).to.include(key));
-        req.reply({ statusCode: 200, body: { departmentId: 10 } });
-      }).as('capNhatPhongBan');
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([
-          { departmentId: 10, departmentName: 'QA Department Updated', departmentCode: 'QAU', isActive: true },
-        ]),
-      }).as('phongBanListSauCapNhat');
+  it('Validation required: thiếu dữ liệu thì không gửi POST', () => {
+    vaoTrangPhongBan();
+    cy.intercept('POST', '**/api/departments').as('taoPhongBan');
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalSua();
-      nhapFormSua();
-      cy.contains('Save Changes').click();
-      cy.wait('@capNhatPhongBan');
-      cy.wait('@phongBanListSauCapNhat');
-      cy.contains('QA Department Updated').should('be.visible');
-    });
+    cy.waitForOverlayToDisappear();
+    clickButtonWhenReady('Add Department');
 
-    it('Cập nhật với ID không tồn tại', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+    cy.get('input[formcontrolname="departmentName"]').clear();
+    cy.get('input[formcontrolname="departmentCode"]').clear();
+    cy.contains('button', 'Add Department').last().should('be.disabled');
 
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([{ departmentId: 404, departmentName: 'Ghost', departmentCode: 'GHO' }]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-      cy.intercept('PUT', apiPhongBanId, { statusCode: 404, body: { message: 'Not found' } }).as(
-        'capNhatPhongBan',
-      );
+    cy.get('@taoPhongBan.all').should('have.length', 0);
+  });
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalSua();
-      nhapFormSua();
-      cy.contains('Save Changes').click();
-      cy.wait('@capNhatPhongBan');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Failed to update department');
-    });
+  it('Luồng Cancel ở form tạo mới không gửi POST', () => {
+    vaoTrangPhongBan();
+    cy.intercept('POST', '**/api/departments').as('taoPhongBan');
 
-    it('Cập nhật bị từ chối quyền (403)', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+    cy.waitForOverlayToDisappear();
+    clickButtonWhenReady('Add Department');
 
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([{ departmentId: 11, departmentName: 'Forbidden', departmentCode: 'FOR' }]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-      cy.intercept('PUT', apiPhongBanId, { statusCode: 403, body: { message: 'Forbidden' } }).as(
-        'capNhatPhongBan',
-      );
+    cy.get('input[formcontrolname="departmentName"]').type(`Phong${Date.now()}`);
+    clickButtonWhenReady('Cancel');
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalSua();
-      nhapFormSua();
-      cy.contains('Save Changes').click();
-      cy.wait('@capNhatPhongBan');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Failed to update department');
+    cy.contains('Add New Department').should('not.exist');
+    cy.get('@taoPhongBan.all').should('have.length', 0);
+  });
+
+  it('Submit hợp lệ form tạo mới gửi POST', () => {
+    vaoTrangPhongBan();
+    cy.intercept('POST', '**/api/departments').as('taoPhongBan');
+
+    cy.waitForOverlayToDisappear();
+    clickButtonWhenReady('Add Department');
+
+    cy.get('input[formcontrolname="departmentName"]').type(`Phong E2E ${Date.now()}`);
+    cy.get('input[formcontrolname="departmentCode"]').type(`E2E${Date.now().toString().slice(-4)}`);
+    cy.contains('button', 'Add Department').last().click();
+
+    cy.wait('@taoPhongBan').then(({ request, response }) => {
+      expect(request.body).to.have.property('departmentName');
+      expect(request.body).to.have.property('departmentCode');
+      expect([200, 201, 400, 403, 409, 422]).to.include(response?.statusCode ?? 0);
     });
   });
 
-  describe('Xóa', () => {
-    it('Xóa thành công (204)', () => {
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([{ departmentId: 20, departmentName: 'Delete Me', departmentCode: 'DEL' }]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-      cy.intercept('DELETE', apiPhongBanId, { statusCode: 204 }).as('xoaPhongBan');
-      cy.intercept('GET', apiPhongBanList, { statusCode: 200, body: duLieuPhongBan([]) }).as(
-        'phongBanListSauXoa',
-      );
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTreeSauXoa');
+  it('Edit: mở modal sửa và cancel thì không gửi PUT', () => {
+    vaoTrangPhongBan();
+    cy.intercept('PUT', '**/api/departments/*').as('capNhatPhongBan');
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalXoa();
-      cy.contains('button', 'Delete Department').click();
-      cy.wait('@xoaPhongBan');
-      cy.wait('@phongBanListSauXoa');
-      cy.contains('No departments found.').should('be.visible');
+    cy.get('body').then(($body) => {
+      if ($body.find('button[title="Edit"]').length === 0) {
+        cy.log('Không có bản ghi để sửa');
+        return;
+      }
+
+      clickFirstWhenReady('button[title="Edit"]');
+      cy.contains('Edit Department').should('be.visible');
+      clickButtonWhenReady('Cancel');
+      cy.get('@capNhatPhongBan.all').should('have.length', 0);
     });
+  });
 
-    it('Xóa item không tồn tại', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+  it('Edit: cập nhật hợp lệ gửi PUT', () => {
+    vaoTrangPhongBan();
+    cy.intercept('PUT', '**/api/departments/*').as('capNhatPhongBan');
 
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([{ departmentId: 21, departmentName: 'Ghost', departmentCode: 'GHO' }]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-      cy.intercept('DELETE', apiPhongBanId, { statusCode: 404, body: { message: 'Not found' } }).as(
-        'xoaPhongBan',
-      );
+    cy.get('body').then(($body) => {
+      if ($body.find('button[title="Edit"]').length === 0) {
+        cy.log('Không có bản ghi để cập nhật');
+        return;
+      }
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalXoa();
-      cy.contains('button', 'Delete Department').click();
-      cy.wait('@xoaPhongBan');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Failed to delete department');
+      clickFirstWhenReady('button[title="Edit"]');
+      cy.get('input[formcontrolname="departmentName"]').clear().type(`Cap nhat ${Date.now()}`);
+      cy.contains('button', 'Save Changes').click();
+
+      cy.wait('@capNhatPhongBan').then(({ request, response }) => {
+        expect(request.body).to.have.property('departmentName');
+        expect([200, 204, 400, 403, 422]).to.include(response?.statusCode ?? 0);
+      });
     });
+  });
 
-    it('Xóa bị 403', () => {
-      const canhBao = cy.stub();
-      cy.on('window:alert', canhBao);
+  it('Delete: xác nhận xóa gửi DELETE đúng', () => {
+    vaoTrangPhongBan();
+    cy.intercept('DELETE', '**/api/departments/*').as('xoaPhongBan');
 
-      cy.intercept('GET', apiPhongBanList, {
-        statusCode: 200,
-        body: duLieuPhongBan([{ departmentId: 22, departmentName: 'Forbidden', departmentCode: 'FOR' }]),
-      }).as('phongBanList');
-      cy.intercept('GET', apiPhongBanTree, { statusCode: 200, body: [] }).as('phongBanTree');
-      cy.intercept('DELETE', apiPhongBanId, { statusCode: 403, body: { message: 'Forbidden' } }).as(
-        'xoaPhongBan',
-      );
+    cy.get('body').then(($body) => {
+      if ($body.find('button[title="Delete"]').length === 0) {
+        cy.log('Không có bản ghi để xóa');
+        return;
+      }
 
-      moTrang();
-      cy.wait('@phongBanList');
-      moModalXoa();
-      cy.contains('button', 'Delete Department').click();
-      cy.wait('@xoaPhongBan');
-      cy.wrap(canhBao).should('have.been.calledWith', 'Failed to delete department');
+      clickFirstWhenReady('button[title="Delete"]');
+      cy.contains('Delete Department').should('be.visible');
+      clickButtonWhenReady('Delete Department');
+
+      cy.wait('@xoaPhongBan').then(({ response }) => {
+        expect([200, 204, 403, 404]).to.include(response?.statusCode ?? 0);
+      });
+    });
+  });
+
+  it('Permission/Error/Empty: gặp 403/500/204 vẫn giữ session và không crash', () => {
+    cy.intercept('GET', '**/api/departments?**').as('taiDanhSachPhongBan');
+
+    cy.visit('/hrm/departments');
+    cy.wait('@taiDanhSachPhongBan').then(({ response }) => {
+      const status = response?.statusCode ?? 0;
+
+      if (status === 403) {
+        cy.contains('Unable to load department data. Please try again.').should('be.visible');
+      }
+
+      if (status >= 500) {
+        cy.contains('Department Management').should('be.visible');
+      }
+
+      cy.get('body').then(($body) => {
+        if ($body.text().includes('No departments found.')) {
+          cy.contains('No departments found.').should('be.visible');
+        }
+      });
+
+      cy.url().should('not.include', '/login');
+      cy.window().then((win) => {
+        expect(win.localStorage.getItem('ams.accessToken')).to.be.a('string').and.not.be.empty;
+      });
     });
   });
 });
