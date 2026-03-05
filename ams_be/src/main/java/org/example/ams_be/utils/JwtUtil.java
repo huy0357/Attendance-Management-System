@@ -79,4 +79,9 @@ public class JwtUtil {
         Object type = parseClaims(token).get("type");
         return type == null ? null : type.toString();
     }
+    public Long getEmployeeId(String token) {
+        Object v = parseClaims(token).get("employeeId");
+        if (v == null) return null;
+        return Long.valueOf(v.toString());
+    }
 }

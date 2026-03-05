@@ -33,10 +33,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             try {
                 if (!jwtUtil.isExpired(token) && "access".equals(jwtUtil.getType(token))) {
+                    Long employeeId = jwtUtil.getEmployeeId(token); // có thể null
                     String username = jwtUtil.getUsername(token);
                     String role = jwtUtil.getRole(token);
 
-                    UserPrincipal principal = new UserPrincipal(username, role);
+                    UserPrincipal principal = new UserPrincipal(employeeId, username, role);
+
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
 

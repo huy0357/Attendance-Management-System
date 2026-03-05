@@ -43,4 +43,5 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
             @Param("employeeId") Long employeeId,
             @Param("workDate") LocalDate workDate
     );
+    List<EmployeeSchedule> findByWorkDate(LocalDate workDate);
 }
