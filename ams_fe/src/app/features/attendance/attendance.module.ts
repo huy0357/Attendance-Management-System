@@ -7,6 +7,7 @@ import { LeaveManagementComponent } from './leave-management/leave-management.co
 import { OtRequestsComponent } from './ot-requests/ot-requests.component';
 import { ShiftTemplatesComponent } from './shift-templates/shift-templates.component';
 import { RequestsManagementComponent } from './requests-management/requests-management.component';
+import { AttendanceDailyComponent } from './attendance-daily/attendance-daily.component';
 
 @NgModule({
   declarations: [
@@ -16,6 +17,7 @@ import { RequestsManagementComponent } from './requests-management/requests-mana
     OtRequestsComponent,
     ShiftTemplatesComponent,
     RequestsManagementComponent,
+    AttendanceDailyComponent,
   ],
   imports: [SharedModule, AttendanceRoutingModule],
 })

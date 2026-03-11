@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { SpringPage } from '../../shared/models/page-response.model';
 import {
   RequestStatus,
   RequestsApprovalRequest,
@@ -134,6 +135,25 @@ export interface ShiftTemplateResponse {
   updatedAt?: string;
 }
 
+export interface AttendanceDailyResponse {
+  attendanceId: number;
+  employeeId: number;
+  workDate: string;
+  shiftId: number | null;
+  firstInTime: string | null;
+  lastOutTime: string | null;
+  workMinutes: number | null;
+  lateMinutes: number | null;
+  earlyLeaveMinutes: number | null;
+  breakMinutes: number | null;
+  otMinutesBefore: number | null;
+  otMinutesAfter: number | null;
+  otMinutesHoliday: number | null;
+  status: string | null;
+  calculatedAt: string | null;
+  updatedAt: string | null;
+}
+
 interface EmployeeLookupDto {
   employeeId: number;
   employeeCode: string;
@@ -182,8 +202,33 @@ export class AttendanceService {
   private readonly employeesUrl = `${environment.apiBaseUrl}/employees`;
   private readonly schedulesUrl = `${environment.apiBaseUrl}/v1/schedules`;
   private readonly shiftsUrl = `${environment.apiBaseUrl}/v1/shifts`;
+  private readonly attendanceDailyUrl = `${environment.apiBaseUrl}/attendance-daily`;
 
   constructor(private http: HttpClient) { }
+
+  getAttendanceDailyAdmin(from: string, to: string, page: number, size: number): Observable<SpringPage<AttendanceDailyResponse>> {
+    return this.http.get<SpringPage<AttendanceDailyResponse>>(`${this.attendanceDailyUrl}/admin`, {
+      params: this.buildAttendanceDailyParams(from, to, page, size),
+    });
+  }
+
+  getAttendanceDailyByEmployee(
+    employeeId: number,
+    from: string,
+    to: string,
+    page: number,
+    size: number,
+  ): Observable<SpringPage<AttendanceDailyResponse>> {
+    return this.http.get<SpringPage<AttendanceDailyResponse>>(`${this.attendanceDailyUrl}/employee/${employeeId}`, {
+      params: this.buildAttendanceDailyParams(from, to, page, size),
+    });
+  }
+
+  getMyAttendanceDaily(from: string, to: string, page: number, size: number): Observable<SpringPage<AttendanceDailyResponse>> {
+    return this.http.get<SpringPage<AttendanceDailyResponse>>(`${this.attendanceDailyUrl}/me`, {
+      params: this.buildAttendanceDailyParams(from, to, page, size),
+    });
+  }
 
   // --- SHIFT TEMPLATES (REAL API) ---
 
@@ -648,6 +693,14 @@ export class AttendanceService {
         return match.employeeId;
       }),
     );
+  }
+
+  private buildAttendanceDailyParams(from: string, to: string, page: number, size: number): HttpParams {
+    return new HttpParams()
+      .set('from', from)
+      .set('to', to)
+      .set('page', page.toString())
+      .set('size', size.toString());
   }
 
   private mapRequestToOt(request: RequestsResponse): OtRequest {
