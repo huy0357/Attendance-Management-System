@@ -1,13 +1,11 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Data } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import {
+  AttendanceBatchResponse,
   AttendanceDailyResponse,
   AttendanceService,
 } from '../attendance.service';
-import { AuthService } from '../../../core/auth/auth.service';
-import { SpringPage } from '../../../shared/models/page-response.model';
 
 type AttendanceDailyMode = 'admin' | 'employee' | 'me';
 
@@ -18,87 +16,105 @@ type AttendanceDailyMode = 'admin' | 'employee' | 'me';
   styleUrls: ['./attendance-daily.component.scss'],
 })
 export class AttendanceDailyComponent implements OnInit {
-  records: AttendanceDailyResponse[] = [];
-  mode: AttendanceDailyMode = 'me';
+  title = 'Attendance Daily';
+  description = 'Review calculated attendance records by date range and employee.';
+  mode: AttendanceDailyMode = 'admin';
+
+  from = this.formatDate(this.addDays(new Date(), -7));
+  to = this.formatDate(new Date());
+  batchDate = this.formatDate(new Date());
   employeeId: number | null = null;
 
-  from = '';
-  to = '';
   page = 0;
-  size = 20;
+  size = 10;
   totalPages = 0;
   totalElements = 0;
 
   isLoading = false;
+  isBatchRunning = false;
   errorMessage = '';
+  batchErrorMessage = '';
+  batchSuccessMessage = '';
 
-  readonly pageSizeOptions = [10, 20, 50];
+  readonly pageSizeOptions = [10, 20, 50, 100];
 
   constructor(
-    private attendanceService: AttendanceService,
-    private authService: AuthService,
-    private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef,
+    private readonly attendanceService: AttendanceService,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
-    this.initializeDateRange();
-    this.resolveScreenContext(this.route.snapshot.data);
-    this.loadAttendance();
+    this.route.data.subscribe((data) => {
+      this.mode = (data['mode'] as AttendanceDailyMode | undefined) ?? 'admin';
+      this.applyModeMetadata();
+      this.resolveEmployeeIdFromRoute();
+      this.loadRecords();
+    });
   }
 
-  get title(): string {
-    if (this.mode === 'admin') {
-      return 'Attendance Daily';
-    }
-    if (this.mode === 'employee') {
-      return `Attendance Daily - Employee #${this.employeeId ?? ''}`;
-    }
-    return 'My Attendance Daily';
-  }
-
-  get description(): string {
-    if (this.mode === 'admin') {
-      return 'Daily attendance summary across all employees.';
-    }
-    if (this.mode === 'employee') {
-      return 'Daily attendance summary for the selected employee.';
-    }
-    return 'Daily attendance summary from your authenticated account.';
-  }
-
-  onApplyFilters(): void {
-    this.page = 0;
-    this.loadAttendance();
-  }
-
-  onPageSizeChange(): void {
-    this.page = 0;
-    this.loadAttendance();
-  }
-
-  prevPage(): void {
-    if (this.page <= 0 || this.isLoading) {
-      return;
-    }
-    this.page -= 1;
-    this.loadAttendance();
-  }
-
-  nextPage(): void {
-    if (this.isLastPage || this.isLoading) {
-      return;
-    }
-    this.page += 1;
-    this.loadAttendance();
-  }
+  records: AttendanceDailyResponse[] = [];
 
   get currentPage(): number {
     return this.page + 1;
   }
 
   get isLastPage(): boolean {
-    return this.totalPages === 0 || this.page >= this.totalPages - 1;
+    return this.totalPages > 0 && this.page >= this.totalPages - 1;
+  }
+
+  get canRunBatch(): boolean {
+    return this.mode === 'admin' && !this.isBatchRunning && !!this.batchDate;
+  }
+
+  onApplyFilters(): void {
+    this.page = 0;
+    this.loadRecords();
+  }
+
+  onPageSizeChange(): void {
+    this.page = 0;
+    this.loadRecords();
+  }
+
+  prevPage(): void {
+    if (this.page <= 0 || this.isLoading) {
+      return;
+    }
+
+    this.page -= 1;
+    this.loadRecords();
+  }
+
+  nextPage(): void {
+    if (this.isLastPage || this.isLoading) {
+      return;
+    }
+
+    this.page += 1;
+    this.loadRecords();
+  }
+
+  onRunBatch(): void {
+    if (!this.canRunBatch) {
+      return;
+    }
+
+    this.isBatchRunning = true;
+    this.batchErrorMessage = '';
+    this.batchSuccessMessage = '';
+
+    this.attendanceService
+      .runAttendanceBatch(this.batchDate)
+      .pipe(finalize(() => (this.isBatchRunning = false)))
+      .subscribe({
+        next: (response: AttendanceBatchResponse) => {
+          this.batchSuccessMessage = response.message || 'Attendance batch completed.';
+          this.loadRecords();
+        },
+        error: (error) => {
+          this.batchErrorMessage = this.extractErrorMessage(error, 'Failed to run attendance batch.');
+        },
+      });
   }
 
   trackByAttendanceId(_: number, record: AttendanceDailyResponse): number {
@@ -110,106 +126,137 @@ export class AttendanceDailyComponent implements OnInit {
       return '-';
     }
 
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
       return value;
     }
 
-    return date.toLocaleString();
+    return parsed.toLocaleString();
   }
 
-  formatNumber(value: number | null): string {
-    return value == null ? '-' : `${value}`;
+  formatNumber(value: number | null): number {
+    return value ?? 0;
   }
 
-  private loadAttendance(): void {
+  private loadRecords(): void {
+    this.errorMessage = '';
+    this.batchSuccessMessage = '';
+    this.resolveEmployeeIdFromRoute();
+
     if (!this.from || !this.to) {
-      this.errorMessage = 'From date and To date are required.';
       this.records = [];
       this.totalElements = 0;
       this.totalPages = 0;
+      this.errorMessage = 'From and To dates are required.';
       return;
     }
 
     this.isLoading = true;
-    this.errorMessage = '';
 
-    this.getAttendanceRequest()
-      .pipe(
-        finalize(() => {
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        }),
-      )
+    let request$;
+    try {
+      request$ = this.getAttendanceRequest();
+    } catch (error) {
+      this.isLoading = false;
+      this.records = [];
+      this.totalElements = 0;
+      this.totalPages = 0;
+      this.errorMessage = this.extractErrorMessage(error, 'Failed to load attendance records.');
+      return;
+    }
+
+    request$
+      .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (response) => {
-          this.bindPage(response);
+          this.records = response.content ?? [];
+          this.totalElements = response.totalElements ?? 0;
+          this.totalPages = response.totalPages ?? 0;
+          this.page = response.number ?? this.page;
+          this.size = response.size ?? this.size;
         },
-        error: (error: HttpErrorResponse) => {
+        error: (error) => {
           this.records = [];
           this.totalElements = 0;
           this.totalPages = 0;
-          this.errorMessage = this.resolveErrorMessage(error);
+          this.errorMessage = this.extractErrorMessage(error, 'Failed to load attendance records.');
         },
       });
   }
 
   private getAttendanceRequest() {
-    if (this.employeeId) {
-      return this.attendanceService.getAttendanceDailyByEmployee(this.employeeId, this.from, this.to, this.page, this.size);
+    if (this.mode === 'me') {
+      return this.attendanceService.getMyAttendanceDaily(this.from, this.to, this.page, this.size);
     }
 
-    if (this.mode === 'admin') {
-      return this.attendanceService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size);
+    if (this.mode === 'employee') {
+      if (!this.employeeId || this.employeeId <= 0) {
+        throw new Error('Employee ID is required for employee attendance view.');
+      }
+
+      return this.attendanceService.getAttendanceDailyByEmployee(
+        this.employeeId,
+        this.from,
+        this.to,
+        this.page,
+        this.size,
+      );
     }
 
-    return this.attendanceService.getMyAttendanceDaily(this.from, this.to, this.page, this.size);
-  }
-
-  private bindPage(response: SpringPage<AttendanceDailyResponse>): void {
-    this.records = response.content ?? [];
-    this.totalElements = response.totalElements ?? 0;
-    this.totalPages = response.totalPages ?? 0;
-    this.page = response.number ?? this.page;
-    this.size = response.size ?? this.size;
-  }
-
-  private resolveScreenContext(data: Data): void {
-    const routeMode = data['mode'] as AttendanceDailyMode | undefined;
-    if (routeMode) {
-      this.mode = routeMode;
-    } else {
-      this.mode = this.authService.getRole()?.toUpperCase().replace('ROLE_', '') === 'ADMIN' ? 'admin' : 'me';
+    if (this.employeeId && this.employeeId > 0) {
+      return this.attendanceService.getAttendanceDailyByEmployee(
+        this.employeeId,
+        this.from,
+        this.to,
+        this.page,
+        this.size,
+      );
     }
 
-    const employeeIdParam = this.route.snapshot.paramMap.get('employeeId');
-    this.employeeId = employeeIdParam ? Number(employeeIdParam) : null;
-    if (this.employeeId !== null && !Number.isFinite(this.employeeId)) {
-      this.employeeId = null;
+    return this.attendanceService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size);
+  }
+
+  private resolveEmployeeIdFromRoute(): void {
+    const routeEmployeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
+    if (this.mode === 'employee' && Number.isInteger(routeEmployeeId) && routeEmployeeId > 0) {
+      this.employeeId = routeEmployeeId;
     }
   }
 
-  private initializeDateRange(): void {
-    const today = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    this.from = this.toDateInputValue(firstDay);
-    this.to = this.toDateInputValue(today);
+  private applyModeMetadata(): void {
+    if (this.mode === 'me') {
+      this.title = 'My Attendance Daily';
+      this.description = 'Review your calculated attendance records for the selected date range.';
+      return;
+    }
+
+    if (this.mode === 'employee') {
+      this.title = 'Employee Attendance Daily';
+      this.description = 'Review calculated attendance records for a specific employee.';
+      return;
+    }
+
+    this.title = 'Attendance Daily';
+    this.description = 'Review calculated attendance records by date range and employee.';
   }
 
-  private toDateInputValue(date: Date): string {
+  private extractErrorMessage(error: unknown, fallback: string): string {
+    const message =
+      (error as { error?: { message?: string }; message?: string })?.error?.message ||
+      (error as { message?: string })?.message;
+    return message || fallback;
+  }
+
+  private formatDate(date: Date): string {
     const year = date.getFullYear();
     const month = `${date.getMonth() + 1}`.padStart(2, '0');
     const day = `${date.getDate()}`.padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
 
-  private resolveErrorMessage(error: HttpErrorResponse): string {
-    if (error.status === 403) {
-      return 'You do not have permission to view this attendance data.';
-    }
-    if (error.status === 400) {
-      return error.error?.message || 'Invalid filter parameters.';
-    }
-    return 'Unable to load attendance daily data.';
+  private addDays(date: Date, days: number): Date {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
   }
 }

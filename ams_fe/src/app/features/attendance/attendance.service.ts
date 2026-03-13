@@ -154,6 +154,11 @@ export interface AttendanceDailyResponse {
   updatedAt: string | null;
 }
 
+export interface AttendanceBatchResponse {
+  message: string;
+  date: string;
+}
+
 interface EmployeeLookupDto {
   employeeId: number;
   employeeCode: string;
@@ -203,6 +208,7 @@ export class AttendanceService {
   private readonly schedulesUrl = `${environment.apiBaseUrl}/v1/schedules`;
   private readonly shiftsUrl = `${environment.apiBaseUrl}/v1/shifts`;
   private readonly attendanceDailyUrl = `${environment.apiBaseUrl}/attendance-daily`;
+  private readonly adminAttendanceUrl = `${environment.apiBaseUrl}/admin/attendance`;
 
   constructor(private http: HttpClient) { }
 
@@ -227,6 +233,12 @@ export class AttendanceService {
   getMyAttendanceDaily(from: string, to: string, page: number, size: number): Observable<SpringPage<AttendanceDailyResponse>> {
     return this.http.get<SpringPage<AttendanceDailyResponse>>(`${this.attendanceDailyUrl}/me`, {
       params: this.buildAttendanceDailyParams(from, to, page, size),
+    });
+  }
+
+  runAttendanceBatch(date: string): Observable<AttendanceBatchResponse> {
+    return this.http.post<AttendanceBatchResponse>(`${this.adminAttendanceUrl}/run-batch`, null, {
+      params: new HttpParams().set('date', date),
     });
   }
 

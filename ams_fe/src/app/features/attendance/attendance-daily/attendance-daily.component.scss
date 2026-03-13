@@ -25,9 +25,44 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
+.attendance-daily-batch {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.attendance-batch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid #059669;
+  background: #059669;
+  color: #fff;
+}
+
+.attendance-batch-button:hover:not(:disabled) {
+  background: #047857;
+  border-color: #047857;
+}
+
+.attendance-batch-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (min-width: 768px) {
   .attendance-daily-filters {
     grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  }
+
+  .attendance-daily-batch {
+    grid-template-columns: minmax(0, 240px) auto;
+    justify-content: space-between;
   }
 
   .attendance-filter-action {

@@ -257,11 +257,11 @@
     </div>
   </div>
 
-  <div *ngIf="showCalculationDetailsModal && selectedRecord" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div *ngIf="showCalculationDetailsModal && selectedRecord as record" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
       <div class="p-6 border-b border-gray-200">
         <h2 class="text-2xl font-bold text-gray-900">Calculation Breakdown</h2>
-        <p class="text-gray-600">{{ formatDate(selectedRecord.date) }}</p>
+        <p class="text-gray-600">{{ formatDate(record.date) }}</p>
       </div>
       <div class="p-6 space-y-4">
         <div class="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -271,35 +271,35 @@
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">1. Actual Hours Worked</span>
               <span class="font-semibold text-gray-900">
-                {{ calculateTimeDifference(selectedRecord.checkIn, selectedRecord.checkOut).toFixed(2) }}h
+                {{ calculateTimeDifference(record.checkIn, record.checkOut).toFixed(2) }}h
               </span>
             </div>
 
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">2. Scheduled Hours</span>
               <span class="font-semibold text-gray-900">
-                {{ calculateTimeDifference(selectedRecord.scheduledIn, selectedRecord.scheduledOut).toFixed(2) }}h
+                {{ calculateTimeDifference(record.scheduledIn, record.scheduledOut).toFixed(2) }}h
               </span>
             </div>
 
             <div class="border-t border-gray-200 pt-2 flex items-center justify-between">
               <span class="text-sm font-semibold text-gray-900">3. Regular Hours</span>
-              <span class="font-bold text-green-600">{{ selectedRecord.regularHours }}h</span>
+              <span class="font-bold text-green-600">{{ record.regularHours }}h</span>
             </div>
 
             <div class="flex items-center justify-between">
               <span class="text-sm font-semibold text-gray-900">4. Overtime Hours</span>
-              <span class="font-bold text-blue-600">{{ selectedRecord.overtimeHours }}h</span>
+              <span class="font-bold text-blue-600">{{ record.overtimeHours }}h</span>
             </div>
 
-            <div *ngIf="selectedRecord.lateMinutes > 0" class="flex items-center justify-between bg-red-50 p-2 rounded">
+            <div *ngIf="record.lateMinutes > 0" class="flex items-center justify-between bg-red-50 p-2 rounded">
               <span class="text-sm font-semibold text-red-900">5. Late Penalty</span>
-              <span class="font-bold text-red-600">{{ selectedRecord.lateMinutes }} minutes</span>
+              <span class="font-bold text-red-600">{{ record.lateMinutes }} minutes</span>
             </div>
 
-            <div *ngIf="selectedRecord.earlyLeaveMinutes > 0" class="flex items-center justify-between bg-yellow-50 p-2 rounded">
+            <div *ngIf="record.earlyLeaveMinutes > 0" class="flex items-center justify-between bg-yellow-50 p-2 rounded">
               <span class="text-sm font-semibold text-yellow-900">6. Early Leave Penalty</span>
-              <span class="font-bold text-yellow-600">{{ selectedRecord.earlyLeaveMinutes }} minutes</span>
+              <span class="font-bold text-yellow-600">{{ record.earlyLeaveMinutes }} minutes</span>
             </div>
           </div>
         </div>
@@ -308,18 +308,18 @@
           <h3 class="font-semibold text-blue-900 mb-2">Formula Applied</h3>
           <div class="font-mono text-sm space-y-1">
             <p class="text-gray-700">
-              Regular = MIN({{ calculateTimeDifference(selectedRecord.checkIn, selectedRecord.checkOut).toFixed(2) }}, {{ calculateTimeDifference(selectedRecord.scheduledIn, selectedRecord.scheduledOut).toFixed(2) }}) = <strong>{{ selectedRecord.regularHours }}h</strong>
+              Regular = MIN({{ calculateTimeDifference(record.checkIn, record.checkOut).toFixed(2) }}, {{ calculateTimeDifference(record.scheduledIn, record.scheduledOut).toFixed(2) }}) = <strong>{{ record.regularHours }}h</strong>
             </p>
             <p class="text-gray-700">
-              Overtime = MAX(0, {{ calculateTimeDifference(selectedRecord.checkIn, selectedRecord.checkOut).toFixed(2) }} - {{ calculateTimeDifference(selectedRecord.scheduledIn, selectedRecord.scheduledOut).toFixed(2) }}) = <strong>{{ selectedRecord.overtimeHours }}h</strong>
+              Overtime = MAX(0, {{ calculateTimeDifference(record.checkIn, record.checkOut).toFixed(2) }} - {{ calculateTimeDifference(record.scheduledIn, record.scheduledOut).toFixed(2) }}) = <strong>{{ record.overtimeHours }}h</strong>
             </p>
           </div>
         </div>
 
-        <div *ngIf="selectedRecord.violations.length > 0" class="bg-red-50 rounded-lg p-4">
+        <div *ngIf="record.violations.length > 0" class="bg-red-50 rounded-lg p-4">
           <h3 class="font-semibold text-red-900 mb-2">Violations Detected</h3>
           <ul class="space-y-1">
-            <li *ngFor="let violation of selectedRecord.violations" class="text-sm text-red-700">&bull; {{ violation }}</li>
+            <li *ngFor="let violation of record.violations" class="text-sm text-red-700">&bull; {{ violation }}</li>
           </ul>
         </div>
       </div>
