@@ -1,0 +1,227 @@
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">🏢 Department Management</h1>
+            <p class="text-gray-600 mt-1">Manage your organization's structure and hierarchy</p>
+        </div>
+        <div class="flex items-center gap-3">
+
+            <button (click)="openAddModal()"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                <span>+</span>
+                Add Department
+            </button>
+        </div>
+    </div>
+
+    <div *ngIf="apiError" class="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg p-4">
+        Unable to load department data. Please try again.
+    </div>
+
+    <div class="grid grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-600">🏢 TOTAL DEPARTMENTS</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">{{ allDepartments.length }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-600">✅ ACTIVE</p>
+            <p class="text-2xl font-bold text-green-600 mt-1">{{ activeCount }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-600">🚫 INACTIVE</p>
+            <p class="text-2xl font-bold text-gray-600 mt-1">{{ inactiveCount }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-600">🌳 ROOT DEPARTMENTS</p>
+            <p class="text-2xl font-bold text-blue-600 mt-1">{{ rootCount }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center gap-4">
+            <div class="relative flex-1">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">🔍</span>
+                <input type="text" placeholder="Search departments..." [(ngModel)]="searchQuery"
+                    (ngModelChange)="onSearchChange()"
+                    class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">🏢 Department</th>
+                        <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">🏷️ Code</th>
+                        <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">🌳 Parent</th>
+                        <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">📊 Status</th>
+                        <th class="text-right px-6 py-3 text-xs font-semibold text-gray-600 uppercase">⚙️ Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <!-- Loading State -->
+                    <tr *ngIf="isLoading">
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            Loading data...
+                        </td>
+                    </tr>
+
+                    <!-- Data Rows -->
+                    <ng-container *ngIf="!isLoading">
+                        <tr *ngFor="let dept of departments" class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                                        {{ dept.departmentName.substring(0,2).toUpperCase() }}
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-900">{{ dept.departmentName }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-gray-900 font-mono text-sm">{{ dept.departmentCode }}</td>
+                            <td class="px-6 py-4 text-gray-900">
+                                <div *ngIf="dept.parentDepartmentName" class="flex items-center gap-1">
+                                    <span class="text-gray-400">↳</span> {{ dept.parentDepartmentName }}
+                                </div>
+                                <span *ngIf="!dept.parentDepartmentName"
+                                    class="text-gray-400 italic text-sm">Root</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium"
+                                    [ngClass]="dept.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'">
+                                    {{ dept.isActive ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button (click)="openEditModal(dept)"
+                                        class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
+                                        ✏️
+                                    </button>
+                                    <button (click)="openDeleteModal(dept)"
+                                        class="p-2 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-container>
+
+                    <!-- Empty State -->
+                    <tr *ngIf="!isLoading && departments.length === 0">
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            No departments found.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="flex items-center justify-between px-6 py-3 bg-gray-50 border-t border-gray-200">
+            <div class="text-sm text-gray-600">
+                Showing {{ departments.length }} of {{ totalItems }} departments
+            </div>
+            <div class="flex items-center gap-2">
+                <button (click)="prevPage()" [disabled]="currentPage === 1 || isLoading"
+                    class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Prev
+                </button>
+                <span class="text-sm text-gray-600">Page {{ currentPage }} / {{ totalPages || 1 }}</span>
+                <button (click)="nextPage()" [disabled]="currentPage === totalPages || isLoading"
+                    class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="showAddModal || showEditModal"
+    class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">{{ showEditModal ? '✏️ Edit Department' : '➕ Add New
+                Department' }}</h2>
+            <button (click)="showAddModal = false; showEditModal = false"
+                class="p-2 hover:bg-gray-100 rounded-lg transition-colors">✖️</button>
+        </div>
+
+        <div class="space-y-4" [formGroup]="departmentForm">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Department Name</label>
+                    <input type="text" formControlName="departmentName" placeholder="e.g. Engineering"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                    <p *ngIf="departmentForm.get('departmentName')?.invalid && departmentForm.get('departmentName')?.touched"
+                        class="text-red-500 text-xs mt-1">Name is required</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">🏷️ Code</label>
+                    <input type="text" formControlName="departmentCode" placeholder="e.g. ENG"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 uppercase" />
+                    <p *ngIf="departmentForm.get('departmentCode')?.invalid && departmentForm.get('departmentCode')?.touched"
+                        class="text-red-500 text-xs mt-1">Code is required</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">🌳 Parent Department</label>
+                <select formControlName="parentDepartmentId"
+                    class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <option [ngValue]="null">Select parent department (Root)</option>
+                    <option *ngFor="let dept of allDepartments" [value]="dept.departmentId">{{ dept.departmentName }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" formControlName="isActive" id="isActive"
+                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                <label for="isActive" class="text-sm font-medium text-gray-700">Active Status</label>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+            <button (click)="showAddModal = false; showEditModal = false"
+                class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                ✖️ Cancel
+            </button>
+            <button (click)="saveDepartment()" [disabled]="departmentForm.invalid"
+                class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ showEditModal ? '💾 Save Changes' : '➕ Add Department' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="showDeleteModal" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">⚠️</div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Delete Department</h2>
+                <p class="text-sm text-gray-600">This action cannot be undone</p>
+            </div>
+        </div>
+
+        <p class="text-gray-900 mb-6">
+            Are you sure you want to delete <span class="font-semibold">{{ selectedDepartment?.departmentName }}</span>?
+        </p>
+
+        <div class="flex items-center justify-end gap-3">
+            <button (click)="showDeleteModal = false"
+                class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                ✖️ Cancel
+            </button>
+            <button (click)="confirmDelete()"
+                class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                🗑️ Delete Department
+            </button>
+        </div>
+    </div>
+</div>

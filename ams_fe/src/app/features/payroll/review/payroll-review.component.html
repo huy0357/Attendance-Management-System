@@ -1,0 +1,271 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-slate-900">Payroll Review</h1>
+      <p class="text-slate-600 mt-1">Review and send employee payslips for January 2026</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        class="px-4 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2"
+      >
+        <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+        Export All
+      </button>
+      <button
+        type="button"
+        (click)="handleBulkSend()"
+        [disabled]="selectedEmployees.length === 0"
+        class="px-4 py-2 bg-blue-600 text-slate-50 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <lucide-icon name="send" class="w-4 h-4"></lucide-icon>
+        Send Payslips ({{ selectedEmployees.length }})
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-4 gap-4">
+    <div class="bg-slate-50 rounded-lg shadow-sm border border-slate-100 p-4">
+      <p class="text-sm text-slate-600">Total Employees</p>
+      <p class="text-2xl font-bold text-slate-900 mt-1">{{ employees.length }}</p>
+    </div>
+    <div class="bg-slate-50 rounded-lg shadow-sm border border-slate-100 p-4">
+      <p class="text-sm text-slate-600">Total Payroll</p>
+      <p class="text-2xl font-bold text-slate-900 mt-1">${{ formatCurrency(totalPayroll) }}</p>
+    </div>
+    <div class="bg-slate-50 rounded-lg shadow-sm border border-slate-100 p-4">
+      <p class="text-sm text-slate-600">Pending Approval</p>
+      <p class="text-2xl font-bold text-amber-500 mt-1">{{ pendingCount }}</p>
+    </div>
+    <div class="bg-slate-50 rounded-lg shadow-sm border border-slate-100 p-4">
+      <p class="text-sm text-slate-600">Ready to Send</p>
+      <p class="text-2xl font-bold text-emerald-500 mt-1">{{ readyCount }}</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-[1fr_400px] gap-6">
+    <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <form [formGroup]="filterForm" class="relative flex-1 max-w-md">
+          <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></lucide-icon>
+          <input
+            type="text"
+            formControlName="searchQuery"
+            placeholder="Search employees..."
+            class="w-full pl-10 pr-4 py-2 border border-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+          />
+        </form>
+        <button
+          type="button"
+          (click)="toggleCompareMode()"
+          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          [ngClass]="compareMode ? 'bg-blue-600 text-slate-50' : 'bg-blue-100 text-slate-900 hover:bg-blue-200'"
+        >
+          Compare with Last Month
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-blue-50 sticky top-0">
+            <tr>
+              <th class="px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  [checked]="selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0"
+                  (change)="handleSelectAll()"
+                  class="w-4 h-4 text-blue-600 rounded border-slate-100 focus:ring-blue-300"
+                />
+              </th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Employee</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Base</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Overtime</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Deductions</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Total</th>
+              <th *ngIf="compareMode" class="text-center px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Change</th>
+              <th class="text-center px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Status</th>
+              <th class="text-center px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr
+              *ngFor="let employee of filteredEmployees"
+              class="hover:bg-blue-50 transition-colors"
+              [ngClass]="selectedForPreview === employee.id ? 'bg-blue-100' : ''"
+            >
+              <td class="px-4 py-3">
+                <input
+                  type="checkbox"
+                  [checked]="selectedEmployees.includes(employee.id)"
+                  (change)="handleSelectEmployee(employee.id)"
+                  class="w-4 h-4 text-blue-600 rounded border-slate-100 focus:ring-blue-300"
+                />
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-blue-600 text-slate-50 rounded-full flex items-center justify-center text-xs font-medium">
+                    {{ employee.avatar }}
+                  </div>
+                  <div>
+                    <p class="font-medium text-slate-900 text-sm">{{ employee.name }}</p>
+                    <p class="text-xs text-slate-600">{{ employee.department }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-right font-mono text-sm text-slate-900">
+                ${{ formatCurrency(employee.baseSalary) }}
+              </td>
+              <td class="px-4 py-3 text-right font-mono text-sm text-emerald-500">
+                +${{ employee.overtime }}
+              </td>
+              <td class="px-4 py-3 text-right font-mono text-sm text-red-500">
+                -${{ employee.deductions }}
+              </td>
+              <td class="px-4 py-3 text-right font-mono font-semibold text-slate-900">
+                ${{ formatCurrency(employee.total) }}
+              </td>
+              <td *ngIf="compareMode" class="px-4 py-3 text-center">
+                <ng-container *ngIf="getDiff(employee.total, employee.lastMonth) as diff">
+                  <div
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                    [ngClass]="getChangeBadgeClass(diff)"
+                  >
+                    <lucide-icon [name]="diff.diff > 0 ? 'trending-up' : 'trending-down'" class="w-3 h-3"></lucide-icon>
+                    <span>{{ diff.percentage }}%</span>
+                  </div>
+                </ng-container>
+              </td>
+              <td class="px-4 py-3 text-center">
+                <span
+                  *ngIf="employee.status === 'approved'; else pendingStatus"
+                  class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-500 rounded-full text-xs font-medium"
+                >
+                  <lucide-icon name="check-circle" class="w-3 h-3"></lucide-icon>
+                  Approved
+                </span>
+                <ng-template #pendingStatus>
+                  <span class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-500 rounded-full text-xs font-medium">
+                    Pending
+                  </span>
+                </ng-template>
+              </td>
+              <td class="px-4 py-3 text-center">
+                <button
+                  type="button"
+                  (click)="setPreviewEmployee(employee.id)"
+                  class="p-1.5 hover:bg-blue-200 rounded-lg transition-colors"
+                  title="Preview Payslip"
+                >
+                  <lucide-icon name="eye" class="w-4 h-4 text-slate-600"></lucide-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3">
+        <lucide-icon name="file-text" class="w-5 h-5 text-slate-600"></lucide-icon>
+        <h3 class="font-semibold text-slate-900">Payslip Preview</h3>
+      </div>
+
+      <div *ngIf="selectedEmployee; else noPreview" class="p-6 space-y-6">
+        <div class="text-center border-b border-slate-100 pb-4">
+          <h2 class="text-2xl font-bold text-slate-900">AMS Core</h2>
+          <p class="text-sm text-slate-600 mt-1">Payslip for January 2026</p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-12 h-12 bg-blue-600 text-slate-50 rounded-full flex items-center justify-center text-lg font-bold">
+              {{ selectedEmployee.avatar }}
+            </div>
+            <div>
+              <p class="font-semibold text-slate-900">{{ selectedEmployee.name }}</p>
+              <p class="text-sm text-slate-600">{{ selectedEmployee.department }}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <p class="text-slate-600">Employee ID</p>
+              <p class="font-mono text-slate-900">EMP-{{ selectedEmployee.id.padStart(4, '0') }}</p>
+            </div>
+            <div>
+              <p class="text-slate-600">Pay Period</p>
+              <p class="font-mono text-slate-900">01/2026</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-slate-900 mb-3">Earnings</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-600">Base Salary</span>
+              <span class="font-mono text-slate-900">${{ formatCurrency(selectedEmployee.baseSalary) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-600">Overtime Pay</span>
+              <span class="font-mono text-emerald-500">+${{ selectedEmployee.overtime }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-slate-900 mb-3">Deductions</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-600">Tax &amp; Insurance</span>
+              <span class="font-mono text-red-500">-${{ selectedEmployee.deductions }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t-2 border-slate-100">
+          <div class="flex justify-between items-center">
+            <span class="text-lg font-semibold text-slate-900">Net Pay</span>
+            <span class="text-2xl font-bold text-emerald-500 font-mono">${{ formatCurrency(selectedEmployee.total) }}</span>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-4">
+          <button class="w-full px-4 py-2.5 bg-blue-600 text-slate-50 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+            <lucide-icon name="send" class="w-4 h-4"></lucide-icon>
+            Send to {{ selectedEmployee.name }}
+          </button>
+          <button class="w-full px-4 py-2.5 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
+            <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+            Download PDF
+          </button>
+        </div>
+      </div>
+      <ng-template #noPreview>
+        <div class="p-6 text-center text-slate-600">Select an employee to preview payslip</div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div *ngIf="sendingProgress !== null" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
+    <div class="bg-slate-50 rounded-2xl shadow-2xl p-8 max-w-md w-full">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <lucide-icon name="send" class="w-8 h-8 text-slate-50"></lucide-icon>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 mb-2">Sending Payslips</h3>
+        <p class="text-slate-600 mb-6">
+          Sending to {{ selectedEmployees.length }} employees...
+        </p>
+        <div class="w-full bg-blue-100 rounded-full h-3 overflow-hidden">
+          <div class="bg-emerald-500 h-3 transition-all duration-300 rounded-full" [style.width.%]="sendingProgress"></div>
+        </div>
+        <p class="text-sm text-slate-600 mt-2">{{ sendingProgress }}% complete</p>
+        <div *ngIf="sendingProgress === 100" class="mt-4 flex items-center justify-center gap-2 text-emerald-500">
+          <lucide-icon name="check-circle" class="w-5 h-5"></lucide-icon>
+          <span class="font-medium">All payslips sent successfully!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,264 @@
+<div class="flex h-screen bg-gray-50 overflow-hidden">
+  <aside class="w-64 bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 text-white flex flex-col shadow-2xl">
+    <div class="p-6 border-b border-gray-700">
+      <div class="flex items-center gap-4">
+        <div class="relative">
+          <div class="w-14 h-14 bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl transform hover:scale-105 transition-transform">
+            <span class="text-3xl font-black text-white tracking-tighter">A</span>
+          </div>
+          <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-green-400 to-green-500 rounded-full border-3 border-gray-900 flex items-center justify-center shadow-lg">
+            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          </div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-black tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            AMS Core
+          </h1>
+          <p class="text-xs font-semibold text-blue-400 mt-1 tracking-wide uppercase">
+            Attendance & HR
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+      <a
+        *ngFor="let item of visibleNavItems"
+        [routerLink]="item.path"
+        class="w-full flex items-center gap-3 rounded-xl transition-all group"
+        [ngClass]="[densityClass, isActive(item.path) ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-300 hover:bg-gray-800 hover:text-white']"
+      >
+        <lucide-icon
+          [name]="item.icon"
+          class="w-5 h-5"
+          [ngClass]="isActive(item.path) ? '' : 'group-hover:scale-110 transition-transform'"
+        ></lucide-icon>
+        <span class="flex-1 text-left font-medium">{{ item.label }}</span>
+        <lucide-icon *ngIf="isActive(item.path)" name="chevron-right" class="w-4 h-4"></lucide-icon>
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-gray-700">
+      <div class="bg-gray-800 rounded-lg p-3 mb-3">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span class="text-xs text-gray-400">System Status</span>
+        </div>
+        <span class="text-sm font-semibold text-white">All Systems Online</span>
+      </div>
+      <div class="text-xs text-gray-400">
+        <p>© 2026 AMS Core</p>
+        <p class="mt-1">Version 2.4.1</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+      <div class="flex items-center gap-4 flex-1 max-w-2xl">
+        <div class="relative flex-1">
+          <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+          <input
+            type="text"
+            placeholder="Search employees, reports, schedules... (?K)"
+            class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+            [(ngModel)]="searchQuery"
+            (focus)="searchOpen = true"
+            (blur)="closeSearchDelayed()"
+          />
+          <kbd class="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs text-gray-600 font-semibold">
+            ?K
+          </kbd>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 bg-gray-100 rounded-xl p-1.5 shadow-sm">
+          <button
+            *ngFor="let d of densityOptions"
+            (click)="setDensity(d)"
+            class="px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+            [ngClass]="density === d ? 'bg-white text-gray-900 shadow-md' : 'text-gray-600 hover:text-gray-900'"
+            [title]="d.charAt(0).toUpperCase() + d.slice(1)"
+          >
+            <span *ngIf="d === 'compact'">?</span>
+            <span *ngIf="d === 'comfortable'">?</span>
+            <span *ngIf="d === 'spacious'">?</span>
+          </button>
+        </div>
+
+        <button
+          class="relative p-2.5 hover:bg-gray-100 rounded-xl transition-colors group"
+          (click)="toggleNotifications()"
+        >
+          <lucide-icon name="bell" class="w-5 h-5 text-gray-600 group-hover:text-gray-900"></lucide-icon>
+          <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
+
+        <button
+          (click)="toggleUserMenu()"
+          class="flex items-center gap-3 pl-4 border-l border-gray-200 hover:bg-gray-100 rounded-lg pr-3 py-1 transition-colors"
+        >
+          <div class="text-right">
+            <p class="text-sm font-semibold text-gray-900">Admin User</p>
+            <p class="text-xs text-gray-600">System Administrator</p>
+          </div>
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+            AU
+          </div>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-8">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <button
+    (click)="chatbotOpen = !chatbotOpen"
+    class="fixed bottom-8 right-8 w-14 h-14 bg-purple-600 text-white rounded-full shadow-xl hover:scale-110 transition-transform flex items-center justify-center group"
+    title="AI Assistant (?K)"
+  >
+    <lucide-icon name="sparkles" class="w-6 h-6"></lucide-icon>
+    <span class="absolute -top-10 right-0 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+      AI Assistant <kbd class="ml-1 px-1.5 py-0.5 bg-gray-700 rounded text-xs">?K</kbd>
+    </span>
+  </button>
+
+  <app-ai-chatbot *ngIf="chatbotOpen" (close)="chatbotOpen = false"></app-ai-chatbot>
+
+  <div *ngIf="notificationsOpen" class="fixed top-0 right-0 h-screen w-96 bg-white shadow-2xl z-50 border-l border-gray-200">
+    <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+      <h2 class="text-xl font-bold text-gray-900">Notifications</h2>
+      <button (click)="notificationsOpen = false" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <lucide-icon name="chevron-right" class="w-5 h-5 text-gray-600"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="p-4 border-b border-gray-200 bg-gray-50">
+      <button
+        (click)="notificationsEnabled = !notificationsEnabled"
+        class="w-full flex items-center justify-between p-3 rounded-lg transition-all"
+        [ngClass]="notificationsEnabled ? 'bg-blue-50 border border-blue-200' : 'bg-gray-100 border border-gray-300'"
+      >
+        <div class="flex items-center gap-3">
+          <lucide-icon
+            [name]="notificationsEnabled ? 'bell' : 'bell-off'"
+            class="w-5 h-5"
+            [ngClass]="notificationsEnabled ? 'text-blue-600' : 'text-gray-600'"
+          ></lucide-icon>
+          <div class="text-left">
+            <p class="text-sm font-semibold text-gray-900">
+              {{ notificationsEnabled ? 'Notifications Enabled' : 'Notifications Disabled' }}
+            </p>
+            <p class="text-xs text-gray-600">
+              {{ notificationsEnabled ? 'You will receive all alerts' : 'No alerts will be shown' }}
+            </p>
+          </div>
+        </div>
+        <div
+          class="w-12 h-6 rounded-full transition-all relative"
+          [ngClass]="notificationsEnabled ? 'bg-blue-600' : 'bg-gray-300'"
+        >
+          <div
+            class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all"
+            [ngClass]="notificationsEnabled ? 'right-1' : 'left-1'"
+          ></div>
+        </div>
+      </button>
+    </div>
+
+    <div class="overflow-y-auto h-[calc(100vh-180px)]">
+      <div *ngIf="notificationsEnabled; else disabledNotifications" class="p-4 space-y-3">
+        <div
+          *ngFor="let notification of notifications"
+          class="p-4 rounded-lg transition-all"
+          [ngClass]="notification.unread ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              [ngClass]="
+                notification.type === 'warning'
+                  ? 'bg-yellow-100 text-yellow-600'
+                  : notification.type === 'info'
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'bg-green-100 text-green-600'
+              "
+            >
+              <lucide-icon name="bell" class="w-4 h-4"></lucide-icon>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-gray-900">{{ notification.title }}</p>
+              <p class="text-xs text-gray-600 mt-1">{{ notification.time }}</p>
+            </div>
+            <div *ngIf="notification.unread" class="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
+          </div>
+        </div>
+      </div>
+      <ng-template #disabledNotifications>
+        <div class="flex flex-col items-center justify-center h-full text-center p-8">
+          <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <lucide-icon name="bell-off" class="w-8 h-8 text-gray-400"></lucide-icon>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Notifications Disabled</h3>
+          <p class="text-sm text-gray-600">Enable notifications above to receive alerts and updates</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div *ngIf="searchOpen" class="fixed top-0 right-0 h-screen w-80 bg-white shadow-xl z-50">
+    <div class="p-4 border-b border-gray-200">
+      <h2 class="text-lg font-bold">Search Results</h2>
+    </div>
+    <div class="p-4 overflow-y-auto">
+      <div
+        *ngFor="let result of searchResults"
+        class="flex items-center gap-3 mb-4 cursor-pointer"
+        (click)="navigateTo(result.path)"
+      >
+        <div
+          class="w-5 h-5 rounded-full"
+          [ngClass]="result.type === 'Employee' ? 'bg-blue-500' : result.type === 'Page' ? 'bg-gray-500' : 'bg-green-500'"
+        ></div>
+        <div>
+          <p class="text-sm font-semibold">{{ result.name }}</p>
+          <p class="text-xs text-gray-500">{{ result.type }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="userMenuOpen" class="fixed top-16 right-8 w-56 bg-white shadow-xl z-50 rounded-lg">
+    <div class="p-4">
+      <button
+        (click)="navigateTo('/admin/profile')"
+        class="flex items-center gap-3 w-full py-2 px-4 text-left hover:bg-gray-100 rounded-lg"
+      >
+        <lucide-icon name="user" class="w-5 h-5 text-gray-600"></lucide-icon>
+        <span class="text-sm font-semibold">Profile</span>
+      </button>
+      <button
+        (click)="notificationsEnabled = !notificationsEnabled"
+        class="flex items-center gap-3 w-full py-2 px-4 text-left hover:bg-gray-100 rounded-lg"
+      >
+        <lucide-icon
+          [name]="notificationsEnabled ? 'bell' : 'bell-off'"
+          class="w-5 h-5 text-gray-600"
+        ></lucide-icon>
+        <span class="text-sm font-semibold">
+          {{ notificationsEnabled ? 'Notifications On' : 'Notifications Off' }}
+        </span>
+      </button>
+      <button
+        (click)="logout()"
+        class="flex items-center gap-3 w-full py-2 px-4 text-left hover:bg-gray-100 rounded-lg"
+      >
+        <lucide-icon name="log-out" class="w-5 h-5 text-gray-600"></lucide-icon>
+        <span class="text-sm font-semibold">Logout</span>
+      </button>
+    </div>
+  </div>
+</div>

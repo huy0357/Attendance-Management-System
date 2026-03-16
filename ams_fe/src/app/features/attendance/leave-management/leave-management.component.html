@@ -1,0 +1,462 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Leave Management</h1>
+      <p class="text-gray-600 mt-1">Review and manage employee leave requests</p>
+    </div>
+    <button
+      type="button"
+      (click)="openAddModal()"
+      class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+    >
+      <lucide-icon name="plus" class="w-5 h-5"></lucide-icon>
+      Enter Leave Request
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div *ngFor="let stat of stats" class="{{ stat.bg }} rounded-xl p-6 border border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
+          <p class="text-3xl font-bold {{ stat.color }} mt-2">{{ stat.value }}</p>
+        </div>
+        <lucide-icon [name]="stat.icon" class="w-8 h-8 {{ stat.color }}"></lucide-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <form [formGroup]="filterForm" class="flex flex-col lg:flex-row gap-4">
+      <div class="flex-1 relative">
+        <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+        <input
+          type="text"
+          formControlName="searchQuery"
+          placeholder="Search by employee name, ID, or email..."
+          class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <select
+        formControlName="department"
+        class="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option *ngFor="let dept of departments" [value]="dept">
+          {{ dept }} Department
+        </option>
+      </select>
+      <select
+        formControlName="leaveType"
+        class="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option *ngFor="let type of leaveTypes" [value]="type">
+          {{ type }} Leave
+        </option>
+      </select>
+      <button
+        type="button"
+        class="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+      >
+        <lucide-icon name="download" class="w-5 h-5"></lucide-icon>
+        Export
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="flex border-b border-gray-200">
+      <button
+        type="button"
+        (click)="setActiveTab('pending')"
+        class="flex-1 px-6 py-4 font-semibold transition-colors"
+        [ngClass]="activeTab === 'pending'
+          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+          : 'text-gray-600 hover:bg-gray-50'"
+      >
+        Pending <span class="ml-2 text-sm">({{ getTabCount('pending') }})</span>
+      </button>
+      <button
+        type="button"
+        (click)="setActiveTab('approved')"
+        class="flex-1 px-6 py-4 font-semibold transition-colors"
+        [ngClass]="activeTab === 'approved'
+          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+          : 'text-gray-600 hover:bg-gray-50'"
+      >
+        Approved <span class="ml-2 text-sm">({{ getTabCount('approved') }})</span>
+      </button>
+      <button
+        type="button"
+        (click)="setActiveTab('rejected')"
+        class="flex-1 px-6 py-4 font-semibold transition-colors"
+        [ngClass]="activeTab === 'rejected'
+          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+          : 'text-gray-600 hover:bg-gray-50'"
+      >
+        Rejected <span class="ml-2 text-sm">({{ getTabCount('rejected') }})</span>
+      </button>
+      <button
+        type="button"
+        (click)="setActiveTab('all')"
+        class="flex-1 px-6 py-4 font-semibold transition-colors"
+        [ngClass]="activeTab === 'all'
+          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+          : 'text-gray-600 hover:bg-gray-50'"
+      >
+        All Requests <span class="ml-2 text-sm">({{ getTabCount('all') }})</span>
+      </button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Request ID</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Employee</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Leave Type</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Dates</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Days</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Submitted</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <tr *ngFor="let request of filteredRequests" class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-gray-900">{{ request.id }}</span>
+                <lucide-icon *ngIf="request.submittedVia === 'Gmail'" name="mail" class="w-4 h-4 text-blue-600"></lucide-icon>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <div>
+                <p class="font-semibold text-gray-900">{{ request.employeeName }}</p>
+                <p class="text-sm text-gray-600">{{ request.department }}</p>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {{ request.leaveType }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <div class="text-sm">
+                <p class="text-gray-900 font-medium">{{ formatDate(request.startDate) }}</p>
+                <p class="text-gray-600">to {{ formatDate(request.endDate) }}</p>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <span class="font-semibold text-gray-900">{{ request.days }} days</span>
+            </td>
+            <td class="px-6 py-4">
+              <p class="text-sm text-gray-600">{{ formatDate(request.submittedDate) }}</p>
+            </td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusColor(request.status) }}">
+                <lucide-icon [name]="getStatusIcon(request.status)" class="w-4 h-4"></lucide-icon>
+                {{ request.status }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-2">
+                <ng-container *ngIf="request.status === 'Pending'; else viewOnly">
+                  <button
+                    type="button"
+                    (click)="openReviewModal(request, 'Approved')"
+                    class="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                    title="Approve"
+                  >
+                    <lucide-icon name="check" class="w-4 h-4"></lucide-icon>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="openReviewModal(request, 'Rejected')"
+                    class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                    title="Reject"
+                  >
+                    <lucide-icon name="x" class="w-4 h-4"></lucide-icon>
+                  </button>
+                </ng-container>
+                <ng-template #viewOnly>
+                  <button
+                    type="button"
+                    (click)="openReviewModal(request)"
+                    class="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    title="View Details"
+                  >
+                    <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                  </button>
+                </ng-template>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="filteredRequests.length === 0" class="text-center py-12">
+        <lucide-icon name="calendar" class="w-12 h-12 text-gray-400 mx-auto mb-4"></lucide-icon>
+        <p class="text-gray-600 font-medium">No leave requests found</p>
+        <p class="text-sm text-gray-500 mt-1">Try adjusting your filters or search query</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Enter Leave Request</h2>
+        <p class="text-gray-600 mt-1">Manually enter a leave request on behalf of an employee</p>
+      </div>
+
+      <form [formGroup]="newRequestForm" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Employee Name *</label>
+            <input
+              type="text"
+              formControlName="employeeName"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter full name"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Department *</label>
+            <select
+              formControlName="department"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select department</option>
+              <option *ngFor="let dept of departments" [value]="dept" [disabled]="dept === 'All'">{{ dept }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address *</label>
+          <input
+            type="email"
+            formControlName="email"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="employee@company.com"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Leave Type *</label>
+          <select
+            formControlName="leaveType"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option *ngFor="let type of leaveTypes" [value]="type" [disabled]="type === 'All'">
+              {{ type }} Leave
+            </option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date *</label>
+            <input
+              type="date"
+              formControlName="startDate"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">End Date *</label>
+            <input
+              type="date"
+              formControlName="endDate"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div *ngIf="newRequestForm.value.startDate && newRequestForm.value.endDate" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p class="text-sm font-semibold text-blue-900">
+            Total Days: {{ calculateDays(newRequestForm.value.startDate, newRequestForm.value.endDate) }}
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Reason *</label>
+          <textarea
+            formControlName="reason"
+            rows="4"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter reason for leave request..."
+          ></textarea>
+        </div>
+      </form>
+
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          type="button"
+          (click)="closeAddModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="handleAddRequest()"
+          [disabled]="newRequestForm.invalid"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Submit Request
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showReviewModal && selectedRequest" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">Leave Request Details</h2>
+            <p class="text-gray-600 mt-1">Request ID: {{ selectedRequest.id }}</p>
+          </div>
+          <span class="inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold border {{ getStatusColor(selectedRequest.status) }}">
+            <lucide-icon [name]="getStatusIcon(selectedRequest.status)" class="w-4 h-4"></lucide-icon>
+            {{ selectedRequest.status }}
+          </span>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-6">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-3">Employee Information</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-600">Name</p>
+              <p class="font-semibold text-gray-900">{{ selectedRequest.employeeName }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Department</p>
+              <p class="font-semibold text-gray-900">{{ selectedRequest.department }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Email</p>
+              <p class="font-semibold text-gray-900">{{ selectedRequest.email }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Submitted Via</p>
+              <div class="flex items-center gap-1">
+                <lucide-icon *ngIf="selectedRequest.submittedVia === 'Gmail'" name="mail" class="w-4 h-4 text-blue-600"></lucide-icon>
+                <p class="font-semibold text-gray-900">{{ selectedRequest.submittedVia }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-gray-900 mb-3">Leave Details</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-600">Leave Type</p>
+              <p class="font-semibold text-gray-900">{{ selectedRequest.leaveType }} Leave</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Duration</p>
+              <p class="font-semibold text-gray-900">{{ selectedRequest.days }} days</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Start Date</p>
+              <p class="font-semibold text-gray-900">{{ formatDate(selectedRequest.startDate) }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">End Date</p>
+              <p class="font-semibold text-gray-900">{{ formatDate(selectedRequest.endDate) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-bold text-gray-900 mb-2">Reason for Leave</h3>
+          <p class="text-gray-700 bg-gray-50 rounded-lg p-4">{{ selectedRequest.reason }}</p>
+        </div>
+
+        <div *ngIf="selectedRequest.reviewedBy" class="rounded-lg p-4" [ngClass]="selectedRequest.status === 'Approved' ? 'bg-green-50' : 'bg-red-50'">
+          <h3 class="text-sm font-bold text-gray-900 mb-3">Review Information</h3>
+          <div class="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <p class="text-sm text-gray-600">Reviewed By</p>
+              <p class="font-semibold text-gray-900">{{ selectedRequest.reviewedBy }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Review Date</p>
+              <p class="font-semibold text-gray-900">{{ selectedRequest.reviewedDate ? formatDate(selectedRequest.reviewedDate) : '' }}</p>
+            </div>
+          </div>
+          <div *ngIf="selectedRequest.reviewNotes">
+            <p class="text-sm text-gray-600 mb-1">Review Notes</p>
+            <p class="text-gray-900">{{ selectedRequest.reviewNotes }}</p>
+          </div>
+        </div>
+
+        <div *ngIf="selectedRequest.status === 'Pending'" class="border-t border-gray-200 pt-6">
+          <h3 class="text-sm font-bold text-gray-900 mb-3">Review This Request</h3>
+          <div class="space-y-4" [formGroup]="reviewForm">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Decision</label>
+              <div class="flex gap-4">
+                <button
+                  type="button"
+                  (click)="reviewForm.patchValue({ action: 'Approved' })"
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-semibold transition-all"
+                  [ngClass]="reviewForm.value.action === 'Approved'
+                    ? 'bg-green-50 border-green-600 text-green-700'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
+                >
+                  <lucide-icon name="check" class="w-5 h-5"></lucide-icon>
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  (click)="reviewForm.patchValue({ action: 'Rejected' })"
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-semibold transition-all"
+                  [ngClass]="reviewForm.value.action === 'Rejected'
+                    ? 'bg-red-50 border-red-600 text-red-700'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
+                >
+                  <lucide-icon name="x" class="w-5 h-5"></lucide-icon>
+                  Reject
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Review Notes</label>
+              <textarea
+                formControlName="notes"
+                rows="3"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Add notes about your decision..."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
+        <button
+          type="button"
+          (click)="closeReviewModal()"
+          class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        >
+          Close
+        </button>
+        <button
+          *ngIf="selectedRequest.status === 'Pending'"
+          type="button"
+          (click)="handleReview()"
+          class="px-6 py-2.5 rounded-lg text-white font-semibold transition-colors"
+          [ngClass]="reviewForm.value.action === 'Approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+        >
+          {{ reviewForm.value.action === 'Approved' ? 'Approve Request' : 'Reject Request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

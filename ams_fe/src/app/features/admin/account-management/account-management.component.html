@@ -1,0 +1,462 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">👥 Account Management</h1>
+      <p class="text-gray-600 mt-1">Manage user accounts, roles, and permissions</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- Optional: Add Export button if needed to check consistency, skipping for now as not in requirements -->
+      <button *ngIf="activeTab === 'users'" (click)="openAddUserModal()"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <span>+</span>
+        Add User
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs (Keeping original tab logic but styling it cleanly) -->
+  <div class="flex gap-2 border-b border-gray-200">
+    <button (click)="activeTab = 'users'" class="flex items-center gap-2 px-4 py-3 border-b-2 transition-colors"
+      [ngClass]="activeTab === 'users' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'">
+      <lucide-icon name="users" class="w-4 h-4"></lucide-icon>
+      User Accounts
+    </button>
+    <button (click)="activeTab = 'roles'" class="flex items-center gap-2 px-4 py-3 border-b-2 transition-colors"
+      [ngClass]="activeTab === 'roles' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'">
+      <lucide-icon name="shield" class="w-4 h-4"></lucide-icon>
+      Roles &amp; Access
+    </button>
+    <button (click)="activeTab = 'permissions'" class="flex items-center gap-2 px-4 py-3 border-b-2 transition-colors"
+      [ngClass]="activeTab === 'permissions' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'">
+      <lucide-icon name="key" class="w-4 h-4"></lucide-icon>
+      Permissions
+    </button>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="apiError" class="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg p-4">
+    Unable to load account data. Please try again.
+  </div>
+
+  <!-- USERS TAB -->
+  <div *ngIf="activeTab === 'users'" class="space-y-6">
+    <!-- Stats Cards (Matching Employees Style) -->
+    <div class="grid grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <p class="text-sm text-gray-600">👥 TOTAL USERS</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{{ userAccounts.length }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <p class="text-sm text-gray-600">✅ ACTIVE</p>
+        <p class="text-2xl font-bold text-green-600 mt-1">{{ activeUserCount }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <p class="text-sm text-gray-600">🚫 INACTIVE</p>
+        <p class="text-2xl font-bold text-gray-600 mt-1">{{ inactiveUserCount }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <p class="text-sm text-gray-600">👑 ADMINS</p>
+        <p class="text-2xl font-bold text-red-600 mt-1">{{ adminUserCount }}</p>
+      </div>
+    </div>
+
+    <!-- Filter Bar (Matching Employees Style) -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div class="flex items-center gap-4">
+        <div class="relative flex-1">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">🔍</span>
+          <input type="text" placeholder="Search by name..." [(ngModel)]="searchQuery" (input)="onSearchChange()"
+            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        </div>
+        <select [(ngModel)]="filterRole" (ngModelChange)="onFilterChange()"
+          class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 uppercase">
+          <option value="all">🛡️ ALL ROLES</option>
+          <option value="admin">ADMIN</option>
+          <option value="manager">MANAGER</option>
+          <option value="hr">HR</option>
+          <option value="employee">EMPLOYEE</option>
+        </select>
+        <select [(ngModel)]="filterStatus" (ngModelChange)="onFilterChange()"
+          class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 uppercase">
+          <option value="all">📊 ALL STATUS</option>
+          <option value="active">ACTIVE</option>
+          <option value="inactive">INACTIVE</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table (Matching Employees Style) -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">👤 User</th>
+              <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">🛡️ Role</th>
+              <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">🏢 Department</th>
+              <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">📊 Status</th>
+              <th class="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase">🕒 Last Login</th>
+              <th class="text-right px-6 py-3 text-xs font-semibold text-gray-600 uppercase">⚙️ Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr *ngFor="let user of filteredUsers" class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {{ getUserInitials(user.name) }}
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900">{{ user.name }}</div>
+                    <div class="text-sm text-gray-500">{{ user.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="roleColors[user.role]">
+                  {{ user.role | uppercase }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-gray-900">{{ user.department }}</td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="statusColors[user.status]">
+                  {{ user.status | uppercase }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-gray-600 text-sm">{{ user.lastLogin }}</td>
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-end gap-2">
+                  <button (click)="openEditUserModal(user)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Edit">
+                    <lucide-icon name="edit-2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                  </button>
+                  <button (click)="openDeleteUserModal(user)" class="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete">
+                    <lucide-icon name="trash-2" class="w-4 h-4 text-red-600"></lucide-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <!-- Loading State -->
+            <tr *ngIf="isLoading">
+              <td colspan="6" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center justify-center">
+                  <lucide-icon name="loader-2" class="w-8 h-8 text-blue-600 animate-spin mb-2"></lucide-icon>
+                  <p class="text-gray-500">Loading accounts...</p>
+                </div>
+              </td>
+            </tr>
+            <!-- Empty State -->
+            <tr *ngIf="!isLoading && filteredUsers.length === 0">
+              <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                No users found matching your criteria.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="flex items-center justify-between px-6 py-3 bg-gray-50 border-t border-gray-200">
+        <div class="text-sm text-gray-600">
+          Showing {{ userAccounts.length }} of {{ totalItems }} users
+        </div>
+        <div class="flex items-center gap-2">
+          <button (click)="prevPage()" [disabled]="currentPage <= 1 || isLoading"
+            class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+            Prev
+          </button>
+          <span class="text-sm text-gray-600">Page {{ currentPage }} / {{ totalPages || 1 }}</span>
+          <button (click)="nextPage()" [disabled]="currentPage >= totalPages || isLoading"
+            class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROLES TAB (Unchanged structure mostly, just container styles if needed) -->
+  <div *ngIf="activeTab === 'roles'" class="space-y-6">
+    <div class="grid grid-cols-2 gap-4">
+      <div *ngFor="let role of roles" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center" [ngClass]="getRoleCardBg(role.color)">
+              <lucide-icon name="shield" class="w-6 h-6" [ngClass]="getRoleCardText(role.color)"></lucide-icon>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">{{ role.name }}</h3>
+              <p class="text-sm text-gray-600 mt-1">{{ role.description }}</p>
+            </div>
+          </div>
+          <button class="p-1 hover:bg-gray-100 rounded">
+            <lucide-icon name="edit-2" class="w-4 h-4 text-gray-600"></lucide-icon>
+          </button>
+        </div>
+        <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+          <span class="text-sm text-gray-600">{{ role.users }} users assigned</span>
+          <button class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            Manage Permissions
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERMISSIONS TAB -->
+  <div *ngIf="activeTab === 'permissions'" class="space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <!-- Using same header style as Employees/Users -->
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description
+              </th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">HR</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr *ngFor="let permission of permissions; let idx = index" class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-2">
+                  <lucide-icon name="key" class="w-4 h-4 text-gray-400"></lucide-icon>
+                  <span class="font-medium text-gray-900">{{ permission.name }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  {{ permission.module }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ permission.description }}</td>
+              <td class="px-6 py-4 text-center">
+                <lucide-icon name="check" class="w-5 h-5 text-green-600 mx-auto"></lucide-icon>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <lucide-icon [name]="idx < 7 ? 'check' : 'x'" class="w-5 h-5 mx-auto"
+                  [ngClass]="idx < 7 ? 'text-green-600' : 'text-gray-300'"></lucide-icon>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <lucide-icon [name]="idx < 5 ? 'check' : 'x'" class="w-5 h-5 mx-auto"
+                  [ngClass]="idx < 5 ? 'text-green-600' : 'text-gray-300'"></lucide-icon>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <lucide-icon [name]="idx < 3 ? 'check' : 'x'" class="w-5 h-5 mx-auto"
+                  [ngClass]="idx < 3 ? 'text-green-600' : 'text-gray-300'"></lucide-icon>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD USER MODAL -->
+  <div *ngIf="showAddUser" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">➕ Add New User</h2>
+        <button (click)="showAddUser = false" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <lucide-icon name="x" class="w-5 h-5 text-gray-600"></lucide-icon>
+        </button>
+      </div>
+
+      <div class="space-y-4" [formGroup]="addUserForm">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">👤 Full Name</label>
+            <input type="text" formControlName="name" placeholder="e.g., John Smith"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">📧 Email Address</label>
+            <input type="email" formControlName="email" placeholder="e.g., john.smith@amscore.com"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🛡️ Role</label>
+            <select formControlName="role"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option value="admin">Administrator</option>
+              <option value="manager">Manager</option>
+              <option value="hr">HR Staff</option>
+              <option value="employee">Employee</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Department</label>
+            <select formControlName="department"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option>Operations</option>
+              <option>Sales</option>
+              <option>Customer Service</option>
+              <option>Human Resources</option>
+              <option>IT</option>
+              <option>Marketing</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🔒 Temporary Password</label>
+            <input type="password" formControlName="tempPassword" placeholder="********"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">📊 Status</label>
+            <select formControlName="status"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option>Active</option>
+              <option>Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" formControlName="sendWelcome" class="w-4 h-4 text-blue-600 rounded" />
+            <span class="text-sm text-gray-700">Send welcome email with login credentials</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+        <button (click)="showAddUser = false"
+          class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+          Cancel
+        </button>
+        <button (click)="createUser()" [disabled]="addUserForm.invalid"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+          Create User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT USER MODAL -->
+  <div *ngIf="showEditUser && selectedUser"
+    class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">✏️ Edit User Account</h2>
+        <button (click)="closeEditUserModal()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <lucide-icon name="x" class="w-5 h-5 text-gray-600"></lucide-icon>
+        </button>
+      </div>
+
+      <div class="space-y-4" [formGroup]="editUserForm">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">👤 Full Name</label>
+            <input type="text" formControlName="name"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">📧 Email Address</label>
+            <input type="email" formControlName="email"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🛡️ Role</label>
+            <select formControlName="role"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option value="admin">Administrator</option>
+              <option value="manager">Manager</option>
+              <option value="hr">HR Staff</option>
+              <option value="employee">Employee</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Department</label>
+            <input type="text" formControlName="department"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📊 Status</label>
+          <select formControlName="status"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-2">Account Information</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-gray-600">Created:</span>
+              <span class="font-medium text-gray-900">{{ selectedUser.createdDate }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-600">Last Login:</span>
+              <span class="font-medium text-gray-900">{{ selectedUser.lastLogin }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-6 pt-6 border-t border-gray-200">
+        <button class="px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+          Reset Password
+        </button>
+        <div class="flex gap-3">
+          <button (click)="closeEditUserModal()"
+            class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+            Cancel
+          </button>
+          <button (click)="saveUserEdits()" [disabled]="editUserForm.invalid"
+            class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  <div *ngIf="showDeleteModal && selectedUser"
+    class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">⚠️</div>
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">Delete User</h2>
+          <p class="text-sm text-gray-600">This action cannot be undone</p>
+        </div>
+      </div>
+
+      <p class="text-gray-900 mb-6">
+        Are you sure you want to delete <span class="font-semibold">{{ selectedUser.name }}</span>?
+        All data associated with this account will be permanently removed.
+      </p>
+
+      <div class="flex items-center justify-end gap-3">
+        <button (click)="closeDeleteUserModal()"
+          class="px-6 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+          Cancel
+        </button>
+        <button (click)="confirmDeleteUser()"
+          class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+          🗑️ Delete User
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

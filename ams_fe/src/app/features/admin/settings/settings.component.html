@@ -1,0 +1,556 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">System Settings</h1>
+      <p class="text-gray-600 mt-1">Configure your AMS Core system preferences</p>
+    </div>
+    <button
+      (click)="handleSave()"
+      [disabled]="saveStatus !== 'idle'"
+      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+    >
+      <lucide-icon name="save" class="w-4 h-4"></lucide-icon>
+      {{ saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save Changes' }}
+    </button>
+  </div>
+
+  <div class="flex gap-2 border-b border-gray-200">
+    <button
+      *ngFor="let tab of tabs"
+      (click)="activeTab = tab.id"
+      class="flex items-center gap-2 px-4 py-3 border-b-2 transition-colors"
+      [ngClass]="activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'"
+    >
+      <lucide-icon [name]="tab.icon" class="w-4 h-4"></lucide-icon>
+      {{ tab.name }}
+    </button>
+  </div>
+
+  <div *ngIf="activeTab === 'general'" class="space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="users" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Company Information
+      </h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+          <input
+            type="text"
+            value="AMS Core Inc."
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+          <select class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option>Technology</option>
+            <option>Finance</option>
+            <option>Healthcare</option>
+            <option>Retail</option>
+            <option>Manufacturing</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company Email</label>
+          <input
+            type="email"
+            value="contact@amscore.com"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+          <input
+            type="tel"
+            value="+1 (555) 123-4567"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+          <input
+            type="text"
+            value="123 Business Ave, Suite 100, San Francisco, CA 94105"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="clock" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Default Work Schedule
+      </h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Work Start Time</label>
+          <input
+            type="time"
+            value="08:00"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Work End Time</label>
+          <input
+            type="time"
+            value="17:00"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Late Threshold (minutes)</label>
+          <input
+            type="number"
+            value="15"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Overtime Multiplier</label>
+          <input
+            type="number"
+            step="0.1"
+            value="1.5"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+          <span class="text-sm text-gray-700">Allow flexible work hours</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="globe" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Regional Settings
+      </h3>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+          <select class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option>America/Los_Angeles (PST)</option>
+            <option>America/New_York (EST)</option>
+            <option>Europe/London (GMT)</option>
+            <option>Asia/Tokyo (JST)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+          <select class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option>MM/DD/YYYY</option>
+            <option>DD/MM/YYYY</option>
+            <option>YYYY-MM-DD</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+          <select class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option>USD ($)</option>
+            <option>EUR (€)</option>
+            <option>GBP (£)</option>
+            <option>JPY (¥)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="activeTab === 'notifications'" class="space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="mail" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Email Notifications
+      </h3>
+      <div class="space-y-3">
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">Daily Attendance Summary</p>
+            <p class="text-sm text-gray-600">Receive daily attendance reports at 6 PM</p>
+          </div>
+          <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">Late Check-ins</p>
+            <p class="text-sm text-gray-600">Get notified when employees check in late</p>
+          </div>
+          <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">Payroll Processing</p>
+            <p class="text-sm text-gray-600">Updates on payroll calculations and approvals</p>
+          </div>
+          <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">System Updates</p>
+            <p class="text-sm text-gray-600">Be informed about new features and maintenance</p>
+          </div>
+          <input type="checkbox" class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="bell" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Push Notifications
+      </h3>
+      <div class="space-y-3">
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">Real-time Alerts</p>
+            <p class="text-sm text-gray-600">Instant notifications for critical events</p>
+          </div>
+          <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">Approval Requests</p>
+            <p class="text-sm text-gray-600">When actions require your approval</p>
+          </div>
+          <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">AI Suggestions</p>
+            <p class="text-sm text-gray-600">When AI identifies optimization opportunities</p>
+          </div>
+          <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4">Quiet Hours</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+          <input
+            type="time"
+            value="20:00"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+          <input
+            type="time"
+            value="08:00"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+      </div>
+      <p class="text-sm text-gray-600 mt-2">No non-critical notifications during quiet hours</p>
+    </div>
+  </div>
+
+  <div *ngIf="activeTab === 'security'" class="space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="lock" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Password Policy
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Password Length</label>
+          <input
+            type="number"
+            value="8"
+            min="6"
+            max="32"
+            class="w-full max-w-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+            <span class="text-sm text-gray-700">Require uppercase letters</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+            <span class="text-sm text-gray-700">Require lowercase letters</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+            <span class="text-sm text-gray-700">Require numbers</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+            <span class="text-sm text-gray-700">Require special characters</span>
+          </label>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Password Expiry (days)</label>
+          <input
+            type="number"
+            value="90"
+            class="w-full max-w-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="shield" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Two-Factor Authentication
+      </h3>
+      <div class="space-y-3">
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">Require 2FA for Admin Users</p>
+            <p class="text-sm text-gray-600">Enhanced security for administrative accounts</p>
+          </div>
+          <input type="checkbox" checked class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="font-medium text-gray-900">Require 2FA for All Users</p>
+            <p class="text-sm text-gray-600">Company-wide two-factor authentication</p>
+          </div>
+          <input type="checkbox" class="w-5 h-5 text-blue-600 rounded" />
+        </label>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4">Session Management</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Session Timeout (minutes)</label>
+          <input
+            type="number"
+            value="30"
+            class="w-full max-w-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+          <p class="text-sm text-gray-600 mt-1">Automatically log out inactive users</p>
+        </div>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+          <span class="text-sm text-gray-700">Remember me option on login</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4">Activity Logging</h3>
+      <div class="space-y-2">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+          <span class="text-sm text-gray-700">Log all user activities</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+          <span class="text-sm text-gray-700">Log system changes</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded" />
+          <span class="text-sm text-gray-700">Log data access</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="activeTab === 'integrations'" class="space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4">Connected Services</h3>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+              S
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Slack</p>
+              <p class="text-sm text-gray-600">Send notifications to Slack channels</p>
+            </div>
+          </div>
+          <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+            Connected
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold">
+              G
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Google Workspace</p>
+              <p class="text-sm text-gray-600">Sync with Google Calendar and Gmail</p>
+            </div>
+          </div>
+          <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+            Connected
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
+              M
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Microsoft Teams</p>
+              <p class="text-sm text-gray-600">Integrate with Teams for notifications</p>
+            </div>
+          </div>
+          <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+            Connect
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold">
+              Z
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">Zoom</p>
+              <p class="text-sm text-gray-600">Schedule meetings for remote employees</p>
+            </div>
+          </div>
+          <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+            Connect
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4">API Access</h3>
+      <div class="space-y-4">
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-start gap-3">
+            <lucide-icon name="alert-circle" class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></lucide-icon>
+            <div>
+              <p class="text-sm font-medium text-blue-900">API Key</p>
+              <p class="text-xs font-mono text-blue-700 mt-1 bg-white px-2 py-1 rounded">
+                ams_live_abc123xyz789def456
+              </p>
+              <p class="text-xs text-blue-700 mt-2">Keep this key secure and never share it publicly</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm">
+            Regenerate Key
+          </button>
+          <button class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm">
+            View Documentation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-gray-900">Webhooks</h3>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+          Add Webhook
+        </button>
+      </div>
+      <div class="space-y-2">
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-gray-900 text-sm">Attendance Events</p>
+              <p class="text-xs font-mono text-gray-600 mt-1">https://api.example.com/webhooks/attendance</p>
+            </div>
+            <button class="text-sm text-red-600 hover:text-red-700">Remove</button>
+          </div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-gray-900 text-sm">Payroll Completed</p>
+              <p class="text-xs font-mono text-gray-600 mt-1">https://api.example.com/webhooks/payroll</p>
+            </div>
+            <button class="text-sm text-red-600 hover:text-red-700">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="activeTab === 'advanced'" class="space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="moon" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Dark Mode
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Enable Dark Mode</label>
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              [(ngModel)]="darkMode"
+              class="w-4 h-4 text-blue-600 rounded"
+            />
+            <span class="text-sm text-gray-700">Switch to dark mode</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="languages" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Language
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select Language</label>
+          <select
+            [(ngModel)]="language"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <lucide-icon name="refresh-cw" class="w-5 h-5 text-gray-600"></lucide-icon>
+        Auto Save
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Enable Auto Save</label>
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              [(ngModel)]="autoSaveEnabled"
+              class="w-4 h-4 text-blue-600 rounded"
+            />
+            <span class="text-sm text-gray-700">Automatically save changes</span>
+          </label>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Auto Save Interval (seconds)</label>
+          <input
+            type="number"
+            [(ngModel)]="autoSaveInterval"
+            class="w-full max-w-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,86 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Requests Management</h1>
+    <p class="text-slate-600">Update or delete requests by employee</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <label class="text-sm text-gray-600">Select Employee</label>
+    <select class="mt-1 w-full border rounded-lg px-3 py-2" [(ngModel)]="selectedEmployeeId" (change)="onSelectEmployee()">
+      <option [ngValue]="null">-- Choose employee --</option>
+      <option *ngFor="let emp of employees" [ngValue]="emp.employeeId">
+        {{ emp.employeeCode }} - {{ emp.fullName }}
+      </option>
+    </select>
+  </div>
+
+  <div *ngIf="errorMessage" class="text-red-600">{{ errorMessage }}</div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="w-full">
+      <thead class="bg-gray-50">
+        <tr class="text-left text-sm text-gray-600">
+          <th class="px-4 py-3">ID</th>
+          <th class="px-4 py-3">Type</th>
+          <th class="px-4 py-3">Title</th>
+          <th class="px-4 py-3">Start</th>
+          <th class="px-4 py-3">End</th>
+          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of requests" class="border-t">
+          <td class="px-4 py-3">{{ r.requestId }}</td>
+          <td class="px-4 py-3">{{ r.requestType }}</td>
+          <td class="px-4 py-3">{{ r.title }}</td>
+          <td class="px-4 py-3">{{ r.startDatetime }}</td>
+          <td class="px-4 py-3">{{ r.endDatetime }}</td>
+          <td class="px-4 py-3">{{ r.status }}</td>
+          <td class="px-4 py-3 text-right space-x-2">
+            <button class="text-blue-600" (click)="openEdit(r)">Edit</button>
+            <button class="text-red-600" (click)="deleteRequest(r)">Delete</button>
+          </td>
+        </tr>
+        <tr *ngIf="!isLoading && requests.length === 0">
+          <td colspan="7" class="px-4 py-6 text-center text-gray-500">No requests</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="showEditForm" class="bg-white rounded-xl border border-gray-200 p-4">
+    <h2 class="text-lg font-semibold mb-4">Edit Request</h2>
+    <form [formGroup]="editForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="text-sm text-gray-600">Type</label>
+        <select class="mt-1 w-full border rounded-lg px-3 py-2" formControlName="requestType">
+          <option value="LEAVE">LEAVE</option>
+          <option value="OVERTIME">OVERTIME</option>
+          <option value="REMOTE">REMOTE</option>
+          <option value="LATE_EARLY">LATE_EARLY</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">Title</label>
+        <input type="text" class="mt-1 w-full border rounded-lg px-3 py-2" formControlName="title" />
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">Start</label>
+        <input type="datetime-local" class="mt-1 w-full border rounded-lg px-3 py-2" formControlName="startDatetime" />
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">End</label>
+        <input type="datetime-local" class="mt-1 w-full border rounded-lg px-3 py-2" formControlName="endDatetime" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="text-sm text-gray-600">Reason</label>
+        <textarea class="mt-1 w-full border rounded-lg px-3 py-2" rows="3" formControlName="reason"></textarea>
+      </div>
+    </form>
+    <div class="mt-4 flex gap-2">
+      <button class="px-4 py-2 rounded-lg bg-blue-600 text-white" (click)="submitEdit()">Save</button>
+      <button class="px-4 py-2 rounded-lg border" (click)="cancelEdit()">Cancel</button>
+    </div>
+  </div>
+</div>
