@@ -11,8 +11,9 @@ import {
   UpdateAccountRequest,
   AccountRole,
 } from '../../../shared/models/account.model';
-import { Subject, Subscription } from 'rxjs';
+import { Subject, Subscription, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { EmployeeDto, EmployeeService } from '../../hrm/employees/employee.service';
 
 type AccountTab = 'users' | 'roles' | 'permissions';
 type RoleType = 'admin' | 'manager' | 'hr' | 'employee';
@@ -51,6 +52,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   userAccounts: UserAccountRecord[] = [];
   roles: AccountRoleDefinition[] = [];
   permissions: PermissionDefinition[] = [];
+  availableEmployees: EmployeeDto[] = [];
 
   addUserForm: FormGroup;
   editUserForm: FormGroup;
@@ -77,10 +79,12 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
   constructor(
     private adminService: AdminService,
+    private employeeService: EmployeeService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef
   ) {
     this.addUserForm = this.fb.group({
+      employeeId: [null, Validators.required],
       name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       role: ['admin', Validators.required],
@@ -92,15 +96,16 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
     this.editUserForm = this.fb.group({
       name: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
+      email: [''],  // BE doesn't return or accept email in UpdateAccountRequest
       role: ['admin', Validators.required],
-      department: ['', Validators.required],
+      department: [''],  // BE doesn't return or accept department in UpdateAccountRequest
       status: ['active', Validators.required],
     });
   }
 
   ngOnInit(): void {
     this.loadData();
+    this.loadAvailableEmployeesForCreate();
 
     this.searchSubscription = this.searchSubject.pipe(
       debounceTime(400),
@@ -212,7 +217,12 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     });
   }
 
-  onFilterChange(): void {
+  onRoleFilterChange(): void {
+    this.currentPage = 1;
+    this.cdr.markForCheck();
+  }
+
+  onStatusFilterChange(): void {
     this.currentPage = 1;
     this.loadData();
   }
@@ -241,6 +251,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
   openAddUserModal(): void {
     this.addUserForm.reset({
+      employeeId: null,
       name: '',
       email: '',
       role: 'employee',
@@ -249,7 +260,15 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
       status: 'Active',
       sendWelcome: true,
     });
+    this.loadAvailableEmployeesForCreate();
     this.showAddUser = true;
+    this.cdr.detectChanges();
+  }
+
+  closeAddUserModal(): void {
+    this.showAddUser = false;
+    this.addUserForm.reset();
+    this.cdr.detectChanges();
   }
 
   openEditUserModal(user: UserAccountRecord): void {
@@ -262,21 +281,25 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
       status: user.status,
     });
     this.showEditUser = true;
+    this.cdr.detectChanges();
   }
 
   closeEditUserModal(): void {
     this.showEditUser = false;
     this.selectedUser = null;
+    this.cdr.detectChanges();
   }
 
   openDeleteUserModal(user: UserAccountRecord): void {
     this.selectedUser = user;
     this.showDeleteModal = true;
+    this.cdr.detectChanges();
   }
 
   closeDeleteUserModal(): void {
     this.showDeleteModal = false;
     this.selectedUser = null;
+    this.cdr.detectChanges();
   }
 
   confirmDeleteUser(): void {
@@ -310,9 +333,14 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     }
 
     const value = this.addUserForm.value;
+    const employeeId = Number(value.employeeId);
+
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      return;
+    }
 
     const request: CreateAccountRequest = {
-      employeeId: 0,
+      employeeId,
       username: value.name,
       password: value.tempPassword || 'TempPass123!',
       role: value.role as AccountRole,
@@ -321,7 +349,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
     this.adminService.createAccount(request).subscribe({
       next: () => {
-        this.showAddUser = false;
+        this.closeAddUserModal();
         this.loadData();
       },
       error: (err) => {
@@ -362,5 +390,46 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
   getRoleCardText(roleColor: string): string {
     return this.roleCardStyles[roleColor]?.text ?? 'text-gray-600';
+  }
+
+  private loadAvailableEmployeesForCreate(): void {
+    forkJoin({
+      employees: this.employeeService.getAll(),
+      accounts: this.adminService.getAccounts(),
+    }).subscribe({
+      next: ({ employees, accounts }) => {
+        const assignedEmployeeIds = new Set(
+          accounts
+            .map((account) => account.employeeId)
+            .filter((employeeId): employeeId is number => Number.isInteger(employeeId) && employeeId > 0)
+        );
+
+        this.availableEmployees = employees.filter((employee) => !assignedEmployeeIds.has(employee.employeeId));
+        this.syncDefaultEmployeeForCreateForm();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Failed to load available employees for account creation', err);
+        this.availableEmployees = [];
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private syncDefaultEmployeeForCreateForm(): void {
+    if (!this.showAddUser || this.addUserForm.get('role')?.value !== 'employee') {
+      return;
+    }
+
+    const employeeControl = this.addUserForm.get('employeeId');
+    const firstAvailableEmployeeId = this.availableEmployees[0]?.employeeId ?? null;
+    const selectedEmployeeId = Number(employeeControl?.value);
+    const hasMatchingOption = this.availableEmployees.some((employee) => employee.employeeId === selectedEmployeeId);
+
+    if (employeeControl && firstAvailableEmployeeId !== null && !hasMatchingOption) {
+      employeeControl.patchValue(firstAvailableEmployeeId);
+      employeeControl.updateValueAndValidity();
+      this.addUserForm.updateValueAndValidity();
+    }
   }
 }

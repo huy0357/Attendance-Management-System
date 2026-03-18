@@ -17,6 +17,7 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
   templates: ShiftTemplateResponse[] = [];
   isLoading = false;
   errorMessage: string | null = null;
+  createButtonLabel = 'Add Shift Template';
 
   // BehaviorSubject emits immediately on subscribe — no startWith needed
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
@@ -174,6 +175,7 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
 
   cancelForm(): void {
     this.showForm = false;
+    this.createButtonLabel = 'Add Template';
   }
 
   submitForm(): void {
@@ -183,6 +185,7 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
       this.attendanceService.createShiftTemplate(payload).subscribe({
         next: () => {
           this.showForm = false;
+          this.createButtonLabel = 'Add Template';
           this.errorMessage = null;
           this.loadTemplates();
         },
@@ -198,6 +201,7 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
     this.attendanceService.updateShiftTemplate(this.selectedId, payload).subscribe({
       next: () => {
         this.showForm = false;
+        this.createButtonLabel = 'Add Template';
         this.errorMessage = null;
         this.loadTemplates();
       },

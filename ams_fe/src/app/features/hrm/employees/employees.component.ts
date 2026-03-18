@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
 import { EmployeeService, EmployeeDto } from './employee.service';
 import { Subject, Subscription } from 'rxjs';
@@ -38,6 +38,8 @@ interface LookupOption {
   styleUrls: ['./employees.component.scss'],
 })
 export class EmployeesComponent implements OnInit, OnDestroy {
+  @ViewChild('pageHeading') private pageHeading?: ElementRef<HTMLElement>;
+
   searchQuery = '';
   selectedDepartment: string | number = '';
   selectedStatus = '';
@@ -145,6 +147,7 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     // Ideally this should trigger a backend reload with filter params, but without BE support for filters in /page,
     // we just rely on client-side filtering of the *current page* via the getter. 
     // Or we reset to page 1 if we want to be safe, but since it's client-side only on the page, it doesn't matter much.
+    this.scrollHeadingIntoView();
     this.cdr.markForCheck();
   }
 
@@ -166,10 +169,14 @@ export class EmployeesComponent implements OnInit, OnDestroy {
 
   openAddModal(): void {
     this.addForm.reset({
-      departmentId: null,
+      departmentId: this.getDefaultDepartmentId(),
       gender: '',
     });
     this.showAddModal = true;
+  }
+
+  closeAddModal(): void {
+    this.showAddModal = false;
   }
 
   handleAddEmployee(): void {
@@ -192,7 +199,7 @@ export class EmployeesComponent implements OnInit, OnDestroy {
       })
       .subscribe({
         next: () => {
-          this.showAddModal = false;
+          this.closeAddModal();
           this.loadEmployees();
         },
         error: () => {
@@ -236,6 +243,11 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     });
   }
 
+  closeEditModal(): void {
+    this.showEditModal = false;
+    this.selectedEmployee = null;
+  }
+
   handleEditEmployee(): void {
     if (!this.selectedEmployee || this.editForm.invalid) {
       return;
@@ -264,8 +276,7 @@ export class EmployeesComponent implements OnInit, OnDestroy {
       .update(employeeId, payload)
       .subscribe({
         next: () => {
-          this.showEditModal = false;
-          this.selectedEmployee = null;
+          this.closeEditModal();
           this.loadEmployees();
         },
         error: () => {
@@ -277,6 +288,11 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   openDeleteModal(employee: UiEmployee): void {
     this.selectedEmployee = employee;
     this.showDeleteModal = true;
+  }
+
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+    this.selectedEmployee = null;
   }
 
   handleDeleteEmployee(): void {
@@ -292,8 +308,7 @@ export class EmployeesComponent implements OnInit, OnDestroy {
 
     this.employeeService.delete(employeeId).subscribe({
       next: () => {
-        this.showDeleteModal = false;
-        this.selectedEmployee = null;
+        this.closeDeleteModal();
         this.loadEmployees();
       },
       error: () => {
@@ -491,6 +506,9 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.employeeService.getDepartments().subscribe({
       next: departments => {
         this.departments = departments.map(dept => ({ id: dept.departmentId, name: dept.departmentName }));
+        if (this.showAddModal && !this.addForm.value.departmentId) {
+          this.addForm.patchValue({ departmentId: this.getDefaultDepartmentId() });
+        }
         this.cdr.markForCheck();
       },
       error: () => {
@@ -501,9 +519,21 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   }
 
   private generateEmployeeCode(): string {
-    const now = Date.now();
-    const rand = Math.floor(Math.random() * 900 + 100);
-    return `EMP-${now}-${rand}`;
+    const suffix = `${Date.now()}`.slice(-6);
+    return `EMP${suffix}`;
+  }
+
+  private getDefaultDepartmentId(): number | null {
+    return this.departments.length > 0 ? this.departments[0].id : null;
+  }
+
+  private scrollHeadingIntoView(): void {
+    setTimeout(() => {
+      this.pageHeading?.nativeElement.scrollIntoView({
+        block: 'start',
+        inline: 'nearest',
+      });
+    });
   }
 }
 

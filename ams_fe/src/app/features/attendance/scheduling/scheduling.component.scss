@@ -1,3 +1,11 @@
+.scheduling-page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f9fafb;
+  padding-bottom: 1rem;
+}
+
 .scheduling-grid-scroll {
   max-height: calc(100vh - 250px);
   overflow: auto;

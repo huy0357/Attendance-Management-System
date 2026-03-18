@@ -1,81 +1,83 @@
-﻿<div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-3xl font-bold text-slate-900">Shift Scheduling</h1>
-      <p class="text-slate-600 mt-1">Plan and manage employee work schedules</p>
-    </div>
-    <div class="flex items-center gap-3">
-      <button
-        type="button"
-        (click)="goToPreviousWeek()"
-        class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-      >
-        Previous
-      </button>
-      <button
-        type="button"
-        (click)="goToCurrentWeek()"
-        class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-      >
-        Today
-      </button>
-      <button
-        type="button"
-        (click)="goToNextWeek()"
-        class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-      >
-        Next
-      </button>
-      <div class="flex items-center gap-2 bg-blue-100 rounded-lg p-1">
+<div class="scheduling-page space-y-6">
+  <div class="scheduling-page-header space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900">Shift Scheduling</h1>
+        <p class="text-slate-600 mt-1">Plan and manage employee work schedules</p>
+      </div>
+      <div class="flex items-center gap-3">
         <button
           type="button"
-          (click)="setView('week')"
-          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-          [ngClass]="view === 'week' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
+          (click)="goToPreviousWeek()"
+          class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
         >
-          Week
+          Previous
         </button>
         <button
           type="button"
-          (click)="setView('month')"
-          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-          [ngClass]="view === 'month' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
+          (click)="goToCurrentWeek()"
+          class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
         >
-          Month
+          Today
+        </button>
+        <button
+          type="button"
+          (click)="goToNextWeek()"
+          class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+        >
+          Next
+        </button>
+        <div class="flex items-center gap-2 bg-blue-100 rounded-lg p-1">
+          <button
+            type="button"
+            (click)="setView('week')"
+            class="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+            [ngClass]="view === 'week' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
+          >
+            Week
+          </button>
+          <button
+            type="button"
+            (click)="setView('month')"
+            class="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+            [ngClass]="view === 'month' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
+          >
+            Month
+          </button>
+        </div>
+        <button
+          type="button"
+          (click)="handleAiAutoSchedule()"
+          [disabled]="isApplyingAi || isWeekLoading"
+          class="px-4 py-2 bg-purple-600 text-slate-50 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+        >
+          <lucide-icon name="sparkles" class="w-4 h-4"></lucide-icon>
+          AI Auto-Schedule
         </button>
       </div>
-      <button
-        type="button"
-        (click)="handleAiAutoSchedule()"
-        [disabled]="isApplyingAi || isWeekLoading"
-        class="px-4 py-2 bg-purple-600 text-slate-50 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-      >
-        <lucide-icon name="sparkles" class="w-4 h-4"></lucide-icon>
-        AI Auto-Schedule
-      </button>
     </div>
-  </div>
 
-  <p *ngIf="isWeekLoading" class="text-sm text-blue-700">Loading schedules...</p>
-  <p *ngIf="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
+    <p *ngIf="isWeekLoading" class="text-sm text-blue-700">Loading schedules...</p>
+    <p *ngIf="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
 
-  <div class="flex flex-wrap items-center gap-3">
-    <input
-      type="text"
-      [value]="searchTerm"
-      (input)="onSearchTermChange(($any($event.target)).value)"
-      placeholder="Search employee name or code"
-      class="px-3 py-2 border border-slate-200 rounded-lg text-sm min-w-[260px]"
-    />
-    <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+    <div class="flex flex-wrap items-center gap-3">
       <input
-        type="checkbox"
-        [checked]="hideEmptyRows"
-        (change)="onHideEmptyRowsChange(($any($event.target)).checked)"
-        class="rounded border-slate-300"
+        type="text"
+        [value]="searchTerm"
+        (input)="onSearchTermChange(($any($event.target)).value)"
+        placeholder="Search employee name or code"
+        class="px-3 py-2 border border-slate-200 rounded-lg text-sm min-w-[260px]"
       />
-      Hide employees without shifts this week
-    </label>
+      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          [checked]="hideEmptyRows"
+          (change)="onHideEmptyRowsChange(($any($event.target)).checked)"
+          class="rounded border-slate-300"
+        />
+        Hide employees without shifts this week
+      </label>
+    </div>
   </div>
 
   <div class="grid grid-cols-[280px_1fr] gap-6">
@@ -142,7 +144,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <ng-container *ngFor="let group of groupedEmployees">
+            <ng-container *ngFor="let group of groupedEmployees; trackBy: trackByDepartment">
               <tr class="bg-blue-100/60">
                 <td class="px-4 py-2 border-r border-slate-100 sticky-column bg-blue-100/60">
                   <button
@@ -159,7 +161,7 @@
               </tr>
 
               <ng-container *ngIf="!group.collapsed">
-                <tr *ngFor="let employee of group.employees" class="hover:bg-blue-50">
+                <tr *ngFor="let employee of group.employees; trackBy: trackByEmployee" class="hover:bg-blue-50">
                   <td class="px-4 py-3 border-r border-slate-100 sticky-column bg-slate-50">
                     <div>
                       <button
@@ -295,7 +297,7 @@
     </div>
   </div>
 
-  <div *ngIf="isDetailOpen" class="fixed inset-0 bg-slate-900/40 z-50 flex justify-end">
+  <div *ngIf="isDetailOpen" class="fixed top-0 right-0 bottom-0 left-0 bg-slate-900/40 z-50 flex justify-end">
     <div class="w-full max-w-md h-full bg-slate-50 shadow-xl p-5 overflow-y-auto">
       <div class="flex items-start justify-between mb-4">
         <div>
@@ -334,4 +336,3 @@
     </div>
   </div>
 </div>
-

@@ -565,6 +565,11 @@ export class AdminService {
     return this.http.get<AccountDto>(`${this.accountsUrl}/${id}`);
   }
 
+  /** GET /api/accounts */
+  getAccounts(): Observable<AccountDto[]> {
+    return this.http.get<AccountDto[]>(this.accountsUrl);
+  }
+
   /** POST /api/accounts */
   createAccount(request: CreateAccountRequest): Observable<AccountResponse> {
     return this.http.post<AccountResponse>(this.accountsUrl, request);

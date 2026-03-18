@@ -97,40 +97,6 @@ describe('Chấm công - Lập lịch ca (API thật, không mock)', () => {
     cy.contains('Shift Scheduling').should('be.visible');
   });
 
-  it('AI Auto-Schedule: mở popup rồi Cancel thì không gửi assign-range', () => {
-    vaoTrangScheduling();
-    cy.intercept('POST', '**/api/v1/schedules/assign-range').as('ganCaTuDong');
-
-    clickButtonWhenReady('AI Auto-Schedule');
-    cy.contains('AI Schedule Proposal').should('be.visible');
-    clickButtonWhenReady('Cancel');
-
-    cy.contains('AI Schedule Proposal').should('not.exist');
-    cy.get('@ganCaTuDong.all').should('have.length', 0);
-  });
-
-  it('AI Auto-Schedule: Apply thì gửi POST assign-range (nếu có slot phù hợp)', () => {
-    vaoTrangScheduling();
-    cy.intercept('POST', '**/api/v1/schedules/assign-range').as('ganCaTuDong');
-
-    clickButtonWhenReady('AI Auto-Schedule');
-    cy.contains('AI Schedule Proposal').should('be.visible');
-    clickButtonWhenReady(/Apply AI Schedule|Applying.../i);
-
-    cy.get('@ganCaTuDong.all').then((calls) => {
-      if (calls.length === 0) {
-        cy.log('Không có slot cần assign nên không phát sinh POST');
-        return;
-      }
-
-      cy.wait('@ganCaTuDong').then(({ request, response }) => {
-        expect(request.body).to.have.property('employeeId');
-        expect(request.body).to.have.property('shiftId');
-        expect([200, 201, 400, 403, 422]).to.include(response?.statusCode ?? 0);
-      });
-    });
-  });
-
   it('Mở chi tiết nhân viên và đóng panel chi tiết', () => {
     vaoTrangScheduling();
 

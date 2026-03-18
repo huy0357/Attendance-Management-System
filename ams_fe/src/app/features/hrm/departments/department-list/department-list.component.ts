@@ -147,13 +147,18 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
 
     // Actions
     openAddModal(): void {
+        this.showEditModal = false;
+        this.showDeleteModal = false;
+        this.selectedDepartment = null;
         this.departmentForm.reset({ isActive: true });
         this.showAddModal = true;
     }
 
     openEditModal(dept: DepartmentDto): void {
+        this.showAddModal = false;
+        this.showDeleteModal = false;
         this.selectedDepartment = dept;
-        this.departmentForm.patchValue({
+        this.departmentForm.reset({
             departmentName: dept.departmentName,
             departmentCode: dept.departmentCode,
             parentDepartmentId: dept.parentDepartmentId,
@@ -163,8 +168,22 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
     }
 
     openDeleteModal(dept: DepartmentDto): void {
+        this.showAddModal = false;
+        this.showEditModal = false;
         this.selectedDepartment = dept;
         this.showDeleteModal = true;
+    }
+
+    closeFormModal(): void {
+        this.showAddModal = false;
+        this.showEditModal = false;
+        this.selectedDepartment = null;
+        this.departmentForm.reset({ isActive: true });
+    }
+
+    closeDeleteModal(): void {
+        this.showDeleteModal = false;
+        this.selectedDepartment = null;
     }
 
     // CRUD
@@ -172,9 +191,7 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
         if (this.departmentForm.invalid) return;
 
         const modalClose = () => {
-            this.showAddModal = false;
-            this.showEditModal = false;
-            this.departmentForm.reset();
+            this.closeFormModal();
             this.loadDepartments();
             this.loadAllDepartmentsForDropdown(); // refresh options
         };
@@ -196,8 +213,7 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
         if (!this.selectedDepartment) return;
         this.departmentService.delete(this.selectedDepartment.departmentId).subscribe({
             next: () => {
-                this.showDeleteModal = false;
-                this.selectedDepartment = null;
+                this.closeDeleteModal();
                 this.loadDepartments();
                 this.loadAllDepartmentsForDropdown();
             },

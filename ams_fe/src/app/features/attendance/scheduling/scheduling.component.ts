@@ -217,60 +217,31 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   }
 
   openEmployeeDetail(employee: ScheduleEmployee): void {
-    const employeeId = Number(employee.id);
+    const detailEmployee: ScheduleEmployee = {
+      ...employee,
+    };
+    const employeeId = Number(detailEmployee.id);
+    const dates = this.getDetailDates();
+
+    this.selectedEmployee = detailEmployee;
+    this.isDetailOpen = true;
+    this.detailDays = dates.map((date) => ({ date, items: [] as EmployeeScheduleDayResponse[] }));
+    this.detailError = null;
+    this.detailLoading = Number.isInteger(employeeId) && employeeId > 0;
+    this.cdr.markForCheck();
+
     if (!Number.isInteger(employeeId) || employeeId <= 0) {
       this.detailError = 'Invalid employee.';
-      this.isDetailOpen = true;
-      return;
-    }
-
-    this.selectedEmployee = employee;
-    this.isDetailOpen = true;
-    this.detailError = null;
-
-    const dates = this.getDetailDates();
-    this.hydrateDetailDaysFromCache(employeeId, dates);
-
-    const missingDates = dates.filter((ymd) => !this.dayCache.has(this.cacheKey(employeeId, ymd)));
-    if (missingDates.length === 0) {
       this.detailLoading = false;
-      this.cdr.markForCheck();
       return;
     }
 
-    this.detailLoading = true;
-    from(missingDates)
-      .pipe(
-        mergeMap(
-          (ymd) =>
-            this.attendanceService.getScheduleByEmployeeDay(employeeId, ymd).pipe(
-              map((items) => ({ ymd, items, failed: false })),
-              catchError(() => of({ ymd, items: [] as EmployeeScheduleDayResponse[], failed: true })),
-            ),
-          this.detailLoadConcurrency,
-        ),
-        toArray(),
-        finalize(() => {
-          this.detailLoading = false;
-          this.cdr.markForCheck();
-        }),
-      )
-      .subscribe((responses) => {
-        if (!this.selectedEmployee || Number(this.selectedEmployee.id) !== employeeId) {
-          return;
-        }
-        const now = Date.now();
-        const hasError = responses.some((response) => response.failed);
-        responses.forEach((response) => {
-          if (!response.failed) {
-            this.dayCache.set(this.cacheKey(employeeId, response.ymd), { items: response.items, fetchedAt: now });
-          }
-        });
-        if (hasError) {
-          this.detailError = 'Some days could not be loaded.';
-        }
-        this.hydrateDetailDaysFromCache(employeeId, dates);
-      });
+    queueMicrotask(() => {
+      if (!this.isDetailOpen || !this.selectedEmployee || this.selectedEmployee.id !== detailEmployee.id) {
+        return;
+      }
+      this.loadEmployeeDetail(employeeId, dates);
+    });
   }
 
   closeEmployeeDetail(): void {
@@ -454,6 +425,14 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   getTemplateColor(type: Shift['type']): string {
     const template = this.templates.find((t) => t.type === type);
     return template ? template.color : '';
+  }
+
+  trackByDepartment(_index: number, group: DepartmentGroupView): string {
+    return group.departmentName;
+  }
+
+  trackByEmployee(_index: number, employee: ScheduleEmployee): string {
+    return employee.id;
   }
 
   private deriveShiftType(isNightShift: boolean, startTime?: string): Shift['type'] {
@@ -701,6 +680,51 @@ export class SchedulingComponent implements OnInit, OnDestroy {
 
   private getDetailDates(): string[] {
     return this.days.map((_, dayIndex) => this.toYmd(this.addDays(this.weekStart, dayIndex)));
+  }
+
+  private loadEmployeeDetail(employeeId: number, dates: string[]): void {
+    this.hydrateDetailDaysFromCache(employeeId, dates);
+
+    const missingDates = dates.filter((ymd) => !this.dayCache.has(this.cacheKey(employeeId, ymd)));
+    if (missingDates.length === 0) {
+      this.detailLoading = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.detailLoading = true;
+    from(missingDates)
+      .pipe(
+        mergeMap(
+          (ymd) =>
+            this.attendanceService.getScheduleByEmployeeDay(employeeId, ymd).pipe(
+              map((items) => ({ ymd, items, failed: false })),
+              catchError(() => of({ ymd, items: [] as EmployeeScheduleDayResponse[], failed: true })),
+            ),
+          this.detailLoadConcurrency,
+        ),
+        toArray(),
+        finalize(() => {
+          this.detailLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe((responses) => {
+        if (!this.selectedEmployee || Number(this.selectedEmployee.id) !== employeeId) {
+          return;
+        }
+        const now = Date.now();
+        const hasError = responses.some((response) => response.failed);
+        responses.forEach((response) => {
+          if (!response.failed) {
+            this.dayCache.set(this.cacheKey(employeeId, response.ymd), { items: response.items, fetchedAt: now });
+          }
+        });
+        if (hasError) {
+          this.detailError = 'Some days could not be loaded.';
+        }
+        this.hydrateDetailDaysFromCache(employeeId, dates);
+      });
   }
 
   private hydrateDetailDaysFromCache(employeeId: number, dates: string[]): void {

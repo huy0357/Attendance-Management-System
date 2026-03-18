@@ -17,3 +17,12 @@ export function clickFirstWhenReady(selector: string): void {
   waitForOverlay();
   cy.get(selector).first().should("be.visible").click();
 }
+
+/**
+ * Special helper to click buttons inside a modal.
+ * Using this prevents `waitForOverlay()` from deadlocking,
+ * because the overlay it waits for IS the modal's own backdrop.
+ */
+export function clickModalButtonWhenReady(label: string | RegExp): void {
+  cy.contains("button", label).should("be.visible").click();
+}

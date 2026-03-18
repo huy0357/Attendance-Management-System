@@ -1,7 +1,10 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, QueryList, ViewChildren } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 import { UiStateService, Density } from '../ui-state.service';
+import { NavigationEnd } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 interface NavItem {
   label: string;
@@ -25,6 +28,8 @@ interface NotificationItem {
   styleUrls: ['./admin-layout.component.scss'],
 })
 export class AdminLayoutComponent {
+  @ViewChildren('navLink', { read: ElementRef }) navLinks!: QueryList<ElementRef<HTMLElement>>;
+
   density: Density = 'comfortable';
   densityOptions: Density[] = ['compact', 'comfortable', 'spacious'];
   chatbotOpen = false;
@@ -37,6 +42,7 @@ export class AdminLayoutComponent {
   language: 'en' | 'es' | 'fr' | 'de' | 'zh' = 'en';
   autoSaveEnabled = true;
   lastAutoSave = new Date();
+  private readonly subscriptions = new Subscription();
 
   notifications: NotificationItem[] = [
     { id: 1, title: '5 payslips awaiting approval', time: '5 min ago', type: 'warning', unread: true },
@@ -53,7 +59,7 @@ export class AdminLayoutComponent {
     { label: 'Contracts', path: '/hrm/contracts', icon: 'file-text', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar', requiredRoles: ['ADMIN'] },
     { label: 'Attendance Daily', path: '/attendance/attendance-daily', icon: 'clock' },
-    { label: 'Shift Templates', path: '/attendance/shift-templates', icon: 'calendar' },
+    { label: 'Shift Setup', path: '/attendance/shift-templates', icon: 'calendar' },
     { label: 'Time & Attendance', path: '/attendance/time-calculation', icon: 'clock' },
     { label: 'Leave Management', path: '/attendance/leave-management', icon: 'clipboard-check' },
     { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'calculator' },
@@ -105,6 +111,24 @@ export class AdminLayoutComponent {
 
   constructor(private router: Router, private authService: AuthService, private uiState: UiStateService) {
     this.density = this.uiState.getDensity();
+  }
+
+  ngAfterViewInit(): void {
+    this.scrollActiveNavItemIntoView();
+
+    this.subscriptions.add(
+      this.router.events
+        .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+        .subscribe(() => this.scrollActiveNavItemIntoView()),
+    );
+
+    this.subscriptions.add(
+      this.navLinks.changes.subscribe(() => this.scrollActiveNavItemIntoView()),
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   get densityClass(): string {
@@ -166,6 +190,19 @@ export class AdminLayoutComponent {
       error: () => {
         this.router.navigate(['/login']);
       },
+    });
+  }
+
+  private scrollActiveNavItemIntoView(): void {
+    requestAnimationFrame(() => {
+      const activeLink = this.navLinks?.find(link =>
+        link.nativeElement.classList.contains('bg-blue-600'),
+      );
+
+      activeLink?.nativeElement.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+      });
     });
   }
 }

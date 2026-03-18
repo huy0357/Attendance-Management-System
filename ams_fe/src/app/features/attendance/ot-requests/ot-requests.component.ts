@@ -24,6 +24,7 @@ interface OtRequest {
   reviewedDate?: string;
   reviewNotes?: string;
   estimatedPay?: number;
+  canReview: boolean;
 }
 
 @Component({
@@ -36,6 +37,9 @@ export class OtRequestsComponent implements OnInit {
   requests: OtRequest[] = [];
   filteredRequests: OtRequest[] = [];
   errorMessage: string | null = null;
+  private listEmployeeId: number | null = null;
+  private approverContextSettled = false;
+  private hasSyncedListAfterApproverContext = false;
 
   filterForm: FormGroup;
   reviewForm: FormGroup;
@@ -44,6 +48,7 @@ export class OtRequestsComponent implements OnInit {
   showDetailsModal = false;
   selectedRequest: OtRequest | null = null;
   reviewAction: 'approve' | 'reject' = 'approve';
+  canApproveRequests = false;
 
   readonly statuses = ['All Status', 'Pending', 'Approved', 'Rejected'];
 
@@ -65,6 +70,7 @@ export class OtRequestsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRequests();
+    this.preloadApproverContext();
 
     this.filterForm.valueChanges.subscribe(() => this.applyFilters());
   }
@@ -157,7 +163,7 @@ export class OtRequestsComponent implements OnInit {
       return;
     }
     const status = this.reviewAction === 'approve' ? 'APPROVED' : 'REJECTED';
-    this.resolveEmployeeId().pipe(
+    this.resolveApproverEmployeeId().pipe(
       switchMap((approverId) => {
         const payload: RequestsApprovalRequest = {
           approverId,
@@ -212,15 +218,14 @@ export class OtRequestsComponent implements OnInit {
     this.filteredRequests = [];
     this.errorMessage = null;
 
-    this.resolveEmployeeId().pipe(
-      switchMap((employeeId) => this.requestsService.getOvertimeRequests(employeeId)),
+    this.resolveListEmployeeId().pipe(
+      switchMap((employeeId) => {
+        this.listEmployeeId = employeeId;
+        return this.requestsService.getOvertimeRequests(employeeId);
+      }),
     ).subscribe({
       next: (data) => {
-        this.requests = data.map((request) => this.mapRequestToOt(request));
-        this.applyFilters();
-        if (afterLoad) {
-          afterLoad();
-        }
+        this.applyLoadedRequests(data, afterLoad);
       },
       error: (error: HttpErrorResponse) => {
         this.requests = [];
@@ -232,7 +237,59 @@ export class OtRequestsComponent implements OnInit {
     });
   }
 
-  private resolveEmployeeId(): Observable<number> {
+  private preloadApproverContext(): void {
+    this.resolveApproverEmployeeId().subscribe({
+      next: () => {
+        this.canApproveRequests = true;
+        this.approverContextSettled = true;
+        this.syncListAfterApproverContext();
+      },
+      error: () => {
+        this.canApproveRequests = false;
+        this.approverContextSettled = true;
+        this.syncListAfterApproverContext();
+      },
+    });
+  }
+
+  private syncListAfterApproverContext(): void {
+    if (!this.approverContextSettled || this.hasSyncedListAfterApproverContext || this.listEmployeeId === null) {
+      return;
+    }
+
+    this.hasSyncedListAfterApproverContext = true;
+    this.requestsService.getOvertimeRequests(this.listEmployeeId).subscribe({
+      next: (data) => {
+        this.applyLoadedRequests(data);
+      },
+      error: () => {
+        // Keep the initial list state when the follow-up sync fails.
+      },
+    });
+  }
+
+  private applyLoadedRequests(data: RequestsResponse[], afterLoad?: () => void): void {
+    this.requests = data.map((request) => this.mapRequestToOt(request));
+    this.applyFilters();
+    this.syncListAfterApproverContext();
+    if (afterLoad) {
+      afterLoad();
+    }
+  }
+
+  private resolveListEmployeeId(): Observable<number> {
+    const username = this.getEffectiveUsername();
+    if (!username) {
+      this.errorMessage = 'Kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c employeeId \u0111\u1ec3 t\u1ea3i y\u00eau c\u1ea7u.';
+      return throwError(() => new Error('Missing username in auth context.'));
+    }
+
+    return this.accountService.findByUsername(username).pipe(
+      map((account) => this.normalizeEmployeeId(account?.employeeId) ?? this.extractEmployeeIdFromToken() ?? 0),
+    );
+  }
+
+  private resolveApproverEmployeeId(): Observable<number> {
     const username = this.getEffectiveUsername();
     if (!username) {
       this.errorMessage = 'Kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c employeeId \u0111\u1ec3 t\u1ea3i y\u00eau c\u1ea7u.';
@@ -241,7 +298,7 @@ export class OtRequestsComponent implements OnInit {
 
     return this.accountService.findByUsername(username).pipe(
       map((account) => {
-        const employeeId = account?.employeeId;
+        const employeeId = this.normalizeEmployeeId(account?.employeeId) ?? this.extractEmployeeIdFromToken();
         if (!employeeId) {
           throw new Error('Employee not found for username.');
         }
@@ -274,6 +331,31 @@ export class OtRequestsComponent implements OnInit {
     }
   }
 
+  private extractEmployeeIdFromToken(): number | null {
+    const token = this.authService.getAccessToken();
+    if (!token) {
+      return null;
+    }
+    const parts = token.split('.');
+    if (parts.length < 2) {
+      return null;
+    }
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    try {
+      const json = atob(padded);
+      const payload = JSON.parse(json) as { employeeId?: unknown };
+      return this.normalizeEmployeeId(payload.employeeId);
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizeEmployeeId(employeeId: unknown): number | null {
+    const parsed = Number(employeeId);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
   private mapRequestToOt(request: RequestsResponse): OtRequest {
     const employeeName = request.employeeName ?? '';
     return {
@@ -291,6 +373,7 @@ export class OtRequestsComponent implements OnInit {
       reviewedBy: request.approverName ?? undefined,
       reviewNotes: request.decisionNote ?? undefined,
       estimatedPay: undefined,
+      canReview: request.status === 'SUBMITTED',
     };
   }
 
