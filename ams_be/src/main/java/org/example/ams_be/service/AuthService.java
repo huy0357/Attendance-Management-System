@@ -61,13 +61,10 @@ public class AuthService {
 
 
     public AuthResponse refresh(String refreshToken) {
-        // 1) Validate JWT format/type/expiry
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new RuntimeException("Invalid refresh token");
         }
 
-        // parse/validate: nếu token sai chữ ký/format thì jwtUtil.parseClaims sẽ ném exception
-        // (tuỳ implementation jwtUtil của bạn; hiện jwtUtil.isExpired() có catch JwtException -> true)
         if (jwtUtil.isExpired(refreshToken)) {
             throw new RuntimeException("Invalid refresh token");
         }
@@ -75,24 +72,31 @@ public class AuthService {
             throw new RuntimeException("Invalid refresh token");
         }
 
-        // 2) Extract subject + role
         String username = jwtUtil.getUsername(refreshToken);
         String role = jwtUtil.getRole(refreshToken);
         if (username == null || username.isBlank()) {
             throw new RuntimeException("Invalid refresh token");
         }
         if (role == null || role.isBlank()) {
-            // fallback nếu role không có trong token (tuỳ bạn)
             role = "employee";
         }
 
-        // 3) Check token còn “sống” trong Redis (chưa bị revoke)
         if (!tokenStore.exists(username, refreshToken)) {
-            // request refresh token cũ / đã logout / đã rotate
             throw new RuntimeException("Refresh token revoked");
         }
 
-        // 4) Rotation: revoke cũ trước, rồi phát mới
+        // Bổ sung ghi log REFRESH_TOKEN
+        Account acc = accountRepo.findByUsername(username).orElse(null);
+        if (acc != null) {
+            auditLogService.saveAuditLog(
+                    "REFRESH_TOKEN",
+                    "ACCOUNT",
+                    acc.getAccountId(),
+                    acc.getEmployeeId(),
+                    "Old token rotated",
+                    "New token issued");
+        }
+
         tokenStore.revoke(username, refreshToken);
 
         String newRefresh = jwtUtil.generateRefreshToken(username, role);
