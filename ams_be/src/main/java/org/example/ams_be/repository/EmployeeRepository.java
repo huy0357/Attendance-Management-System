@@ -22,7 +22,6 @@ public class EmployeeRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // ✅ CHỈ GIỮ 1 MAPPER DUY NHẤT
     private static final RowMapper<EmployeeDto> EMPLOYEE_MAPPER = new RowMapper<>() {
         @Override
         public EmployeeDto mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -36,16 +35,13 @@ public class EmployeeRepository {
             e.email = rs.getString("email");
             e.status = rs.getString("status");
             e.departmentId = rs.getLong("department_id");
-
-            // nullable columns -> dùng getObject để không bị 0 giả
             e.positionId = rs.getObject("position_id", Long.class);
             e.managerId = rs.getObject("manager_id", Long.class);
-
             e.hireDate = rs.getObject("hire_date", java.time.LocalDate.class);
             e.terminatedDate = rs.getObject("terminated_date", java.time.LocalDate.class);
-
             e.createdAt = rs.getObject("created_at", java.time.LocalDateTime.class);
             e.updatedAt = rs.getObject("updated_at", java.time.LocalDateTime.class);
+            e.avatarUrl = rs.getString("avatar_url");
             return e;
         }
     };
@@ -53,7 +49,8 @@ public class EmployeeRepository {
     public List<EmployeeDto> findAll() {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
-                       department_id, position_id, manager_id, hire_date, terminated_date, created_at, updated_at
+                       department_id, position_id, manager_id, hire_date, terminated_date,
+                       created_at, updated_at, avatar_url
                 FROM employees
                 ORDER BY employee_id DESC
                 """;
@@ -63,7 +60,8 @@ public class EmployeeRepository {
     public Optional<EmployeeDto> findById(Long employeeId) {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
-                       department_id, position_id, manager_id, hire_date, terminated_date, created_at, updated_at
+                       department_id, position_id, manager_id, hire_date, terminated_date,
+                       created_at, updated_at, avatar_url
                 FROM employees
                 WHERE employee_id = ?
                 """;
@@ -87,10 +85,11 @@ public class EmployeeRepository {
         String sql = """
                 INSERT INTO employees
                     (employee_code, full_name, dob, gender, phone, email, status,
-                     department_id, position_id, manager_id, hire_date, created_at, updated_at)
+                     department_id, position_id, manager_id, hire_date,
+                     created_at, updated_at, avatar_url)
                 VALUES
                     (?, ?, ?, ?, ?, ?, ?,
-                     ?, ?, ?, ?, ?, ?)
+                     ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.update(
@@ -107,10 +106,10 @@ public class EmployeeRepository {
                 req.managerId,
                 req.hireDate,
                 Timestamp.valueOf(createdAt),
-                Timestamp.valueOf(createdAt)
+                Timestamp.valueOf(createdAt),
+                null
         );
 
-        // MySQL: lấy ID vừa insert
         Long id = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
         return id != null ? id : 0L;
     }
@@ -147,6 +146,22 @@ public class EmployeeRepository {
         );
     }
 
+    public int updateAvatar(Long employeeId, String avatarUrl, LocalDateTime updatedAt) {
+        String sql = """
+                UPDATE employees
+                SET avatar_url = ?,
+                    updated_at = ?
+                WHERE employee_id = ?
+                """;
+
+        return jdbcTemplate.update(
+                sql,
+                avatarUrl,
+                Timestamp.valueOf(updatedAt),
+                employeeId
+        );
+    }
+
     public int deleteById(Long employeeId) {
         String sql = "DELETE FROM employees WHERE employee_id = ?";
         return jdbcTemplate.update(sql, employeeId);
@@ -159,7 +174,6 @@ public class EmployeeRepository {
     }
 
     public List<EmployeeDto> findPage(int offset, int limit, String sortBy, String sortDir) {
-        // Whitelist columns để tránh SQL injection
         String safeSortBy = switch (sortBy) {
             case "employee_id", "employee_code", "full_name", "email",
                  "status", "department_id", "position_id", "manager_id",
@@ -171,7 +185,8 @@ public class EmployeeRepository {
 
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
-                       department_id, position_id, manager_id, hire_date, terminated_date, created_at, updated_at
+                       department_id, position_id, manager_id, hire_date, terminated_date,
+                       created_at, updated_at, avatar_url
                 FROM employees
                 ORDER BY %s %s
                 LIMIT ? OFFSET ?
@@ -188,7 +203,6 @@ public class EmployeeRepository {
     }
 
     public List<EmployeeDto> findPageByName(int offset, int limit, String name, String sortBy, String sortDir) {
-
         String safeSortBy = switch (sortBy) {
             case "employee_id", "employee_code", "full_name", "email",
                  "status", "department_id", "position_id", "manager_id",
@@ -200,15 +214,15 @@ public class EmployeeRepository {
         String keyword = "%" + name.trim() + "%";
 
         String sql = """
-            SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
-                   department_id, position_id, manager_id, hire_date, terminated_date, created_at, updated_at
-            FROM employees
-            WHERE full_name LIKE ?
-            ORDER BY %s %s
-            LIMIT ? OFFSET ?
-            """.formatted(safeSortBy, safeSortDir);
+                SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
+                       department_id, position_id, manager_id, hire_date, terminated_date,
+                       created_at, updated_at, avatar_url
+                FROM employees
+                WHERE full_name LIKE ?
+                ORDER BY %s %s
+                LIMIT ? OFFSET ?
+                """.formatted(safeSortBy, safeSortDir);
 
         return jdbcTemplate.query(sql, EMPLOYEE_MAPPER, keyword, limit, offset);
     }
-
 }
