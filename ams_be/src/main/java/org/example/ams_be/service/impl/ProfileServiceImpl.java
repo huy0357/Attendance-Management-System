@@ -1,4 +1,4 @@
-package org.example.ams_be.service;
+package org.example.ams_be.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ams_be.dto.EmployeeDto;

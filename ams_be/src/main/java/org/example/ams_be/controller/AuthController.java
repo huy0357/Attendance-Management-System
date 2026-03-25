@@ -1,9 +1,8 @@
 package org.example.ams_be.controller;
 
 import jakarta.validation.Valid;
-import org.example.ams_be.dto.request.LoginRequest;
-import org.example.ams_be.dto.request.LogoutRequest;
-import org.example.ams_be.dto.request.RefreshRequest;
+import org.example.ams_be.dto.request.*;
+import org.example.ams_be.dto.response.ApiResponse;
 import org.example.ams_be.dto.response.AuthResponse;
 import org.example.ams_be.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -36,5 +35,27 @@ public class AuthController {
     public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest req) {
         authService.logout(req.getRefreshToken());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(new ApiResponse("OTP đã được gửi về email"));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse> verifyOtp(@RequestBody VerifyOtpRequest request) {
+        authService.verifyOtp(request.getEmail(), request.getOtp());
+        return ResponseEntity.ok(new ApiResponse("OTP hợp lệ"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(
+                request.getEmail(),
+                request.getOtp(),
+                request.getNewPassword()
+        );
+        return ResponseEntity.ok(new ApiResponse("Đổi mật khẩu thành công"));
     }
 }

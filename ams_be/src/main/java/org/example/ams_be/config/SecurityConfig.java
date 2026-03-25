@@ -30,14 +30,17 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // ========================
-                        // AUTH APIs
-                        // ========================
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/auth/login",
-                                "/api/auth/refresh",
-                                "/api/auth/logout"
-                        ).permitAll()
+                                // ========================
+                                // AUTH APIs
+                                // ========================
+                                .requestMatchers(HttpMethod.POST,
+                                        "/api/auth/login",
+                                        "/api/auth/refresh",
+                                        "/api/auth/logout",
+                                        "/api/auth/forgot-password",
+                                        "/api/auth/verify-otp",
+                                        "/api/auth/reset-password"
+                                ).permitAll()
 
                         // create account
                         .requestMatchers(HttpMethod.POST, "/api/accounts").permitAll()

@@ -7,8 +7,11 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "accounts")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Account {
 
     @Id
@@ -16,7 +19,6 @@ public class Account {
     @Column(name = "account_id")
     private Long accountId;
 
-    // FK tới employees.employee_id (BIGINT)
     @Column(name = "employee_id", nullable = false)
     private Long employeeId;
 
@@ -35,6 +37,15 @@ public class Account {
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    @Column(name = "reset_otp", length = 255)
+    private String resetOtp;
+
+    @Column(name = "reset_otp_expired_at")
+    private LocalDateTime resetOtpExpiredAt;
+
+    @Column(name = "reset_otp_attempt_count")
+    private Integer resetOtpAttemptCount;
 
     @Column(name = "created_at", updatable = false, insertable = false)
     private LocalDateTime createdAt;
