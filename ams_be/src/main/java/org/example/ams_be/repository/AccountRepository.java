@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
-
     boolean existsByUsername(String username);
 
     boolean existsByEmployeeId(Long employeeId);
@@ -16,6 +15,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByUsername(String username);
 
     Page<Account> findAllByIsActive(Boolean isActive, Pageable pageable);
+
+    Optional<Account> findByEmployeeId(Long employeeId);
 
     Page<Account> findByUsernameContainingIgnoreCase(String username, Pageable pageable);
 }

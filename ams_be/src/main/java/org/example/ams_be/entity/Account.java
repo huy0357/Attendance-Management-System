@@ -7,8 +7,11 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "accounts")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Account {
 
     @Id
@@ -16,7 +19,6 @@ public class Account {
     @Column(name = "account_id")
     private Long accountId;
 
-    // FK tới employees.employee_id (BIGINT)
     @Column(name = "employee_id", nullable = false)
     private Long employeeId;
 
@@ -26,23 +28,29 @@ public class Account {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 20)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
     private Role role;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    @Column(name = "reset_otp", length = 255)
+    private String resetOtp;
+
+    @Column(name = "reset_otp_expired_at")
+    private LocalDateTime resetOtpExpiredAt;
+
+    @Column(name = "reset_otp_attempt_count")
+    private Integer resetOtpAttemptCount;
 
     @Column(name = "created_at", updatable = false, insertable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
-
-    public enum Role {
-        admin, hr, manager, employee
-    }
 }

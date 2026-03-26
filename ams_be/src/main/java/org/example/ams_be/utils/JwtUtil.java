@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -27,18 +28,35 @@ public class JwtUtil {
         this.refreshTtlSeconds = refreshTtlSeconds;
     }
 
-    public long getAccessTtlSeconds() { return accessTtlSeconds; }
-    public long getRefreshTtlSeconds() { return refreshTtlSeconds; }
-
-    public String generateAccessToken(String username, String role) {
-        return generateToken(username, role, accessTtlSeconds, Map.of("type", "access"));
+    public long getAccessTtlSeconds() {
+        return accessTtlSeconds;
     }
 
-    public String generateRefreshToken(String username, String role) {
-        return generateToken(username, role, refreshTtlSeconds, Map.of("type", "refresh"));
+    public long getRefreshTtlSeconds() {
+        return refreshTtlSeconds;
     }
 
-    private String generateToken(String username, String role, long ttlSeconds, Map<String, Object> extraClaims) {
+    public String generateAccessToken(String username, String roleCode, Long employeeId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "access");
+        claims.put("role", roleCode);
+        if (employeeId != null) {
+            claims.put("employeeId", employeeId);
+        }
+        return generateToken(username, accessTtlSeconds, claims);
+    }
+
+    public String generateRefreshToken(String username, String roleCode, Long employeeId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "refresh");
+        claims.put("role", roleCode);
+        if (employeeId != null) {
+            claims.put("employeeId", employeeId);
+        }
+        return generateToken(username, refreshTtlSeconds, claims);
+    }
+
+    private String generateToken(String username, long ttlSeconds, Map<String, Object> claims) {
         long nowMs = System.currentTimeMillis();
         Date now = new Date(nowMs);
         Date exp = new Date(nowMs + ttlSeconds * 1000);
@@ -47,15 +65,17 @@ public class JwtUtil {
                 .setSubject(username)
                 .setIssuedAt(now)
                 .setExpiration(exp)
-                .addClaims(extraClaims)
-                .claim("role", role)
+                .addClaims(claims)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public Claims parseClaims(String token) throws JwtException {
-        return Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody();
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     public boolean isExpired(String token) {
@@ -79,6 +99,7 @@ public class JwtUtil {
         Object type = parseClaims(token).get("type");
         return type == null ? null : type.toString();
     }
+
     public Long getEmployeeId(String token) {
         Object v = parseClaims(token).get("employeeId");
         if (v == null) return null;
