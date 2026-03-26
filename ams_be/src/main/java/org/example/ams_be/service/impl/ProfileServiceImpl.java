@@ -183,7 +183,10 @@ public class ProfileServiceImpl implements ProfileService {
         response.put("phone", employee.phone);
         response.put("gender", employee.gender);
         response.put("dob", employee.dob);
-        response.put("role", account.getRole());
+
+        response.put("roleId", account.getRole() != null ? account.getRole().getRoleId() : null);
+        response.put("roleCode", account.getRole() != null ? account.getRole().getRoleCode() : null);
+
         response.put("isActive", account.getIsActive());
         response.put("status", employee.status);
         response.put("departmentId", employee.departmentId);

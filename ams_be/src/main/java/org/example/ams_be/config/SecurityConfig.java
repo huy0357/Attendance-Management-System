@@ -18,75 +18,33 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
-                // disable csrf (API dùng JWT)
                 .csrf(csrf -> csrf.disable())
-
-                // không dùng session
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/api/auth/logout",
+                                "/api/auth/forgot-password",
+                                "/api/auth/verify-otp",
+                                "/api/auth/reset-password"
+                        ).permitAll()
 
-                                // ========================
-                                // AUTH APIs
-                                // ========================
-                                .requestMatchers(HttpMethod.POST,
-                                        "/api/auth/login",
-                                        "/api/auth/refresh",
-                                        "/api/auth/logout",
-                                        "/api/auth/forgot-password",
-                                        "/api/auth/verify-otp",
-                                        "/api/auth/reset-password"
-                                ).permitAll()
-
-                        // create account
                         .requestMatchers(HttpMethod.POST, "/api/accounts").permitAll()
 
-                        // ========================
-                        // ATTENDANCE APIs
-                        // ========================
+                        .requestMatchers("/api/attendance-daily/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/attendance-daily/employee/**").authenticated()
+                        .requestMatchers("/api/admin/attendance/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/employees/**").hasAnyRole("EMPLOYEE", "ADMIN")
 
-                        // admin xem toàn bộ bảng công
-                        .requestMatchers("/api/attendance-daily/admin/**")
-                        .hasRole("ADMIN")
-
-                        // employee xem bảng công
-                        .requestMatchers("/api/attendance-daily/employee/**")
-                        .authenticated()
-
-                        // batch attendance (admin)
-                        .requestMatchers("/api/admin/attendance/**")
-                        .hasRole("ADMIN")
-
-                        // ========================
-                        // ADMIN APIs
-                        // ========================
-                        .requestMatchers("/api/admin/**")
-                        .hasRole("ADMIN")
-
-                        // ========================
-                        // MANAGER APIs
-                        // ========================
-                        .requestMatchers("/api/manager/**")
-                        .hasAnyRole("MANAGER", "ADMIN")
-
-                        // ========================
-                        // EMPLOYEE APIs
-                        // ========================
-                        .requestMatchers("/api/employees/**")
-                        .hasAnyRole("EMPLOYEE", "ADMIN")
-
-                        // error endpoint
                         .requestMatchers("/error").permitAll()
-
-                        // các request còn lại cần login
                         .anyRequest().authenticated()
                 )
-
-                // JWT filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -1,10 +1,13 @@
 package org.example.ams_be.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.ams_be.dto.response.AuthResponse;
 import org.example.ams_be.entity.Account;
 import org.example.ams_be.entity.Employee;
+import org.example.ams_be.entity.Role;
 import org.example.ams_be.repository.AccountRepository;
 import org.example.ams_be.repository.EmployeeRepository;
+import org.example.ams_be.repository.RoleRepository;
 import org.example.ams_be.utils.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.Random;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final AccountRepository accountRepo;
@@ -22,22 +26,16 @@ public class AuthService {
     private final AuditLogService auditLogService;
     private final EmailService emailService;
     private final EmployeeRepository employeeRepository;
+    private final RoleRepository roleRepository;
 
-    public AuthService(AccountRepository accountRepo,
-                       PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil,
-                       TokenStore tokenStore,
-                       AuditLogService auditLogService,
-                       EmailService emailService,
-                       EmployeeRepository employeeRepository) {
-        this.accountRepo = accountRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-        this.tokenStore = tokenStore;
-        this.auditLogService = auditLogService;
-        this.emailService = emailService;
-        this.employeeRepository = employeeRepository;
+    private String resolveRoleCode(Account acc) {
+        if (acc.getRole() == null) {
+            return "EMPLOYEE";
+        }
+
+        return acc.getRole().getRoleCode().toUpperCase();
     }
+
 
     public AuthResponse login(String username, String password) {
         Account acc = accountRepo.findByUsername(username)
@@ -47,23 +45,46 @@ public class AuthService {
             throw new RuntimeException("Account is inactive");
         }
 
-        String hashed = acc.getPasswordHash();
-
-        if (!passwordEncoder.matches(password, hashed)) {
+        if (!passwordEncoder.matches(password, acc.getPasswordHash())) {
             throw new RuntimeException("Invalid username or password");
         }
 
-        String role = (acc.getRole() == null) ? "employee" : acc.getRole().name().toLowerCase();
+        String roleCode = resolveRoleCode(acc);
 
-        String access = jwtUtil.generateAccessToken(username, role);
-        String refresh = jwtUtil.generateRefreshToken(username, role);
+        String accessToken = jwtUtil.generateAccessToken(
+                acc.getUsername(),
+                roleCode,
+                acc.getEmployeeId()
+        );
 
-        tokenStore.storeRefreshToken(username, refresh, jwtUtil.getRefreshTtlSeconds());
+        String refreshToken = jwtUtil.generateRefreshToken(
+                acc.getUsername(),
+                roleCode,
+                acc.getEmployeeId()
+        );
 
-        Long empId = acc.getEmployeeId();
-        auditLogService.saveAuditLog("LOGIN", "ACCOUNT", acc.getAccountId(), empId, null, "Login successful");
+        tokenStore.storeRefreshToken(
+                acc.getUsername(),
+                refreshToken,
+                jwtUtil.getRefreshTtlSeconds()
+        );
 
-        return new AuthResponse(access, refresh, jwtUtil.getAccessTtlSeconds(), username, role);
+        auditLogService.saveAuditLog(
+                "LOGIN",
+                "ACCOUNT",
+                acc.getAccountId(),
+                acc.getEmployeeId(),
+                null,
+                "Login successful"
+        );
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                jwtUtil.getAccessTtlSeconds(),
+                acc.getUsername(),
+                roleCode
+        );
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -74,17 +95,21 @@ public class AuthService {
         if (jwtUtil.isExpired(refreshToken)) {
             throw new RuntimeException("Invalid refresh token");
         }
+
         if (!"refresh".equals(jwtUtil.getType(refreshToken))) {
             throw new RuntimeException("Invalid refresh token");
         }
 
         String username = jwtUtil.getUsername(refreshToken);
-        String role = jwtUtil.getRole(refreshToken);
+        String roleCode = jwtUtil.getRole(refreshToken);
+        Long employeeId = jwtUtil.getEmployeeId(refreshToken);
+
         if (username == null || username.isBlank()) {
             throw new RuntimeException("Invalid refresh token");
         }
-        if (role == null || role.isBlank()) {
-            role = "employee";
+
+        if (roleCode == null || roleCode.isBlank()) {
+            roleCode = "EMPLOYEE";
         }
 
         if (!tokenStore.exists(username, refreshToken)) {
@@ -99,35 +124,62 @@ public class AuthService {
                     acc.getAccountId(),
                     acc.getEmployeeId(),
                     "Old token rotated",
-                    "New token issued");
+                    "New token issued"
+            );
         }
 
         tokenStore.revoke(username, refreshToken);
 
-        String newRefresh = jwtUtil.generateRefreshToken(username, role);
-        tokenStore.storeRefreshToken(username, newRefresh, jwtUtil.getRefreshTtlSeconds());
+        String newRefreshToken = jwtUtil.generateRefreshToken(
+                username,
+                roleCode,
+                employeeId
+        );
 
-        String newAccess = jwtUtil.generateAccessToken(username, role);
+        tokenStore.storeRefreshToken(
+                username,
+                newRefreshToken,
+                jwtUtil.getRefreshTtlSeconds()
+        );
 
-        return new AuthResponse(newAccess, newRefresh, jwtUtil.getAccessTtlSeconds(), username, role);
+        String newAccessToken = jwtUtil.generateAccessToken(
+                username,
+                roleCode,
+                employeeId
+        );
+
+        return new AuthResponse(
+                newAccessToken,
+                newRefreshToken,
+                jwtUtil.getAccessTtlSeconds(),
+                username,
+                roleCode
+        );
     }
 
     public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+
         if (jwtUtil.isExpired(refreshToken) || !"refresh".equals(jwtUtil.getType(refreshToken))) {
             return;
         }
+
         String username = jwtUtil.getUsername(refreshToken);
         Account acc = accountRepo.findByUsername(username).orElse(null);
+
         if (acc != null) {
-            Long actorId = acc.getEmployeeId();
             auditLogService.saveAuditLog(
                     "LOGOUT",
                     "ACCOUNT",
                     acc.getAccountId(),
-                    actorId,
+                    acc.getEmployeeId(),
                     "Username: " + username,
-                    "Logout successful");
+                    "Logout successful"
+            );
         }
+
         tokenStore.revoke(username, refreshToken);
     }
 
@@ -194,7 +246,9 @@ public class AuthService {
             throw new RuntimeException("OTP đã hết hạn");
         }
 
-        int currentAttempts = account.getResetOtpAttemptCount() == null ? 0 : account.getResetOtpAttemptCount();
+        int currentAttempts = account.getResetOtpAttemptCount() == null
+                ? 0
+                : account.getResetOtpAttemptCount();
 
         if (currentAttempts >= 5) {
             throw new RuntimeException("Bạn đã nhập sai OTP quá 5 lần");
