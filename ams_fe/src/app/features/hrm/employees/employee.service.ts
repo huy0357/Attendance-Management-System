@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
@@ -59,6 +59,7 @@ export interface DepartmentDto {
 export class EmployeeService {
   private readonly baseUrl = `${environment.apiBaseUrl}/employees`;
   private readonly departmentsUrl = `${environment.apiBaseUrl}/departments`;
+  private readonly exportsUrl = `${environment.apiBaseUrl}/exports`;
 
   constructor(private http: HttpClient) { }
 
@@ -78,9 +79,15 @@ export class EmployeeService {
   }
 
   getDepartments(): Observable<DepartmentDto[]> {
+    const params = new HttpParams()
+      .set('page', '0')
+      .set('size', '1000')
+      .set('sort', 'departmentId,asc');
+
     return this.http
       .get<PageResponse<DepartmentDto> | DepartmentDto[] | { content?: DepartmentDto[]; items?: DepartmentDto[]; data?: DepartmentDto[] }>(
-        this.departmentsUrl
+        this.departmentsUrl,
+        { params }
       )
       .pipe(
         map(response => {
@@ -114,9 +121,9 @@ export class EmployeeService {
 
   getPage(page: number = 1, size: number = 10, sortBy?: string, sortDir?: string): Observable<PageResponse<EmployeeDto>> {
     const params = new HttpParams()
-      .set('page', (page - 1).toString())
+      .set('page', page.toString())
       .set('size', size.toString())
-      .set('sortBy', sortBy || 'employeeId')
+      .set('sortBy', sortBy || 'employee_id')
       .set('sortDir', sortDir || 'asc');
 
     return this.http.get<PageResponse<EmployeeDto>>(`${this.baseUrl}/page`, { params });
@@ -125,11 +132,18 @@ export class EmployeeService {
   searchByName(name: string, page: number = 1, size: number = 10, sortBy?: string, sortDir?: string): Observable<PageResponse<EmployeeDto>> {
     const params = new HttpParams()
       .set('name', name)
-      .set('page', (page - 1).toString())
+      .set('page', page.toString())
       .set('size', size.toString())
-      .set('sortBy', sortBy || 'employeeId')
+      .set('sortBy', sortBy || 'employee_id')
       .set('sortDir', sortDir || 'asc');
 
     return this.http.get<PageResponse<EmployeeDto>>(`${this.baseUrl}/search`, { params });
+  }
+
+  exportEmployees(): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.exportsUrl}/employees`, {
+      observe: 'response',
+      responseType: 'blob',
+    });
   }
 }

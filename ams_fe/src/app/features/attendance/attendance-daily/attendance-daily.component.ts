@@ -1,13 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import {
-  AttendanceBatchResponse,
-  AttendanceDailyResponse,
-  AttendanceService,
-} from '../attendance.service';
-
-type AttendanceDailyMode = 'admin' | 'employee' | 'me';
+import { AttendanceBatchResponse, AttendanceDailyResponse, AttendanceService } from '../attendance.service';
 
 @Component({
   standalone: false,
@@ -17,13 +11,12 @@ type AttendanceDailyMode = 'admin' | 'employee' | 'me';
 })
 export class AttendanceDailyComponent implements OnInit {
   title = 'Attendance Daily';
-  description = 'Review calculated attendance records by date range and employee.';
-  mode: AttendanceDailyMode = 'admin';
+  description = 'Review calculated attendance records for the selected date range.';
+  mode = 'admin';
 
   from = this.formatDate(this.addDays(new Date(), -7));
   to = this.formatDate(new Date());
   batchDate = this.formatDate(new Date());
-  employeeId: number | null = null;
 
   page = 0;
   size = 10;
@@ -45,9 +38,7 @@ export class AttendanceDailyComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.data.subscribe((data) => {
-      this.mode = (data['mode'] as AttendanceDailyMode | undefined) ?? 'admin';
-      this.applyModeMetadata();
-      this.resolveEmployeeIdFromRoute();
+      this.mode = (data['mode'] as string | undefined) ?? 'admin';
       this.loadRecords();
     });
   }
@@ -141,7 +132,6 @@ export class AttendanceDailyComponent implements OnInit {
   private loadRecords(): void {
     this.errorMessage = '';
     this.batchSuccessMessage = '';
-    this.resolveEmployeeIdFromRoute();
 
     if (!this.from || !this.to) {
       this.records = [];
@@ -185,59 +175,7 @@ export class AttendanceDailyComponent implements OnInit {
   }
 
   private getAttendanceRequest() {
-    if (this.mode === 'me') {
-      return this.attendanceService.getMyAttendanceDaily(this.from, this.to, this.page, this.size);
-    }
-
-    if (this.mode === 'employee') {
-      if (!this.employeeId || this.employeeId <= 0) {
-        throw new Error('Employee ID is required for employee attendance view.');
-      }
-
-      return this.attendanceService.getAttendanceDailyByEmployee(
-        this.employeeId,
-        this.from,
-        this.to,
-        this.page,
-        this.size,
-      );
-    }
-
-    if (this.employeeId && this.employeeId > 0) {
-      return this.attendanceService.getAttendanceDailyByEmployee(
-        this.employeeId,
-        this.from,
-        this.to,
-        this.page,
-        this.size,
-      );
-    }
-
     return this.attendanceService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size);
-  }
-
-  private resolveEmployeeIdFromRoute(): void {
-    const routeEmployeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
-    if (this.mode === 'employee' && Number.isInteger(routeEmployeeId) && routeEmployeeId > 0) {
-      this.employeeId = routeEmployeeId;
-    }
-  }
-
-  private applyModeMetadata(): void {
-    if (this.mode === 'me') {
-      this.title = 'My Attendance Daily';
-      this.description = 'Review your calculated attendance records for the selected date range.';
-      return;
-    }
-
-    if (this.mode === 'employee') {
-      this.title = 'Employee Attendance Daily';
-      this.description = 'Review calculated attendance records for a specific employee.';
-      return;
-    }
-
-    this.title = 'Attendance Daily';
-    this.description = 'Review calculated attendance records by date range and employee.';
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {

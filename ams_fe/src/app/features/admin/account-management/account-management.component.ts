@@ -2,8 +2,6 @@ import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
   AdminService,
-  AccountRoleDefinition,
-  PermissionDefinition,
   UserAccountRecord,
 } from '../admin.service';
 import {
@@ -15,9 +13,7 @@ import { Subject, Subscription, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { EmployeeDto, EmployeeService } from '../../hrm/employees/employee.service';
 
-type AccountTab = 'users' | 'roles' | 'permissions';
 type RoleType = 'admin' | 'manager' | 'hr' | 'employee';
-type StatusType = 'active' | 'inactive';
 
 @Component({
   standalone: false,
@@ -26,7 +22,6 @@ type StatusType = 'active' | 'inactive';
   styleUrls: ['./account-management.component.scss'],
 })
 export class AccountManagementComponent implements OnInit, OnDestroy {
-  activeTab: AccountTab = 'users';
   showAddUser = false;
   showEditUser = false;
   showDeleteModal = false;
@@ -50,8 +45,6 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   apiError = false;
 
   userAccounts: UserAccountRecord[] = [];
-  roles: AccountRoleDefinition[] = [];
-  permissions: PermissionDefinition[] = [];
   availableEmployees: EmployeeDto[] = [];
 
   addUserForm: FormGroup;
@@ -67,14 +60,6 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   readonly statusColors: Record<string, string> = {
     active: 'bg-green-100 text-green-700',
     inactive: 'bg-gray-100 text-gray-700',
-    suspended: 'bg-red-100 text-red-700',
-  };
-
-  readonly roleCardStyles: Record<string, { bg: string; text: string }> = {
-    red: { bg: 'bg-red-100', text: 'text-red-600' },
-    blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
-    green: { bg: 'bg-green-100', text: 'text-green-600' },
-    gray: { bg: 'bg-gray-100', text: 'text-gray-600' },
   };
 
   constructor(
@@ -85,20 +70,16 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   ) {
     this.addUserForm = this.fb.group({
       employeeId: [null, Validators.required],
-      name: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
+      username: ['', Validators.required],
       role: ['admin', Validators.required],
-      department: ['Operations', Validators.required],
-      tempPassword: [''],
-      status: ['Active', Validators.required],
-      sendWelcome: [true],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      status: ['active', Validators.required],
     });
 
     this.editUserForm = this.fb.group({
-      name: ['', Validators.required],
-      email: [''],  // BE doesn't return or accept email in UpdateAccountRequest
+      employeeId: [{ value: null, disabled: true }],
+      username: ['', Validators.required],
       role: ['admin', Validators.required],
-      department: [''],  // BE doesn't return or accept department in UpdateAccountRequest
       status: ['active', Validators.required],
     });
   }
@@ -114,14 +95,6 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
       this.currentPage = 1;
       this.loadData();
     });
-
-    this.adminService.getAccountRoles().subscribe((roles) => {
-      this.roles = roles;
-    });
-
-    this.adminService.getPermissions().subscribe((permissions) => {
-      this.permissions = permissions;
-    });
   }
 
   ngOnDestroy(): void {
@@ -135,7 +108,6 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   loadData(): void {
     this.isLoading = true;
     this.apiError = false;
-    const apiPage = this.currentPage - 1; // API is 0-based
 
     let isActive: boolean | undefined = undefined;
     if (this.filterStatus === 'active') isActive = true;
@@ -145,14 +117,14 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     if (this.searchQuery.trim()) {
       request$ = this.adminService.searchAccounts(
         this.searchQuery,
-        apiPage,
+        this.currentPage,
         this.pageSize,
         'accountId',
         'desc'
       );
     } else {
       request$ = this.adminService.getAccountsPage(
-        apiPage,
+        this.currentPage,
         this.pageSize,
         'accountId',
         'desc',
@@ -199,14 +171,12 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   private mapAccountDtoToRecord(a: any): UserAccountRecord {
     return {
       id: String(a.accountId),
-      name: a.username,
-      email: '', // Not returned by API
+      employeeId: a.employeeId,
+      username: a.username,
       role: a.role as AccountRole,
-      department: '',
       status: a.isActive ? 'active' : 'inactive',
       lastLogin: a.lastLoginAt ?? 'Never',
       createdDate: a.createdAt ? a.createdAt.split('T')[0] : '',
-      permissions: [],
     };
   }
 
@@ -252,13 +222,10 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   openAddUserModal(): void {
     this.addUserForm.reset({
       employeeId: null,
-      name: '',
-      email: '',
+      username: '',
       role: 'employee',
-      department: 'Operations',
-      tempPassword: '',
-      status: 'Active',
-      sendWelcome: true,
+      password: '',
+      status: 'active',
     });
     this.loadAvailableEmployeesForCreate();
     this.showAddUser = true;
@@ -272,16 +239,45 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   }
 
   openEditUserModal(user: UserAccountRecord): void {
-    this.selectedUser = user;
-    this.editUserForm.reset({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      department: user.department,
-      status: user.status,
+    const accountId = Number(user.id);
+    if (!Number.isFinite(accountId)) {
+      this.selectedUser = user;
+      this.editUserForm.reset({
+        employeeId: user.employeeId,
+        username: user.username,
+        role: user.role,
+        status: user.status,
+      });
+      this.showEditUser = true;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.adminService.getAccountById(accountId).subscribe({
+      next: (account) => {
+        const accountDetail = this.mapAccountDtoToRecord(account);
+        this.selectedUser = accountDetail;
+        this.editUserForm.reset({
+          employeeId: accountDetail.employeeId,
+          username: accountDetail.username,
+          role: accountDetail.role,
+          status: accountDetail.status,
+        });
+        this.showEditUser = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.selectedUser = user;
+        this.editUserForm.reset({
+          employeeId: user.employeeId,
+          username: user.username,
+          role: user.role,
+          status: user.status,
+        });
+        this.showEditUser = true;
+        this.cdr.detectChanges();
+      },
     });
-    this.showEditUser = true;
-    this.cdr.detectChanges();
   }
 
   closeEditUserModal(): void {
@@ -341,10 +337,10 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
     const request: CreateAccountRequest = {
       employeeId,
-      username: value.name,
-      password: value.tempPassword || 'TempPass123!',
+      username: value.username,
+      password: value.password,
       role: value.role as AccountRole,
-      isActive: value.status.toLowerCase() !== 'inactive',
+      isActive: value.status !== 'inactive',
     };
 
     this.adminService.createAccount(request).subscribe({
@@ -367,7 +363,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     const accountId = Number(this.selectedUser.id);
 
     const request: UpdateAccountRequest = {
-      username: value.name,
+      username: value.username,
       role: value.role as AccountRole,
       isActive: value.status !== 'inactive',
     };
@@ -382,14 +378,6 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.closeEditUserModal();
       },
     });
-  }
-
-  getRoleCardBg(roleColor: string): string {
-    return this.roleCardStyles[roleColor]?.bg ?? 'bg-gray-100';
-  }
-
-  getRoleCardText(roleColor: string): string {
-    return this.roleCardStyles[roleColor]?.text ?? 'text-gray-600';
   }
 
   private loadAvailableEmployeesForCreate(): void {

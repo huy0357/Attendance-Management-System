@@ -3,7 +3,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { EMPTY, Observable, Subject, forkJoin, from, of } from 'rxjs';
 import { auditTime, catchError, finalize, map, mergeMap, switchMap, takeUntil, toArray } from 'rxjs/operators';
 import {
-  AssignShiftRangeRequest,
   AttendanceService,
   ScheduleEmployee,
   Shift,
@@ -27,10 +26,6 @@ type WeekRequestEntry = {
   request$: Observable<EmployeeScheduleDayResponse[]>;
 };
 
-type AssignOutcome = {
-  success: boolean;
-};
-
 type DepartmentGroupView = {
   departmentName: string;
   employees: ScheduleEmployee[];
@@ -45,14 +40,10 @@ type DepartmentGroupView = {
   styleUrls: ['./scheduling.component.scss'],
 })
 export class SchedulingComponent implements OnInit, OnDestroy {
-  view: 'week' | 'month' = 'week';
-  viewMode: 'week' | 'month' = 'week';
   selectedDate: Date = new Date();
-  showAiProposal = false;
   draggedTemplate: ShiftTemplate | null = null;
   dragOver: { day: number; employeeId: string } | null = null;
   isWeekLoading = false;
-  isApplyingAi = false;
   errorMessage: string | null = null;
   selectedEmployee: ScheduleEmployee | null = null;
   isDetailOpen = false;
@@ -75,7 +66,6 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   private readonly cacheTtlMs = 5 * 60 * 1000;
   private readonly weekLoadConcurrency = 8;
   private readonly detailLoadConcurrency = 6;
-  private readonly assignConcurrency = 2;
   private readonly collapsedDepartments = new Set<string>();
   private lastLoadKey: string | null = null;
   private inFlight = false;
@@ -88,13 +78,11 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.viewMode = 'week';
-    this.view = this.viewMode;
     this.selectedDate = new Date();
     this.weekStart = this.getWeekStart(this.selectedDate);
 
     forkJoin({
-      templates: this.attendanceService.getShiftTemplates(),
+      templates: this.attendanceService.getShiftTemplates(true),
       employees: this.attendanceService.getScheduleEmployees(),
     }).subscribe({
       next: ({ templates, employees }) => {
@@ -139,15 +127,6 @@ export class SchedulingComponent implements OnInit, OnDestroy {
     if (type === 'afternoon') return 'bg-yellow-100 text-yellow-700 border-yellow-300';
     if (type === 'night') return 'bg-purple-100 text-purple-700 border-purple-300';
     return 'bg-gray-100 text-gray-700 border-gray-300';
-  }
-
-  setView(view: 'week' | 'month'): void {
-    if (this.viewMode === view) {
-      return;
-    }
-    this.viewMode = view;
-    this.view = view;
-    this.triggerReload();
   }
 
   goToPreviousWeek(): void {
@@ -320,88 +299,12 @@ export class SchedulingComponent implements OnInit, OnDestroy {
     });
   }
 
-  handleAiAutoSchedule(): void {
-    this.showAiProposal = true;
-  }
-
-  applyAiSchedule(): void {
-    if (this.templates.length === 0 || this.isApplyingAi) {
-      this.showAiProposal = false;
-      return;
-    }
-
-    const payloads: AssignShiftRangeRequest[] = [];
-    this.employees.forEach((emp) => {
-      this.days.forEach((_, dayIndex) => {
-        const hasShift = this.shifts.some((s) => s.employeeId === emp.id && s.day === dayIndex);
-        if (!hasShift) {
-          const template = this.templates[dayIndex % this.templates.length];
-          const employeeIdNum = Number(emp.id);
-          const shiftIdNum = Number(template.id);
-          if (!Number.isFinite(employeeIdNum) || !Number.isFinite(shiftIdNum)) {
-            return;
-          }
-          const workDate = this.formatDate(this.addDays(this.weekStart, dayIndex));
-          payloads.push({
-            employeeId: employeeIdNum,
-            shiftId: shiftIdNum,
-            startDate: workDate,
-            endDate: workDate,
-            scheduleSource: 'IMPORT',
-            overwrite: true,
-          });
-        }
-      });
-    });
-
-    if (payloads.length === 0) {
-      this.showAiProposal = false;
-      return;
-    }
-
-    this.isApplyingAi = true;
-    this.errorMessage = null;
-    from(payloads)
-      .pipe(
-        mergeMap(
-          (payload) =>
-            this.attendanceService.assignShiftRange(payload).pipe(
-              map((): AssignOutcome => ({ success: true })),
-              catchError(() => of<AssignOutcome>({ success: false })),
-            ),
-          this.assignConcurrency,
-        ),
-        toArray(),
-        finalize(() => {
-          this.isApplyingAi = false;
-          this.showAiProposal = false;
-          this.cdr.markForCheck();
-        }),
-      )
-      .subscribe((outcomes) => {
-        const successCount = outcomes.filter((item) => item.success).length;
-        const failedCount = outcomes.length - successCount;
-        if (successCount > 0) {
-          this.invalidateCurrentWeekCache();
-          this.triggerReload();
-        }
-        if (failedCount > 0) {
-          this.errorMessage = `Unable to assign ${failedCount} shift(s).`;
-        }
-      });
-  }
-
   getShift(employeeId: string, dayIndex: number): Shift | undefined {
     return this.shiftByCell.get(this.cellKey(employeeId, dayIndex));
   }
 
   isDragOver(employeeId: string, dayIndex: number): boolean {
     return this.dragOver?.day === dayIndex && this.dragOver?.employeeId === employeeId;
-  }
-
-  removeShiftUnsupported(): void {
-    this.errorMessage = 'Backend does not support deleting schedules yet.';
-    this.cdr.markForCheck();
   }
 
   getCoveragePercent(): string {
@@ -418,8 +321,8 @@ export class SchedulingComponent implements OnInit, OnDestroy {
     return this.shiftByCell.size;
   }
 
-  getAiGeneratedCount(): number {
-    return this.shifts.filter((s) => s.isAiGenerated).length;
+  getImportedAssignmentCount(): number {
+    return this.shifts.filter((shift) => shift.isAiGenerated).length;
   }
 
   getTemplateColor(type: Shift['type']): string {
@@ -547,7 +450,7 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   private buildLoadKey(): string {
     const week = this.toYmd(this.weekStart);
     const ids = this.employees.map((employee) => employee.id).join(',');
-    return `${this.viewMode}|${week}|${ids}`;
+    return `week|${week}|${ids}`;
   }
 
   private toYmd(date: Date): string {
@@ -653,18 +556,6 @@ export class SchedulingComponent implements OnInit, OnDestroy {
 
   private invalidateCache(employeeId: number, ymd: string): void {
     this.dayCache.delete(this.cacheKey(employeeId, ymd));
-  }
-
-  private invalidateCurrentWeekCache(): void {
-    const employeeIds = this.employees
-      .map((employee) => Number(employee.id))
-      .filter((id) => Number.isInteger(id) && id > 0);
-    const weekDates = this.days.map((_, dayIndex) => this.toYmd(this.addDays(this.weekStart, dayIndex)));
-    employeeIds.forEach((employeeId) => {
-      weekDates.forEach((ymd) => {
-        this.dayCache.delete(this.cacheKey(employeeId, ymd));
-      });
-    });
   }
 
   private cacheKey(employeeId: number, ymd: string): string {

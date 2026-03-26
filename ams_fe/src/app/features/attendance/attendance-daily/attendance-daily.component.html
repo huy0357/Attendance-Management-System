@@ -23,15 +23,6 @@
         />
       </div>
       <div class="attendance-filter-field">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
-        <input
-          type="number"
-          [(ngModel)]="employeeId"
-          placeholder="Employee ID"
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-        />
-      </div>
-      <div class="attendance-filter-field">
         <label class="block text-sm font-medium text-gray-700 mb-2">Page Size</label>
         <select
           [(ngModel)]="size"
@@ -106,17 +97,17 @@
       <table class="w-full min-w-[1480px] attendance-daily-table">
         <thead class="attendance-daily-table__head border-b border-gray-200">
           <tr>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Employee</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Date</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Shift</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Check In</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Check Out</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Work</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Late/Early</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">OT</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Employee ID</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Work Date</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Shift ID</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">First In Time</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Last Out Time</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Work Minutes</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Late / Early Leave</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">OT Minutes</th>
             <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Status</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Calculated</th>
-            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Updated</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Calculated At</th>
+            <th class="text-left px-6 py-3.5 text-sm font-semibold text-gray-700 whitespace-nowrap">Updated At</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 attendance-daily-table__body">
@@ -129,7 +120,7 @@
             <tr *ngFor="let record of records; trackBy: trackByAttendanceId" class="attendance-daily-table__row">
               <td class="px-6 py-4">
                 <div class="flex flex-col gap-0.5 min-w-0">
-                  <span class="font-semibold text-gray-900">Employee #{{ record.employeeId }}</span>
+                  <span class="font-semibold text-gray-900">{{ record.employeeId }}</span>
                   <span class="text-xs text-gray-500">Attendance #{{ record.attendanceId }}</span>
                 </div>
               </td>
@@ -155,14 +146,14 @@
               </td>
               <td class="px-6 py-4">
                 <div class="flex flex-col gap-0.5">
-                  <span class="font-medium text-gray-900">{{ formatNumber(record.workMinutes) }}m work</span>
-                  <span class="text-xs text-gray-500">{{ formatNumber(record.breakMinutes) }}m break</span>
+                  <span class="font-medium text-gray-900">{{ formatNumber(record.workMinutes) }}m</span>
+                  <span class="text-xs text-gray-500">Break: {{ formatNumber(record.breakMinutes) }}m</span>
                 </div>
               </td>
               <td class="px-6 py-4">
                 <div class="flex flex-col gap-0.5">
-                  <span class="font-medium text-gray-900">Late {{ formatNumber(record.lateMinutes) }}m</span>
-                  <span class="text-xs text-gray-500">Early {{ formatNumber(record.earlyLeaveMinutes) }}m</span>
+                  <span class="font-medium text-gray-900">Late: {{ formatNumber(record.lateMinutes) }}m</span>
+                  <span class="text-xs text-gray-500">Early leave: {{ formatNumber(record.earlyLeaveMinutes) }}m</span>
                 </div>
               </td>
               <td class="px-6 py-4">

@@ -238,6 +238,12 @@ export class OtRequestsComponent implements OnInit {
   }
 
   private preloadApproverContext(): void {
+    if (!this.hasManagerApprovalPermission()) {
+      this.canApproveRequests = false;
+      this.approverContextSettled = true;
+      return;
+    }
+
     this.resolveApproverEmployeeId().subscribe({
       next: () => {
         this.canApproveRequests = true;
@@ -354,6 +360,11 @@ export class OtRequestsComponent implements OnInit {
   private normalizeEmployeeId(employeeId: unknown): number | null {
     const parsed = Number(employeeId);
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  private hasManagerApprovalPermission(): boolean {
+    const role = this.authService.getRole();
+    return role?.toUpperCase().replace('ROLE_', '') === 'MANAGER';
   }
 
   private mapRequestToOt(request: RequestsResponse): OtRequest {

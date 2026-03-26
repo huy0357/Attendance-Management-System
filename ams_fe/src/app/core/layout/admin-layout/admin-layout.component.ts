@@ -11,6 +11,7 @@ interface NavItem {
   path: string;
   icon: string;
   requiredRoles?: string[];
+  activeMatchPaths?: string[];
 }
 
 interface NotificationItem {
@@ -53,17 +54,23 @@ export class AdminLayoutComponent {
 
   navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: 'layout-dashboard' },
-    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user' },
-    { label: 'Departments', path: '/hrm/departments', icon: 'building', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
+    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
+    { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
+    { label: 'Departments', path: '/hrm/departments', icon: 'building' },
     { label: 'Contracts', path: '/hrm/contracts', icon: 'file-text', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar', requiredRoles: ['ADMIN'] },
-    { label: 'Attendance Daily', path: '/attendance/attendance-daily', icon: 'clock' },
+    {
+      label: 'Attendance Daily',
+      path: '/attendance/attendance-daily',
+      icon: 'clock',
+      requiredRoles: ['ADMIN'],
+      activeMatchPaths: ['/attendance/attendance-daily', '/attendance/attendance-daily/admin'],
+    },
     { label: 'Shift Setup', path: '/attendance/shift-templates', icon: 'calendar' },
-    { label: 'Time & Attendance', path: '/attendance/time-calculation', icon: 'clock' },
-    { label: 'Leave Management', path: '/attendance/leave-management', icon: 'clipboard-check' },
-    { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'calculator' },
-    { label: 'Requests Management', path: '/attendance/requests-management', icon: 'clipboard-check' },
+    { label: 'Attendance Email', path: '/attendance/attendance-email', icon: 'mail', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
+    { label: 'Leave Management', path: '/attendance/leave-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
+    { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'calculator', requiredRoles: ['MANAGER'] },
+    { label: 'Requests Management', path: '/attendance/requests-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
     { label: 'Performance & KPI', path: '/hrm/performance-review', icon: 'target', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Onboarding/Exit', path: '/hrm/onboarding', icon: 'user-plus', requiredRoles: ['ADMIN', 'HR'] },
     { label: 'Payroll Formula', path: '/payroll/formula', icon: 'dollar-sign', requiredRoles: ['ADMIN', 'HR'] },
@@ -80,12 +87,11 @@ export class AdminLayoutComponent {
   ];
 
   get visibleNavItems(): NavItem[] {
-    const userRole = this.authService.getRole();
-    if (!userRole) {
+    const normalizedUserRole = this.getNormalizedUserRole();
+    if (!normalizedUserRole) {
       return this.navItems.filter(item => !item.requiredRoles || item.requiredRoles.length === 0);
     }
 
-    const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
     return this.navItems.filter(item => {
       if (!item.requiredRoles || item.requiredRoles.length === 0) {
         return true;
@@ -97,11 +103,10 @@ export class AdminLayoutComponent {
   }
 
   hasRole(roles: string[]): boolean {
-    const userRole = this.authService.getRole();
-    if (!userRole || !roles || roles.length === 0) {
+    const normalizedUserRole = this.getNormalizedUserRole();
+    if (!normalizedUserRole || !roles || roles.length === 0) {
       return false;
     }
-    const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
     return roles.some(role => role.toUpperCase().replace('ROLE_', '') === normalizedUserRole);
   }
 
@@ -156,8 +161,16 @@ export class AdminLayoutComponent {
     return baseResults.filter(item => item.name.toLowerCase().includes(this.searchQuery.toLowerCase()));
   }
 
-  isActive(path: string): boolean {
-    return this.router.url === path || this.router.url.startsWith(`${path}/`);
+  isActive(item: NavItem): boolean {
+    const matchPaths = item.activeMatchPaths && item.activeMatchPaths.length > 0
+      ? item.activeMatchPaths
+      : [this.resolveNavPath(item)];
+
+    return matchPaths.some(path => this.router.url === path || this.router.url.startsWith(`${path}/`));
+  }
+
+  resolveNavPath(item: NavItem): string {
+    return item.path;
   }
 
   navigateTo(path?: string): void {
@@ -204,6 +217,11 @@ export class AdminLayoutComponent {
         inline: 'nearest',
       });
     });
+  }
+
+  private getNormalizedUserRole(): string | null {
+    const userRole = this.authService.getRole();
+    return userRole ? userRole.toUpperCase().replace('ROLE_', '') : null;
   }
 }
 

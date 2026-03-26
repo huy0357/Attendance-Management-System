@@ -1,34 +1,27 @@
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
-import { EmployeeService, EmployeeDto } from './employee.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { EmployeeDto, EmployeeService } from './employee.service';
 
 interface UiEmployee {
   id: string;
   employeeCode?: string;
-  name: string;
+  fullName: string;
   email: string;
   phone: string;
-  department: string;
-  position: string;
   departmentId?: number | null;
   positionId?: number | null;
   managerId?: number | null;
   dob?: string | null;
   gender?: string | null;
   hireDate?: string | null;
-  employeeId: string;
-  status: 'active' | 'inactive' | 'on-leave';
-  startDate: string;
+  terminatedDate?: string | null;
+  status: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  employeeLabel: string;
   avatar: string;
-  salary: string;
-  location: string;
-}
-
-interface LookupOption {
-  id: number;
-  name: string;
 }
 
 @Component({
@@ -41,8 +34,6 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   @ViewChild('pageHeading') private pageHeading?: ElementRef<HTMLElement>;
 
   searchQuery = '';
-  selectedDepartment: string | number = '';
-  selectedStatus = '';
   showAddModal = false;
   showEditModal = false;
   showDeleteModal = false;
@@ -53,46 +44,51 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   apiError = false;
 
   employees: UiEmployee[] = [];
-  departments: LookupOption[] = [];
-
-  // Paging state
   currentPage = 1;
   pageSize = 10;
   totalItems = 0;
   totalPages = 0;
   isLoading = false;
 
-  // Search debounce
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
 
   addForm!: ReturnType<FormBuilder['group']>;
   editForm!: ReturnType<FormBuilder['group']>;
 
-  constructor(private fb: FormBuilder, private employeeService: EmployeeService, private cdr: ChangeDetectorRef) {
+  constructor(
+    private fb: FormBuilder,
+    private employeeService: EmployeeService,
+    private cdr: ChangeDetectorRef,
+  ) {
     this.addForm = this.fb.group({
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
+      employeeCode: ['', [Validators.required]],
+      fullName: ['', [Validators.required]],
+      email: ['', [Validators.email]],
+      phone: ['', [this.phoneValidator]],
+      dob: ['', [this.pastDateValidator]],
+      gender: [''],
+      departmentId: [null, [Validators.required]],
+      positionId: [null],
+      managerId: [null],
+      hireDate: [''],
+    });
+
+    this.editForm = this.fb.group({
+      fullName: ['', [Validators.required]],
       email: ['', [Validators.email]],
       phone: ['', [this.phoneValidator]],
       dob: ['', [this.pastDateValidator]],
       gender: [''],
       departmentId: [null],
+      positionId: [null],
+      managerId: [null],
       hireDate: [''],
     });
-
-    this.editForm = this.fb.group({
-      name: ['', [Validators.required]],
-      email: ['', [Validators.email]],
-      phone: [''],
-      departmentId: [null],
-    });
-
   }
 
   ngOnInit(): void {
     this.loadEmployeesPage();
-    this.loadLookups();
     this.setupSearchDebounce();
   }
 
@@ -100,77 +96,26 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.searchSubscription?.unsubscribe();
   }
 
-  private setupSearchDebounce(): void {
-    this.searchSubscription = this.searchSubject.pipe(
-      debounceTime(400),
-      distinctUntilChanged()
-    ).subscribe(query => {
-      this.currentPage = 1;
-      if (query.trim()) {
-        this.searchEmployeesServer(query);
-      } else {
-        this.loadEmployeesPage();
-      }
-    });
-  }
-
-  onSearchChange(): void {
-    this.searchSubject.next(this.searchQuery);
-  }
-
-
   get filteredEmployees(): UiEmployee[] {
-    // Client-side filtering is no longer primary, but we might still need to filter by status/dept if BE doesn't support it yet.
-    // However, the requirement says "USE SERVER-SIDE PAGING & SEARCH". 
-    // If the BE doesn't support status filter in /page, we might have to accept that filtering happens on the current page or 
-    // we would need to implement it in BE. 
-    // Given "No Backend Changes", we strictly display what BE returns for the current page.
-    // If the user wants to filter by Dept/Status *locally* on the *fetched page*, we can do that, but it breaks pagination.
-    // Implementation: Return all employees from current page. 
-    // Refinement: If selectedDepartment or selectedStatus is set, we attempt to filter the *current page* results.
-
-    return this.employees.filter(emp => {
-      const matchesDepartment = !this.selectedDepartment || emp.departmentId === Number(this.selectedDepartment);
-      const matchesStatus = !this.selectedStatus || this.normalizeStatusForFilter(emp.status) === this.selectedStatus;
-      return matchesDepartment && matchesStatus;
-    });
-  }
-
-  private normalizeStatusForFilter(status: string): string {
-    if (!status) return '';
-    const upper = status.toUpperCase().replace(/-/g, '_').replace(/ /g, '_');
-    if (upper === 'ON_LEAVE' || upper === 'ONLEAVE') return 'ON_LEAVE';
-    return upper;
-  }
-
-  onFilterChange(): void {
-    // Ideally this should trigger a backend reload with filter params, but without BE support for filters in /page,
-    // we just rely on client-side filtering of the *current page* via the getter. 
-    // Or we reset to page 1 if we want to be safe, but since it's client-side only on the page, it doesn't matter much.
-    this.scrollHeadingIntoView();
-    this.cdr.markForCheck();
+    return this.employees;
   }
 
   get totalEmployees(): number {
     return this.totalItems;
   }
 
-  get activeCount(): number {
-    return this.employees.filter(e => this.normalizeStatusForFilter(e.status) === 'ACTIVE').length;
-  }
-
-  get onLeaveCount(): number {
-    return this.employees.filter(e => this.normalizeStatusForFilter(e.status) === 'ON_LEAVE').length;
-  }
-
-  get inactiveCount(): number {
-    return this.employees.filter(e => this.normalizeStatusForFilter(e.status) === 'INACTIVE').length;
-  }
-
   openAddModal(): void {
     this.addForm.reset({
-      departmentId: this.getDefaultDepartmentId(),
+      employeeCode: '',
+      fullName: '',
+      email: '',
+      phone: '',
+      dob: '',
       gender: '',
+      departmentId: null,
+      positionId: null,
+      managerId: null,
+      hireDate: '',
     });
     this.showAddModal = true;
   }
@@ -181,31 +126,20 @@ export class EmployeesComponent implements OnInit, OnDestroy {
 
   handleAddEmployee(): void {
     if (this.addForm.invalid) {
+      this.addForm.markAllAsTouched();
       return;
     }
 
-    const value = this.addForm.value;
-    const fullName = `${value.firstName ?? ''} ${value.lastName ?? ''}`.trim();
-    this.employeeService
-      .create({
-        employeeCode: this.generateEmployeeCode(),
-        fullName: fullName || 'New Employee',
-        dob: this.optionalDate(value.dob),
-        gender: this.optionalString(value.gender),
-        phone: this.optionalString(value.phone),
-        email: this.optionalString(value.email),
-        departmentId: value.departmentId ?? undefined,
-        hireDate: this.optionalDate(value.hireDate),
-      })
-      .subscribe({
-        next: () => {
-          this.closeAddModal();
-          this.loadEmployees();
-        },
-        error: () => {
-          alert('Unable to add employee. Please try again.');
-        },
-      });
+    const value = this.addForm.getRawValue();
+    this.employeeService.create(this.buildRequestPayload(value)).subscribe({
+      next: () => {
+        this.closeAddModal();
+        this.reloadCurrentData();
+      },
+      error: () => {
+        alert('Unable to add employee. Please try again.');
+      },
+    });
   }
 
   openEditModal(employee: UiEmployee): void {
@@ -215,30 +149,18 @@ export class EmployeesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Load fresh data from BE to get all hidden fields
     this.employeeService.getById(employeeId).subscribe({
       next: (freshData) => {
-        const freshUi = this.mapDtoToUi(freshData);
-        this.selectedEmployee = freshUi;
-        this.editForm.reset({
-          name: freshUi.name,
-          email: freshUi.email,
-          phone: freshUi.phone,
-          departmentId: freshUi.departmentId,
-        });
+        this.selectedEmployee = this.mapDtoToUi(freshData);
+        this.patchEditForm(this.selectedEmployee);
         this.showEditModal = true;
         this.cdr.markForCheck();
       },
       error: () => {
-        // Fallback to existing data if getById fails
         this.selectedEmployee = employee;
-        this.editForm.reset({
-          name: employee.name,
-          email: employee.email,
-          phone: employee.phone,
-          departmentId: employee.departmentId,
-        });
+        this.patchEditForm(employee);
         this.showEditModal = true;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -250,6 +172,7 @@ export class EmployeesComponent implements OnInit, OnDestroy {
 
   handleEditEmployee(): void {
     if (!this.selectedEmployee || this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
       return;
     }
 
@@ -259,30 +182,27 @@ export class EmployeesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const value = this.editForm.value;
-    const payload = {
+    const value = this.editForm.getRawValue();
+    this.employeeService.update(employeeId, {
       employeeCode: this.optionalString(this.selectedEmployee.employeeCode),
-      fullName: this.optionalString(value.name) ?? this.selectedEmployee.name,
-      email: this.optionalString(value.email) ?? this.selectedEmployee.email,
+      fullName: this.optionalString(value.fullName) ?? this.selectedEmployee.fullName,
+      dob: this.optionalDate(value.dob) ?? this.optionalDate(this.selectedEmployee.dob),
+      gender: this.optionalString(value.gender) ?? this.optionalString(this.selectedEmployee.gender),
       phone: this.normalizePhone(this.optionalString(value.phone) ?? this.selectedEmployee.phone),
-      departmentId: value.departmentId ?? this.selectedEmployee.departmentId ?? undefined,
-      positionId: this.selectedEmployee.positionId ?? undefined,
-      managerId: this.selectedEmployee.managerId ?? undefined,
-      dob: this.optionalDate(this.selectedEmployee.dob),
-      gender: this.optionalString(this.selectedEmployee.gender),
-      hireDate: this.optionalDate(this.selectedEmployee.hireDate),
-    };
-    this.employeeService
-      .update(employeeId, payload)
-      .subscribe({
-        next: () => {
-          this.closeEditModal();
-          this.loadEmployees();
-        },
-        error: () => {
-          alert('Unable to update employee. Please try again.');
-        },
-      });
+      email: this.optionalString(value.email) ?? this.selectedEmployee.email,
+      departmentId: this.optionalNumber(value.departmentId) ?? this.selectedEmployee.departmentId ?? undefined,
+      positionId: this.optionalNumber(value.positionId) ?? this.selectedEmployee.positionId ?? undefined,
+      managerId: this.optionalNumber(value.managerId) ?? this.selectedEmployee.managerId ?? undefined,
+      hireDate: this.optionalDate(value.hireDate) ?? this.optionalDate(this.selectedEmployee.hireDate),
+    }).subscribe({
+      next: () => {
+        this.closeEditModal();
+        this.reloadCurrentData();
+      },
+      error: () => {
+        alert('Unable to update employee. Please try again.');
+      },
+    });
   }
 
   openDeleteModal(employee: UiEmployee): void {
@@ -309,7 +229,10 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.employeeService.delete(employeeId).subscribe({
       next: () => {
         this.closeDeleteModal();
-        this.loadEmployees();
+        if (this.currentPage > 1 && this.employees.length === 1) {
+          this.currentPage -= 1;
+        }
+        this.reloadCurrentData();
       },
       error: () => {
         alert('Unable to delete employee. Please try again.');
@@ -317,18 +240,13 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     });
   }
 
-  handleExport(): void {
-    // Export API not available yet; keep current UI behavior.
-    alert('Exporting employee data to CSV...');
-  }
-
   getStatusColor(status: string): string {
-    switch (status) {
-      case 'active':
+    switch (this.normalizeStatus(status)) {
+      case 'ACTIVE':
         return 'bg-green-100 text-green-700';
-      case 'inactive':
+      case 'INACTIVE':
         return 'bg-gray-100 text-gray-700';
-      case 'on-leave':
+      case 'ON_LEAVE':
         return 'bg-yellow-100 text-yellow-700';
       default:
         return 'bg-gray-100 text-gray-700';
@@ -336,16 +254,141 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   }
 
   getStatusLabel(status: string): string {
-    switch (status) {
-      case 'active':
+    switch (this.normalizeStatus(status)) {
+      case 'ACTIVE':
         return 'Active';
-      case 'inactive':
+      case 'INACTIVE':
         return 'Inactive';
-      case 'on-leave':
+      case 'ON_LEAVE':
         return 'On Leave';
       default:
-        return status;
+        return status || 'Unknown';
     }
+  }
+
+  onSearchChange(): void {
+    this.searchSubject.next(this.searchQuery);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) {
+      return;
+    }
+
+    this.currentPage = page;
+    this.reloadCurrentData();
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  prevPage(): void {
+    this.goToPage(this.currentPage - 1);
+  }
+
+  formatDate(value?: string | null): string {
+    return value || '-';
+  }
+
+  formatOptionalNumber(value?: number | null): string {
+    return value == null ? '-' : String(value);
+  }
+
+  private setupSearchDebounce(): void {
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+    ).subscribe(query => {
+      this.currentPage = 1;
+      this.reloadCurrentData(query);
+    });
+  }
+
+  private reloadCurrentData(query?: string): void {
+    const effectiveQuery = query ?? this.searchQuery;
+    if (effectiveQuery.trim()) {
+      this.searchEmployeesServer(effectiveQuery);
+      return;
+    }
+
+    this.loadEmployeesPage();
+  }
+
+  private loadEmployeesPage(): void {
+    this.isLoading = true;
+    this.employeeService.getPage(this.currentPage, this.pageSize).subscribe({
+      next: response => {
+        this.applyPageResponse(response.items || response.content || []);
+        this.totalItems = response.totalItems || 0;
+        this.totalPages = response.totalPages || Math.ceil(this.totalItems / this.pageSize) || 1;
+      },
+      error: () => {
+        this.handleLoadError();
+      },
+    });
+  }
+
+  private searchEmployeesServer(query: string): void {
+    this.isLoading = true;
+    this.employeeService.searchByName(query, this.currentPage, this.pageSize).subscribe({
+      next: response => {
+        this.applyPageResponse(response.items || response.content || []);
+        this.totalItems = response.totalItems || 0;
+        this.totalPages = response.totalPages || Math.ceil(this.totalItems / this.pageSize) || 1;
+      },
+      error: () => {
+        this.handleLoadError();
+      },
+    });
+  }
+
+  private applyPageResponse(items: EmployeeDto[]): void {
+    this.apiLoaded = true;
+    this.apiError = false;
+    this.employees = items.map(employee => this.mapDtoToUi(employee));
+    this.isLoading = false;
+    this.scrollHeadingIntoView();
+    this.cdr.markForCheck();
+  }
+
+  private handleLoadError(): void {
+    this.apiLoaded = true;
+    this.apiError = true;
+    this.employees = [];
+    this.totalItems = 0;
+    this.totalPages = 0;
+    this.isLoading = false;
+    this.cdr.markForCheck();
+  }
+
+  private patchEditForm(employee: UiEmployee): void {
+    this.editForm.reset({
+      fullName: employee.fullName,
+      email: employee.email,
+      phone: employee.phone,
+      dob: employee.dob ?? '',
+      gender: employee.gender ?? '',
+      departmentId: employee.departmentId ?? null,
+      positionId: employee.positionId ?? null,
+      managerId: employee.managerId ?? null,
+      hireDate: employee.hireDate ?? '',
+    });
+  }
+
+  private buildRequestPayload(value: Record<string, unknown>) {
+    return {
+      employeeCode: this.optionalString(value['employeeCode']),
+      fullName: this.optionalString(value['fullName']) ?? '',
+      dob: this.optionalDate(value['dob']),
+      gender: this.optionalString(value['gender']),
+      phone: this.normalizePhone(this.optionalString(value['phone'])),
+      email: this.optionalString(value['email']),
+      departmentId: this.optionalNumber(value['departmentId']),
+      positionId: this.optionalNumber(value['positionId']),
+      managerId: this.optionalNumber(value['managerId']),
+      hireDate: this.optionalDate(value['hireDate']),
+    };
   }
 
   private normalizeStatus(input: string): string {
@@ -372,10 +415,6 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     return /^0\d{9}$/.test(digits) ? null : { phone: true };
   }
 
-  private listInvalidControls(form: ReturnType<FormBuilder['group']>): string[] {
-    return Object.keys(form.controls).filter(key => form.controls[key].invalid);
-  }
-
   private optionalString(value: unknown): string | undefined {
     if (typeof value !== 'string') return undefined;
     const trimmed = value.trim();
@@ -386,6 +425,15 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     if (typeof value !== 'string') return undefined;
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  private optionalNumber(value: unknown): number | undefined {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 
   private normalizePhone(value: string | undefined): string | undefined {
@@ -402,23 +450,21 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     return {
       id: String(employee.employeeId),
       employeeCode: employee.employeeCode,
-      name: fullName,
+      fullName,
       email: employee.email ?? '',
       phone: employee.phone ?? '',
-      department: employee.departmentId ? `Dept #${employee.departmentId}` : 'Unassigned',
-      position: employee.positionId ? `Position #${employee.positionId}` : 'Unassigned',
       departmentId: employee.departmentId ?? null,
       positionId: employee.positionId ?? null,
       managerId: employee.managerId ?? null,
       dob: employee.dob ?? null,
       gender: employee.gender ?? null,
       hireDate: employee.hireDate ?? null,
-      employeeId: employee.employeeCode || `EMP-${employee.employeeId}`,
-      status: (employee.status as UiEmployee['status']) || 'active',
-      startDate: employee.hireDate ?? '',
+      terminatedDate: employee.terminatedDate ?? null,
+      status: employee.status ?? '',
+      createdAt: employee.createdAt ?? null,
+      updatedAt: employee.updatedAt ?? null,
+      employeeLabel: employee.employeeCode || `EMP-${employee.employeeId}`,
       avatar: this.initials(fullName),
-      salary: 'N/A',
-      location: 'N/A',
     };
   }
 
@@ -432,101 +478,6 @@ export class EmployeesComponent implements OnInit, OnDestroy {
       .toUpperCase();
   }
 
-  private loadEmployees(): void {
-    this.loadEmployeesPage();
-  }
-
-  private loadEmployeesPage(): void {
-    this.isLoading = true;
-    this.employeeService.getPage(this.currentPage, this.pageSize).subscribe({
-      next: response => {
-        this.apiLoaded = true;
-        this.apiError = false;
-        const items = response.items || response.content || [];
-        this.employees = items.map(employee => this.mapDtoToUi(employee));
-        this.totalItems = response.totalItems || 0;
-        this.totalPages = response.totalPages || Math.ceil(this.totalItems / this.pageSize);
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.apiLoaded = true;
-        this.apiError = true;
-        this.employees = [];
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-    });
-  }
-
-  private searchEmployeesServer(query: string): void {
-    this.isLoading = true;
-    this.employeeService.searchByName(query, this.currentPage, this.pageSize).subscribe({
-      next: response => {
-        this.apiLoaded = true;
-        this.apiError = false;
-        const items = response.items || response.content || [];
-        this.employees = items.map(employee => this.mapDtoToUi(employee));
-        this.totalItems = response.totalItems || 0;
-        this.totalPages = response.totalPages || Math.ceil(this.totalItems / this.pageSize);
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.apiLoaded = true;
-        this.apiError = true;
-        this.employees = [];
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-    });
-  }
-
-  goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages || page === this.currentPage) {
-      return;
-    }
-    this.currentPage = page;
-    if (this.searchQuery.trim()) {
-      this.searchEmployeesServer(this.searchQuery);
-    } else {
-      this.loadEmployeesPage();
-    }
-  }
-
-  nextPage(): void {
-    this.goToPage(this.currentPage + 1);
-  }
-
-  prevPage(): void {
-    this.goToPage(this.currentPage - 1);
-  }
-
-  private loadLookups(): void {
-    this.employeeService.getDepartments().subscribe({
-      next: departments => {
-        this.departments = departments.map(dept => ({ id: dept.departmentId, name: dept.departmentName }));
-        if (this.showAddModal && !this.addForm.value.departmentId) {
-          this.addForm.patchValue({ departmentId: this.getDefaultDepartmentId() });
-        }
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.departments = [];
-        this.cdr.markForCheck();
-      },
-    });
-  }
-
-  private generateEmployeeCode(): string {
-    const suffix = `${Date.now()}`.slice(-6);
-    return `EMP${suffix}`;
-  }
-
-  private getDefaultDepartmentId(): number | null {
-    return this.departments.length > 0 ? this.departments[0].id : null;
-  }
-
   private scrollHeadingIntoView(): void {
     setTimeout(() => {
       this.pageHeading?.nativeElement.scrollIntoView({
@@ -536,4 +487,3 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     });
   }
 }
-
