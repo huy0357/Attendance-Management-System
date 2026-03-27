@@ -58,7 +58,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setEmployeeId(null);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("employeeId is required", ex.getMessage());
         verifyNoInteractions(accountRepository, passwordEncoder);
@@ -69,7 +70,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setPassword("123");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("password is required (min 6 chars)", ex.getMessage());
     }
@@ -79,7 +81,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setPassword(null);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("password is required (min 6 chars)", ex.getMessage());
         verifyNoInteractions(accountRepository, passwordEncoder);
@@ -90,7 +93,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setUsername(" ");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("username is required", ex.getMessage());
         verifyNoInteractions(accountRepository, passwordEncoder);
@@ -101,7 +105,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         when(accountRepository.existsByUsername("alice")).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("username already exists", ex.getMessage());
         verify(accountRepository, never()).save(any());
@@ -113,7 +118,8 @@ class AccountServiceTest {
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
         when(accountRepository.existsByEmployeeId(1L)).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("employee already has an account", ex.getMessage());
     }
@@ -125,7 +131,8 @@ class AccountServiceTest {
         req.setIsActive(null);
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
         when(accountRepository.existsByEmployeeId(1L)).thenReturn(false);
-        when(roleRepository.findById(1L)).thenReturn(Optional.of(Role.builder().roleId(1L).roleCode("employee").build()));
+        when(roleRepository.findById(1L))
+                .thenReturn(Optional.of(Role.builder().roleId(1L).roleCode("employee").build()));
         when(passwordEncoder.encode("secret1")).thenReturn("hashed");
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
             Account saved = invocation.getArgument(0);
@@ -154,7 +161,8 @@ class AccountServiceTest {
         req.setIsActive(false);
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
         when(accountRepository.existsByEmployeeId(1L)).thenReturn(false);
-        when(roleRepository.findById(2L)).thenReturn(Optional.of(Role.builder().roleId(2L).roleCode("manager").build()));
+        when(roleRepository.findById(2L))
+                .thenReturn(Optional.of(Role.builder().roleId(2L).roleCode("manager").build()));
         when(passwordEncoder.encode("secret1")).thenReturn("hashed");
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
             Account saved = invocation.getArgument(0);
@@ -210,7 +218,8 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(accountRepository.existsByUsername("bob")).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.update(1L, req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.update(1L, req));
 
         assertEquals("username already exists", ex.getMessage());
     }
@@ -231,7 +240,8 @@ class AccountServiceTest {
         Account existing = account(1L, "alice", "employee", true);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(accountRepository.existsByUsername("bob")).thenReturn(false);
-        when(roleRepository.findById(2L)).thenReturn(Optional.of(Role.builder().roleId(2L).roleCode("manager").build()));
+        when(roleRepository.findById(2L))
+                .thenReturn(Optional.of(Role.builder().roleId(2L).roleCode("manager").build()));
 
         AccountDto result = accountService.update(1L, req);
 

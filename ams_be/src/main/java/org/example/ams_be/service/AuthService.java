@@ -33,7 +33,6 @@ public class AuthService {
         return acc.getRole().getRoleCode().toUpperCase();
     }
 
-
     public AuthResponse login(String username, String password) {
         Account acc = accountRepo.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
@@ -51,20 +50,17 @@ public class AuthService {
         String accessToken = jwtUtil.generateAccessToken(
                 acc.getUsername(),
                 roleCode,
-                acc.getEmployeeId()
-        );
+                acc.getEmployeeId());
 
         String refreshToken = jwtUtil.generateRefreshToken(
                 acc.getUsername(),
                 roleCode,
-                acc.getEmployeeId()
-        );
+                acc.getEmployeeId());
 
         tokenStore.storeRefreshToken(
                 acc.getUsername(),
                 refreshToken,
-                jwtUtil.getRefreshTtlSeconds()
-        );
+                jwtUtil.getRefreshTtlSeconds());
 
         auditLogService.saveAuditLog(
                 "LOGIN",
@@ -72,16 +68,14 @@ public class AuthService {
                 acc.getAccountId(),
                 acc.getEmployeeId(),
                 null,
-                "Login successful"
-        );
+                "Login successful");
 
         return new AuthResponse(
                 accessToken,
                 refreshToken,
                 jwtUtil.getAccessTtlSeconds(),
                 acc.getUsername(),
-                roleCode
-        );
+                roleCode);
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -121,8 +115,7 @@ public class AuthService {
                     acc.getAccountId(),
                     acc.getEmployeeId(),
                     "Old token rotated",
-                    "New token issued"
-            );
+                    "New token issued");
         }
 
         tokenStore.revoke(username, refreshToken);
@@ -130,28 +123,24 @@ public class AuthService {
         String newRefreshToken = jwtUtil.generateRefreshToken(
                 username,
                 roleCode,
-                employeeId
-        );
+                employeeId);
 
         tokenStore.storeRefreshToken(
                 username,
                 newRefreshToken,
-                jwtUtil.getRefreshTtlSeconds()
-        );
+                jwtUtil.getRefreshTtlSeconds());
 
         String newAccessToken = jwtUtil.generateAccessToken(
                 username,
                 roleCode,
-                employeeId
-        );
+                employeeId);
 
         return new AuthResponse(
                 newAccessToken,
                 newRefreshToken,
                 jwtUtil.getAccessTtlSeconds(),
                 username,
-                roleCode
-        );
+                roleCode);
     }
 
     public void logout(String refreshToken) {
@@ -173,8 +162,7 @@ public class AuthService {
                     acc.getAccountId(),
                     acc.getEmployeeId(),
                     "Username: " + username,
-                    "Logout successful"
-            );
+                    "Logout successful");
         }
 
         tokenStore.revoke(username, refreshToken);

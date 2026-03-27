@@ -50,8 +50,7 @@ class EmailServiceTest {
 
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
-                () -> emailService.sendHtmlEmail("alice@company.com", "Subject", "<b>Hello</b>")
-        );
+                () -> emailService.sendHtmlEmail("alice@company.com", "Subject", "<b>Hello</b>"));
 
         assertEquals("boom", ex.getMessage());
     }
@@ -63,8 +62,7 @@ class EmailServiceTest {
 
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
-                () -> emailService.sendHtmlEmail("bad\nmail", "Subject", "<b>Hello</b>")
-        );
+                () -> emailService.sendHtmlEmail("bad\nmail", "Subject", "<b>Hello</b>"));
 
         assertEquals("Cannot send email to: bad\nmail", ex.getMessage());
     }

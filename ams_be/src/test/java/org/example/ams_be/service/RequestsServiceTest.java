@@ -56,7 +56,8 @@ class RequestsServiceTest {
         request.startDatetime = LocalDateTime.of(2026, 3, 20, 10, 0);
         request.endDatetime = LocalDateTime.of(2026, 3, 20, 9, 0);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> requestsService.createDraft(request));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> requestsService.createDraft(request));
 
         assertEquals("Start time must be before end time", ex.getMessage());
     }
@@ -84,8 +85,10 @@ class RequestsServiceTest {
         assertEquals(99L, response.requestId);
         assertEquals(1L, response.employeeId);
         assertEquals(RequestStatus.DRAFT, response.status);
-        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("CREATE"), org.mockito.ArgumentMatchers.eq("REQUEST"),
-                org.mockito.ArgumentMatchers.eq(99L), org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.isNull(), any(RequestsResponse.class));
+        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("CREATE"),
+                org.mockito.ArgumentMatchers.eq("REQUEST"),
+                org.mockito.ArgumentMatchers.eq(99L), org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.isNull(), any(RequestsResponse.class));
     }
 
     @Test
@@ -107,8 +110,10 @@ class RequestsServiceTest {
         assertEquals(RequestStatus.SUBMITTED, response.status);
         assertEquals(10L, response.requestId);
         assertTrue(response.submittedAt != null);
-        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("SUBMIT"), org.mockito.ArgumentMatchers.eq("REQUEST"),
-                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(1L), any(RequestsResponse.class), any(RequestsResponse.class));
+        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("SUBMIT"),
+                org.mockito.ArgumentMatchers.eq("REQUEST"),
+                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(1L), any(RequestsResponse.class),
+                any(RequestsResponse.class));
     }
 
     @Test
@@ -116,7 +121,8 @@ class RequestsServiceTest {
         Requests request = requestEntity(10L, RequestStatus.APPROVED);
         when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> requestsService.update(10L, 1L, upsertRequest()));
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> requestsService.update(10L, 1L, upsertRequest()));
 
         assertEquals("Cannot update request that is already processed", ex.getMessage());
     }
@@ -138,8 +144,10 @@ class RequestsServiceTest {
         assertEquals("WFH", response.title);
         assertEquals("Need focus", response.reason);
         assertEquals(RequestType.REMOTE, response.requestType);
-        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("UPDATE"), org.mockito.ArgumentMatchers.eq("REQUEST"),
-                org.mockito.ArgumentMatchers.eq(11L), org.mockito.ArgumentMatchers.eq(1L), any(RequestsResponse.class), any(RequestsResponse.class));
+        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("UPDATE"),
+                org.mockito.ArgumentMatchers.eq("REQUEST"),
+                org.mockito.ArgumentMatchers.eq(11L), org.mockito.ArgumentMatchers.eq(1L), any(RequestsResponse.class),
+                any(RequestsResponse.class));
     }
 
     @Test
@@ -174,8 +182,10 @@ class RequestsServiceTest {
         requestsService.delete(10L, 1L);
 
         verify(requestRepository).delete(request);
-        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("DELETE"), org.mockito.ArgumentMatchers.eq("REQUEST"),
-                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(1L), any(RequestsResponse.class), org.mockito.ArgumentMatchers.isNull());
+        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("DELETE"),
+                org.mockito.ArgumentMatchers.eq("REQUEST"),
+                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(1L), any(RequestsResponse.class),
+                org.mockito.ArgumentMatchers.isNull());
     }
 
     @Test
@@ -197,8 +207,10 @@ class RequestsServiceTest {
         assertEquals(RequestStatus.APPROVED, response.status);
         assertEquals(2L, response.approverId);
         assertEquals("approved", response.decisionNote);
-        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("APPROVED"), org.mockito.ArgumentMatchers.eq("REQUEST"),
-                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(2L), any(RequestsResponse.class), any(RequestsResponse.class));
+        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("APPROVED"),
+                org.mockito.ArgumentMatchers.eq("REQUEST"),
+                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(2L), any(RequestsResponse.class),
+                any(RequestsResponse.class));
     }
 
     @Test
@@ -215,8 +227,10 @@ class RequestsServiceTest {
 
         assertEquals(RequestStatus.REJECTED, response.status);
         assertEquals(3L, response.approverId);
-        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("REJECTED"), org.mockito.ArgumentMatchers.eq("REQUEST"),
-                org.mockito.ArgumentMatchers.eq(12L), org.mockito.ArgumentMatchers.eq(3L), any(RequestsResponse.class), any(RequestsResponse.class));
+        verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("REJECTED"),
+                org.mockito.ArgumentMatchers.eq("REQUEST"),
+                org.mockito.ArgumentMatchers.eq(12L), org.mockito.ArgumentMatchers.eq(3L), any(RequestsResponse.class),
+                any(RequestsResponse.class));
     }
 
     @Test
