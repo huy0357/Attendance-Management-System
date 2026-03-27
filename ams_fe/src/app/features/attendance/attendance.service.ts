@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { SpringPage } from '../../shared/models/page-response.model';
+import { PageResponse, SpringPage } from '../../shared/models/page-response.model';
 import {
   RequestStatus,
   RequestsApprovalRequest,
@@ -12,22 +12,18 @@ import {
 } from '../../shared/models/requests.model';
 
 export interface LeaveRequest {
-  id: string;
-  employeeId: string;
+  requestId: number;
+  employeeId: number;
   employeeName: string;
-  department: string;
-  email: string;
-  leaveType: 'Annual' | 'Sick' | 'Personal' | 'Maternity' | 'Paternity' | 'Unpaid';
-  startDate: string;
-  endDate: string;
+  title: string;
+  startDatetime: string;
+  endDatetime: string;
   days: number;
   reason: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  submittedVia: 'Gmail' | 'Manual' | 'Portal';
-  submittedDate: string;
-  reviewedBy?: string;
-  reviewedDate?: string;
-  reviewNotes?: string;
+  status: RequestStatus;
+  submittedAt?: string;
+  approverName?: string;
+  decisionNote?: string;
 }
 
 export interface OtRequest {
@@ -77,48 +73,6 @@ export interface Shift {
   hasConflict?: boolean;
 }
 
-export interface TimeRecord {
-  id: string;
-  date: string;
-  checkIn: string;
-  checkOut: string;
-  scheduledIn: string;
-  scheduledOut: string;
-  regularHours: number;
-  overtimeHours: number;
-  lateMinutes: number;
-  earlyLeaveMinutes: number;
-  status: 'on-time' | 'late' | 'early-leave' | 'absent' | 'overtime';
-  violations: string[];
-}
-
-export interface EmployeeTimeData {
-  id: string;
-  name: string;
-  avatar: string;
-  department: string;
-  position: string;
-  records: TimeRecord[];
-  summary: {
-    totalRegularHours: number;
-    totalOvertimeHours: number;
-    totalLateMinutes: number;
-    totalEarlyLeaveMinutes: number;
-    totalViolations: number;
-    attendanceRate: number;
-  };
-}
-
-export interface CalculationRule {
-  id: string;
-  name: string;
-  type: 'overtime' | 'late' | 'early-leave' | 'absence';
-  condition: string;
-  penalty?: string;
-  multiplier?: number;
-  enabled: boolean;
-}
-
 export interface ShiftTemplateResponse {
   shiftId: number;
   shiftCode: string;
@@ -159,11 +113,41 @@ export interface AttendanceBatchResponse {
   date: string;
 }
 
+export interface AttendanceEmailSendResponse {
+  message: string;
+  month: string;
+  employeeId?: number;
+}
+
+export interface AttendanceEmailEmployee {
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  email: string;
+  status: string;
+}
+
+export interface MonthlySummaryGenerateResponse {
+  message: string;
+  month: string;
+  affectedRows: number;
+}
+
 interface EmployeeLookupDto {
   employeeId: number;
   employeeCode: string;
   fullName: string;
   email: string;
+  departmentId?: number | null;
+}
+
+interface DepartmentLookupDto {
+  departmentId: number;
+  departmentName: string;
+}
+
+interface DepartmentPageDto {
+  content?: DepartmentLookupDto[];
 }
 
 interface EmployeeScheduleDayResponseDto {
@@ -203,8 +187,12 @@ export interface AssignShiftRangeResponse {
 @Injectable({ providedIn: 'root' })
 export class AttendanceService {
   private readonly baseUrl = `${environment.apiBaseUrl}/attendance`;
+  private readonly attendanceEmailUrl = `${environment.apiBaseUrl}/attendance-email`;
+  private readonly monthlySummaryUrl = `${environment.apiBaseUrl}/monthly-summary`;
+  private readonly exportsUrl = `${environment.apiBaseUrl}/exports`;
   private readonly requestsUrl = `${environment.apiBaseUrl}/requests`;
   private readonly employeesUrl = `${environment.apiBaseUrl}/employees`;
+  private readonly departmentsUrl = `${environment.apiBaseUrl}/departments`;
   private readonly schedulesUrl = `${environment.apiBaseUrl}/v1/schedules`;
   private readonly shiftsUrl = `${environment.apiBaseUrl}/v1/shifts`;
   private readonly attendanceDailyUrl = `${environment.apiBaseUrl}/attendance-daily`;
@@ -239,6 +227,54 @@ export class AttendanceService {
   runAttendanceBatch(date: string): Observable<AttendanceBatchResponse> {
     return this.http.post<AttendanceBatchResponse>(`${this.adminAttendanceUrl}/run-batch`, null, {
       params: new HttpParams().set('date', date),
+    });
+  }
+
+  searchAttendanceEmailEmployees(
+    name: string,
+    page: number = 1,
+    size: number = 10,
+    sortBy: string = 'employee_id',
+    sortDir: string = 'desc',
+  ): Observable<PageResponse<AttendanceEmailEmployee>> {
+    const params = new HttpParams()
+      .set('name', name)
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDir', sortDir);
+
+    return this.http.get<PageResponse<AttendanceEmailEmployee>>(`${this.employeesUrl}/search`, { params });
+  }
+
+  sendAttendanceEmail(month: string, employeeId: number, regenerate: boolean): Observable<AttendanceEmailSendResponse> {
+    const params = new HttpParams()
+      .set('month', month)
+      .set('employeeId', employeeId.toString())
+      .set('regenerate', regenerate.toString());
+
+    return this.http.post<AttendanceEmailSendResponse>(`${this.attendanceEmailUrl}/send`, null, { params });
+  }
+
+  sendAttendanceEmailToAll(month: string, regenerate: boolean): Observable<AttendanceEmailSendResponse> {
+    const params = new HttpParams()
+      .set('month', month)
+      .set('regenerate', regenerate.toString());
+
+    return this.http.post<AttendanceEmailSendResponse>(`${this.attendanceEmailUrl}/send-all`, null, { params });
+  }
+
+  generateMonthlySummary(month: string): Observable<MonthlySummaryGenerateResponse> {
+    const params = new HttpParams().set('month', month);
+    return this.http.post<MonthlySummaryGenerateResponse>(`${this.monthlySummaryUrl}/generate`, null, { params });
+  }
+
+  exportAttendanceMonthly(month: string): Observable<HttpResponse<Blob>> {
+    const params = new HttpParams().set('month', month);
+    return this.http.get(`${this.exportsUrl}/attendance-monthly`, {
+      params,
+      observe: 'response',
+      responseType: 'blob',
     });
   }
 
@@ -331,43 +367,15 @@ export class AttendanceService {
     return this.http.post<AssignShiftRangeResponse>(`${this.schedulesUrl}/assign-range`, payload);
   }
 
-  // --- LEAVE & OT (MOCKS) ---
   getLeaveRequests(): Observable<LeaveRequest[]> {
-    return of([
-      {
-        id: 'LR001',
-        employeeId: 'EMP001',
-        employeeName: 'Sarah Chen',
-        department: 'Operations',
-        email: 'sarah.chen@company.com',
-        leaveType: 'Annual',
-        startDate: '2026-02-10',
-        endDate: '2026-02-14',
-        days: 5,
-        reason: 'Family vacation to Europe. Flight tickets already booked.',
-        status: 'Pending',
-        submittedVia: 'Gmail',
-        submittedDate: '2026-01-20'
-      },
-      {
-        id: 'LR005',
-        employeeId: 'EMP005',
-        employeeName: 'Lisa Wong',
-        department: 'Finance',
-        email: 'lisa.wong@company.com',
-        leaveType: 'Maternity',
-        startDate: '2026-05-01',
-        endDate: '2026-08-01',
-        days: 90,
-        reason: 'Maternity Leave',
-        status: 'Approved',
-        submittedVia: 'Portal',
-        submittedDate: '2026-01-10',
-        reviewedBy: 'Robert Taylor',
-        reviewedDate: '2026-01-11',
-        reviewNotes: 'Approved as per policy'
-      }
-    ]);
+    return this.resolveEmployeeIdFromUsername().pipe(
+      switchMap((employeeId) => this.getRequestsByEmployee(employeeId)),
+      map((requests) =>
+        requests
+          .filter((request) => request.requestType === 'LEAVE')
+          .map((request) => this.mapRequestToLeave(request)),
+      ),
+    );
   }
 
   getOtRequests(): Observable<OtRequest[]> {
@@ -385,15 +393,28 @@ export class AttendanceService {
   }
 
   getScheduleEmployees(): Observable<ScheduleEmployee[]> {
-    return this.http.get<EmployeeLookupDto[]>(this.employeesUrl).pipe(
-      map((employees) =>
-        employees.map((employee) => ({
+    const departmentParams = new HttpParams()
+      .set('page', '0')
+      .set('size', '1000')
+      .set('sort', 'departmentId,ASC');
+
+    return forkJoin({
+      employees: this.http.get<EmployeeLookupDto[]>(this.employeesUrl),
+      departments: this.http.get<DepartmentPageDto>(this.departmentsUrl, { params: departmentParams }),
+    }).pipe(
+      map(({ employees, departments }) => {
+        const departmentById = new Map<number, string>();
+        (departments.content ?? []).forEach((department) => {
+          departmentById.set(department.departmentId, department.departmentName ?? '');
+        });
+
+        return employees.map((employee) => ({
           id: String(employee.employeeId),
           name: employee.fullName ?? '',
-          department: '',
+          department: employee.departmentId ? (departmentById.get(employee.departmentId) ?? '') : '',
           employeeCode: employee.employeeCode ?? '',
-        })),
-      ),
+        }));
+      }),
     );
   }
 
@@ -453,238 +474,6 @@ export class AttendanceService {
     );
   }
 
-  getCalculationRules(): Observable<CalculationRule[]> {
-    return of([
-      {
-        id: 'R-001',
-        name: 'Standard Working Hours',
-        type: 'overtime',
-        condition: '8 hours per day, 40 hours per week',
-        multiplier: 1.0,
-        enabled: true,
-      },
-      {
-        id: 'R-002',
-        name: 'Weekday Overtime',
-        type: 'overtime',
-        condition: 'Hours exceeding 8 per day on weekdays',
-        multiplier: 1.5,
-        enabled: true,
-      },
-      {
-        id: 'R-003',
-        name: 'Weekend Overtime',
-        type: 'overtime',
-        condition: 'All hours worked on Saturday/Sunday',
-        multiplier: 2.0,
-        enabled: true,
-      },
-      {
-        id: 'R-004',
-        name: 'Late Check-in Penalty',
-        type: 'late',
-        condition: 'More than 5 minutes after scheduled time',
-        penalty: '15 minutes deduction per occurrence',
-        enabled: true,
-      },
-      {
-        id: 'R-005',
-        name: 'Early Leave Penalty',
-        type: 'early-leave',
-        condition: 'More than 5 minutes before scheduled end',
-        penalty: 'Actual time + 15 minutes deduction',
-        enabled: true,
-      },
-      {
-        id: 'R-006',
-        name: 'Absence Without Leave',
-        type: 'absence',
-        condition: 'No check-in and no approved leave',
-        penalty: 'Full day deduction + warning',
-        enabled: true,
-      }
-    ]);
-  }
-
-  getEmployeeTimeData(): Observable<EmployeeTimeData[]> {
-    return of([
-      {
-        id: 'EMP-001',
-        name: 'Sarah Chen',
-        avatar: 'SC',
-        department: 'Operations',
-        position: 'VP Operations',
-        records: [
-          {
-            id: 'TR-001',
-            date: '2026-01-20',
-            checkIn: '08:55',
-            checkOut: '18:30',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 0.5,
-            lateMinutes: 0,
-            earlyLeaveMinutes: 0,
-            status: 'overtime',
-            violations: [],
-          },
-          {
-            id: 'TR-002',
-            date: '2026-01-21',
-            checkIn: '09:12',
-            checkOut: '18:05',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 7.75,
-            overtimeHours: 0,
-            lateMinutes: 12,
-            earlyLeaveMinutes: 0,
-            status: 'late',
-            violations: ['Late check-in: 12 minutes'],
-          },
-          {
-            id: 'TR-003',
-            date: '2026-01-22',
-            checkIn: '08:58',
-            checkOut: '17:50',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 7.75,
-            overtimeHours: 0,
-            lateMinutes: 0,
-            earlyLeaveMinutes: 10,
-            status: 'early-leave',
-            violations: ['Early departure: 10 minutes'],
-          },
-          {
-            id: 'TR-004',
-            date: '2026-01-23',
-            checkIn: '08:57',
-            checkOut: '18:00',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 0,
-            lateMinutes: 0,
-            earlyLeaveMinutes: 0,
-            status: 'on-time',
-            violations: [],
-          },
-          {
-            id: 'TR-005',
-            date: '2026-01-24',
-            checkIn: '08:55',
-            checkOut: '19:15',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 1.25,
-            lateMinutes: 0,
-            earlyLeaveMinutes: 0,
-            status: 'overtime',
-            violations: [],
-          },
-        ],
-        summary: {
-          totalRegularHours: 39.5,
-          totalOvertimeHours: 1.75,
-          totalLateMinutes: 12,
-          totalEarlyLeaveMinutes: 10,
-          totalViolations: 2,
-          attendanceRate: 100,
-        },
-      },
-      {
-        id: 'EMP-002',
-        name: 'Michael Ross',
-        avatar: 'MR',
-        department: 'Sales',
-        position: 'VP Sales',
-        records: [
-          {
-            id: 'TR-006',
-            date: '2026-01-20',
-            checkIn: '09:05',
-            checkOut: '18:10',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 0.17,
-            lateMinutes: 5,
-            earlyLeaveMinutes: 0,
-            status: 'late',
-            violations: ['Late check-in: 5 minutes'],
-          },
-          {
-            id: 'TR-007',
-            date: '2026-01-21',
-            checkIn: '09:15',
-            checkOut: '20:00',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 1.75,
-            lateMinutes: 15,
-            earlyLeaveMinutes: 0,
-            status: 'late',
-            violations: ['Late check-in: 15 minutes'],
-          },
-          {
-            id: 'TR-008',
-            date: '2026-01-22',
-            checkIn: '08:58',
-            checkOut: '18:05',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 0.08,
-            lateMinutes: 0,
-            earlyLeaveMinutes: 0,
-            status: 'on-time',
-            violations: [],
-          },
-          {
-            id: 'TR-009',
-            date: '2026-01-23',
-            checkIn: '09:00',
-            checkOut: '18:00',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 0,
-            lateMinutes: 0,
-            earlyLeaveMinutes: 0,
-            status: 'on-time',
-            violations: [],
-          },
-          {
-            id: 'TR-010',
-            date: '2026-01-24',
-            checkIn: '09:10',
-            checkOut: '18:30',
-            scheduledIn: '09:00',
-            scheduledOut: '18:00',
-            regularHours: 8.0,
-            overtimeHours: 0.33,
-            lateMinutes: 10,
-            earlyLeaveMinutes: 0,
-            status: 'late',
-            violations: ['Late check-in: 10 minutes'],
-          },
-        ],
-        summary: {
-          totalRegularHours: 40.0,
-          totalOvertimeHours: 2.33,
-          totalLateMinutes: 30,
-          totalEarlyLeaveMinutes: 0,
-          totalViolations: 3,
-          attendanceRate: 100,
-        },
-      },
-    ]);
-  }
-
   private resolveEmployeeIdFromUsername(): Observable<number> {
     const username = (localStorage.getItem('ams.username') || '').trim().toLowerCase();
     if (!username) {
@@ -735,6 +524,23 @@ export class AttendanceService {
     };
   }
 
+  private mapRequestToLeave(request: RequestsResponse): LeaveRequest {
+    return {
+      requestId: request.requestId,
+      employeeId: request.employeeId ?? 0,
+      employeeName: request.employeeName ?? '',
+      title: request.title ?? 'Leave request',
+      startDatetime: request.startDatetime ?? '',
+      endDatetime: request.endDatetime ?? '',
+      days: this.calculateDays(request.startDatetime, request.endDatetime),
+      reason: request.reason ?? '',
+      status: request.status,
+      submittedAt: request.submittedAt ?? undefined,
+      approverName: request.approverName ?? undefined,
+      decisionNote: request.decisionNote ?? undefined,
+    };
+  }
+
   private mapRequestStatus(status: RequestStatus): OtRequest['status'] {
     if (status === 'APPROVED') {
       return 'approved';
@@ -759,6 +565,22 @@ export class AttendanceService {
       return 0;
     }
     return Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+  }
+
+  private calculateDays(start?: string, end?: string): number {
+    if (!start || !end) {
+      return 0;
+    }
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return 0;
+    }
+    const diffMs = endDate.getTime() - startDate.getTime();
+    if (diffMs < 0) {
+      return 0;
+    }
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
   }
 
   private toInitials(name: string): string {

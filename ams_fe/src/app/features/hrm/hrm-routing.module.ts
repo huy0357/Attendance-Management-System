@@ -7,14 +7,45 @@ import { OrgChartComponent } from './org-chart/org-chart.component';
 import { PerformanceReviewComponent } from './performance-review/performance-review.component';
 import { OnboardingComponent } from './onboarding/onboarding.component';
 import { DepartmentListComponent } from './departments/department-list/department-list.component';
+import { RoleGuard } from '../../core/auth/role.guard';
 
 const routes: Routes = [
-  { path: 'employees', component: EmployeesComponent },
-  { path: 'employee-portal', component: EmployeePortalComponent },
-  { path: 'contracts', component: ContractsComponent },
-  { path: 'org-chart', component: OrgChartComponent },
-  { path: 'performance-review', component: PerformanceReviewComponent },
-  { path: 'onboarding', component: OnboardingComponent },
+  {
+    path: 'employees',
+    component: EmployeesComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'EMPLOYEE'] },
+  },
+  {
+    path: 'employee-portal',
+    component: EmployeePortalComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'EMPLOYEE'] },
+  },
+  {
+    path: 'contracts',
+    component: ContractsComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+  },
+  {
+    path: 'org-chart',
+    component: OrgChartComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+  },
+  {
+    path: 'performance-review',
+    component: PerformanceReviewComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+  },
+  {
+    path: 'onboarding',
+    component: OnboardingComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'HR'] },
+  },
   { path: 'departments', component: DepartmentListComponent },
   { path: '', redirectTo: 'employees', pathMatch: 'full' },
 ];

@@ -1,43 +1,42 @@
 import { assertRequestQuery } from '../../support/request-assertions';
 import { clickButtonWhenReady, clickModalButtonWhenReady } from '../../support/ui-helpers';
 
-describe('Admin - Quản lý tài khoản (API thật, không mock)', () => {
+describe('Admin - Account Management (real API, no mock)', () => {
   beforeEach(() => {
     cy.login();
   });
 
-  const vaoTrangTaiKhoan = () => {
-    cy.intercept('GET', '**/api/accounts/page**').as('taiTrangTaiKhoan');
+  const openAccountManagementPage = () => {
+    cy.intercept('GET', '**/api/accounts/page**').as('loadAccountsPage');
 
     cy.visit('/admin/account-management');
     cy.location('pathname').should('include', '/admin/account-management');
-    cy.wait('@taiTrangTaiKhoan');
+    cy.wait('@loadAccountsPage');
   };
 
-  it('Smoke: tải trang quản lý tài khoản thành công', () => {
-    vaoTrangTaiKhoan();
+  it('loads account management page successfully', () => {
+    openAccountManagementPage();
 
     cy.contains('Account Management').should('be.visible');
-    cy.contains('User Accounts').should('be.visible');
   });
 
-  it('Edge: reload trang vẫn giữ route và gọi lại API', () => {
-    vaoTrangTaiKhoan();
+  it('keeps route and calls API again after reload', () => {
+    openAccountManagementPage();
 
     cy.reload();
-    cy.wait('@taiTrangTaiKhoan').then(({ response }) => {
+    cy.wait('@loadAccountsPage').then(({ response }) => {
       expect([200, 204, 403, 500]).to.include(response?.statusCode ?? 0);
     });
 
     cy.location('pathname').should('include', '/admin/account-management');
   });
 
-  it('Search username thường gửi request /search với query đúng', () => {
-    vaoTrangTaiKhoan();
-    cy.intercept('GET', '**/api/accounts/search**').as('timTaiKhoan');
+  it('search sends /search request with username query', () => {
+    openAccountManagementPage();
+    cy.intercept('GET', '**/api/accounts/search**').as('searchAccounts');
 
-    cy.get('input[placeholder="Search by name..."]').clear().type('admin');
-    cy.wait('@timTaiKhoan').then(({ request, response }) => {
+    cy.get('input[placeholder="Search by username..."]').clear().type('admin');
+    cy.wait('@searchAccounts').then(({ request, response }) => {
       assertRequestQuery(request.query, {
         username: 'admin',
         page: /\d+/,
@@ -46,20 +45,20 @@ describe('Admin - Quản lý tài khoản (API thật, không mock)', () => {
     });
   });
 
-  it('Search với ký tự có dấu/đặc biệt không làm crash màn hình', () => {
-    vaoTrangTaiKhoan();
-    cy.intercept('GET', '**/api/accounts/search**').as('timTaiKhoan');
+  it('search with special characters does not crash the page', () => {
+    openAccountManagementPage();
+    cy.intercept('GET', '**/api/accounts/search**').as('searchAccounts');
 
-    cy.get('input[placeholder="Search by name..."]').clear().type('Ã„â€˜Ã¡ÂºÂ·ng@#');
-    cy.wait('@timTaiKhoan').then(({ request }) => {
+    cy.get('input[placeholder="Search by username..."]').clear().type('dang@#');
+    cy.wait('@searchAccounts').then(({ request }) => {
       expect(request.query).to.have.property('username');
     });
 
     cy.contains('Account Management').should('be.visible');
   });
 
-  it('Filter role trên UI hoạt động và không vỡ layout', () => {
-    vaoTrangTaiKhoan();
+  it('role filter works in UI without breaking layout', () => {
+    openAccountManagementPage();
 
     cy.get('select').first().select('admin');
     cy.contains('Account Management').should('be.visible');
@@ -70,58 +69,58 @@ describe('Admin - Quản lý tài khoản (API thật, không mock)', () => {
     cy.get('select').first().select('all');
   });
 
-  it('Filter status gửi đúng query isActive', () => {
-    vaoTrangTaiKhoan();
+  it('status filter sends correct isActive query', () => {
+    openAccountManagementPage();
 
     cy.get('select').eq(1).select('inactive');
-    cy.wait('@taiTrangTaiKhoan').then(({ request }) => {
+    cy.wait('@loadAccountsPage').then(({ request }) => {
       assertRequestQuery(request.query, { isActive: 'false' });
     });
 
     cy.get('select').eq(1).select('active');
-    cy.wait('@taiTrangTaiKhoan').then(({ request }) => {
+    cy.wait('@loadAccountsPage').then(({ request }) => {
       assertRequestQuery(request.query, { isActive: 'true' });
     });
 
     cy.get('select').eq(1).select('all');
-    cy.wait('@taiTrangTaiKhoan').then(({ request }) => {
+    cy.wait('@loadAccountsPage').then(({ request }) => {
       expect(request.query.isActive).to.eq(undefined);
     });
   });
 
-  it('Validation required: thiếu name/email thì không gửi POST', () => {
-    vaoTrangTaiKhoan();
-    cy.intercept('POST', '**/api/accounts').as('taoTaiKhoan');
+  it('required validation blocks POST when username/password are empty', () => {
+    openAccountManagementPage();
+    cy.intercept('POST', '**/api/accounts').as('createAccount');
 
     clickButtonWhenReady('Add User');
     cy.contains('Add New User').should('be.visible');
 
-    cy.get('input[formcontrolname="name"]').clear();
-    cy.get('input[formcontrolname="email"]').clear();
+    cy.get('input[formcontrolname="username"]').clear();
+    cy.get('input[formcontrolname="password"]').clear();
     cy.contains('button', 'Create User').should('be.disabled');
 
-    cy.get('@taoTaiKhoan.all').should('have.length', 0);
+    cy.get('@createAccount.all').should('have.length', 0);
   });
 
-  it('Luồng Cancel ở form tạo mới không gửi POST', () => {
-    vaoTrangTaiKhoan();
-    cy.intercept('POST', '**/api/accounts').as('taoTaiKhoan');
+  it('cancel in create modal does not send POST', () => {
+    openAccountManagementPage();
+    cy.intercept('POST', '**/api/accounts').as('createAccount');
 
     clickButtonWhenReady('Add User');
 
-    cy.get('input[formcontrolname="name"]').type(`acc-${Date.now()}`);
-    cy.get('input[formcontrolname="email"]').type(`acc${Date.now()}@example.com`);
+    cy.get('input[formcontrolname="username"]').type(`acc-${Date.now()}`);
+    cy.get('input[formcontrolname="password"]').type('secret1');
     clickModalButtonWhenReady('Cancel');
 
     cy.contains('Add New User').should('not.exist');
-    cy.get('@taoTaiKhoan.all').should('have.length', 0);
+    cy.get('@createAccount.all').should('have.length', 0);
   });
 
-  it('Permission/Error/Empty: 403 hoặc 500 thì không logout, session vẫn giữ', () => {
-    cy.intercept('GET', '**/api/accounts/page**').as('taiTrangTaiKhoan');
+  it('403 or 500 does not force logout and session stays intact', () => {
+    cy.intercept('GET', '**/api/accounts/page**').as('loadAccountsPage');
 
     cy.visit('/admin/account-management');
-    cy.wait('@taiTrangTaiKhoan').then(({ response }) => {
+    cy.wait('@loadAccountsPage').then(({ response }) => {
       const status = response?.statusCode ?? 0;
 
       if (status === 403) {

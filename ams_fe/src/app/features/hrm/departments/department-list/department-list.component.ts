@@ -157,14 +157,30 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
     openEditModal(dept: DepartmentDto): void {
         this.showAddModal = false;
         this.showDeleteModal = false;
-        this.selectedDepartment = dept;
-        this.departmentForm.reset({
-            departmentName: dept.departmentName,
-            departmentCode: dept.departmentCode,
-            parentDepartmentId: dept.parentDepartmentId,
-            isActive: dept.isActive
+        this.departmentService.getById(dept.departmentId).subscribe({
+            next: (detail) => {
+                this.selectedDepartment = detail;
+                this.departmentForm.reset({
+                    departmentName: detail.departmentName,
+                    departmentCode: detail.departmentCode,
+                    parentDepartmentId: detail.parentDepartmentId,
+                    isActive: detail.isActive
+                });
+                this.showEditModal = true;
+                this.cdr.markForCheck();
+            },
+            error: () => {
+                this.selectedDepartment = dept;
+                this.departmentForm.reset({
+                    departmentName: dept.departmentName,
+                    departmentCode: dept.departmentCode,
+                    parentDepartmentId: dept.parentDepartmentId,
+                    isActive: dept.isActive
+                });
+                this.showEditModal = true;
+                this.cdr.markForCheck();
+            }
         });
-        this.showEditModal = true;
     }
 
     openDeleteModal(dept: DepartmentDto): void {

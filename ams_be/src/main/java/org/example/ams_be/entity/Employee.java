@@ -62,4 +62,7 @@ public class Employee {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
 }

@@ -2,8 +2,8 @@
   <div class="scheduling-page-header space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-slate-900">Shift Scheduling</h1>
-        <p class="text-slate-600 mt-1">Plan and manage employee work schedules</p>
+        <h1 class="text-3xl font-bold text-slate-900">Work Schedule Assignment</h1>
+        <p class="text-slate-600 mt-1">Assign active shift templates to employees by work date.</p>
       </div>
       <div class="flex items-center gap-3">
         <button
@@ -26,33 +26,6 @@
           class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
         >
           Next
-        </button>
-        <div class="flex items-center gap-2 bg-blue-100 rounded-lg p-1">
-          <button
-            type="button"
-            (click)="setView('week')"
-            class="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
-            [ngClass]="view === 'week' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
-          >
-            Week
-          </button>
-          <button
-            type="button"
-            (click)="setView('month')"
-            class="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
-            [ngClass]="view === 'month' ? 'bg-slate-50 text-slate-900 shadow-sm' : 'text-slate-600'"
-          >
-            Month
-          </button>
-        </div>
-        <button
-          type="button"
-          (click)="handleAiAutoSchedule()"
-          [disabled]="isApplyingAi || isWeekLoading"
-          class="px-4 py-2 bg-purple-600 text-slate-50 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-        >
-          <lucide-icon name="sparkles" class="w-4 h-4"></lucide-icon>
-          AI Auto-Schedule
         </button>
       </div>
     </div>
@@ -85,7 +58,7 @@
       <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 p-5">
         <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">
           <lucide-icon name="clock" class="w-5 h-5 text-slate-600"></lucide-icon>
-          Shift Templates
+          Active Shift Templates
         </h3>
         <div class="space-y-3">
           <div
@@ -99,7 +72,8 @@
             <p class="text-xs font-mono mt-1">{{ template.time }}</p>
           </div>
         </div>
-        <p class="text-xs text-slate-600 mt-4 italic">Drag templates to the schedule grid</p>
+        <p *ngIf="templates.length === 0" class="text-xs text-slate-600 mt-4">No active shift templates available.</p>
+        <p *ngIf="templates.length > 0" class="text-xs text-slate-600 mt-4 italic">Drag a template into a work-date cell to assign it.</p>
       </div>
 
       <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 p-5">
@@ -116,14 +90,8 @@
           </div>
           <div>
             <div class="flex items-center justify-between text-sm mb-1">
-              <span class="text-slate-600">AI Generated</span>
-              <span class="font-semibold text-violet-500">{{ getAiGeneratedCount() }}</span>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center justify-between text-sm mb-1">
-              <span class="text-slate-600">Conflicts</span>
-              <span class="font-semibold text-red-500">0</span>
+              <span class="text-slate-600">Imported Assignments</span>
+              <span class="font-semibold text-violet-500">{{ getImportedAssignmentCount() }}</span>
             </div>
           </div>
         </div>
@@ -192,15 +160,6 @@
                       >
                         <lucide-icon *ngIf="shift.isAiGenerated" name="sparkles" class="w-3 h-3 text-violet-500 absolute -top-1 -right-1"></lucide-icon>
                         <p class="text-xs font-mono">{{ shift.startTime }} - {{ shift.endTime }}</p>
-                        <button
-                          type="button"
-                          (click)="removeShiftUnsupported()"
-                          [disabled]="true"
-                          title="Backend does not support schedule delete (no DELETE endpoint)."
-                          class="absolute inset-0 bg-red-500 text-slate-50 opacity-0 group-hover:opacity-90 transition-opacity rounded-lg flex items-center justify-center text-xs font-medium"
-                        >
-                          Remove Unavailable
-                        </button>
                       </div>
                     </ng-container>
                     <ng-template #emptySlot>
@@ -228,71 +187,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-  </div>
-
-  <div *ngIf="showAiProposal" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-8">
-    <div class="bg-slate-50 rounded-2xl shadow-2xl max-w-2xl w-full p-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
-          <lucide-icon name="sparkles" class="w-6 h-6 text-violet-500"></lucide-icon>
-        </div>
-        <div>
-          <h2 class="text-2xl font-bold text-slate-900">AI Schedule Proposal</h2>
-          <p class="text-slate-600">Review before applying</p>
-        </div>
-      </div>
-
-      <div class="bg-violet-100 border border-violet-200 rounded-lg p-4 mb-6">
-        <h3 class="font-semibold text-violet-900 mb-2">Analysis Summary</h3>
-        <ul class="space-y-1 text-sm text-violet-800">
-          <li class="flex items-center gap-2">
-            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
-            Optimized for balanced coverage across all days
-          </li>
-          <li class="flex items-center gap-2">
-            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
-            No conflicts detected
-          </li>
-          <li class="flex items-center gap-2">
-            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
-            Respects employee availability preferences
-          </li>
-          <li class="flex items-center gap-2">
-            <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
-            Department distribution maintained
-          </li>
-        </ul>
-      </div>
-
-      <div class="bg-blue-50 rounded-lg p-4 mb-6">
-        <p class="text-sm text-slate-600 mb-2">AI will generate shifts for empty slots based on:</p>
-        <ul class="text-sm text-slate-900 space-y-1 ml-4">
-          <li>&bull; Historical attendance patterns</li>
-          <li>&bull; Department requirements</li>
-          <li>&bull; Employee skill sets and certifications</li>
-          <li>&bull; Fair distribution of shift types</li>
-        </ul>
-      </div>
-
-      <div class="flex items-center justify-end gap-3">
-        <button
-          type="button"
-          (click)="showAiProposal = false"
-          class="px-6 py-2.5 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          (click)="applyAiSchedule()"
-          [disabled]="isApplyingAi"
-          class="px-6 py-2.5 bg-violet-500 text-slate-50 rounded-lg hover:bg-violet-600 transition-colors font-medium flex items-center gap-2"
-        >
-          <lucide-icon name="sparkles" class="w-4 h-4"></lucide-icon>
-          {{ isApplyingAi ? 'Applying...' : 'Apply AI Schedule' }}
-        </button>
       </div>
     </div>
   </div>

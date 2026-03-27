@@ -21,7 +21,7 @@ const routes: Routes = [
         path: 'hrm',
         loadChildren: () => import('./features/hrm/hrm.module').then(m => m.HrmModule),
         canActivate: [RoleGuard],
-        data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+        data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
       },
       {
         path: 'attendance',

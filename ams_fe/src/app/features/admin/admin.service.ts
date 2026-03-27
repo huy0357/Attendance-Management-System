@@ -78,18 +78,16 @@ export interface DeviceRecord {
 }
 
 export type AccountRole = 'admin' | 'manager' | 'hr' | 'employee';
-export type AccountStatus = 'active' | 'inactive' | 'suspended';
+export type AccountStatus = 'active' | 'inactive';
 
 export interface UserAccountRecord {
   id: string;
-  name: string;
-  email: string;
+  employeeId: number;
+  username: string;
   role: AccountRole;
-  department: string;
   status: AccountStatus;
   lastLogin: string;
   createdDate: string;
-  permissions: string[];
 }
 
 export interface AccountRoleDefinition {
@@ -607,7 +605,7 @@ export class AdminService {
   /** GET /api/accounts/search?username&page&size&sortBy&sortDir */
   searchAccounts(
     username: string,
-    page = 0,
+    page = 1,
     size = 10,
     sortBy = 'accountId',
     sortDir = 'desc'
@@ -626,14 +624,12 @@ export class AdminService {
   private mapAccountDtoToRecord(a: AccountDto): UserAccountRecord {
     return {
       id: String(a.accountId),
-      name: a.username,
-      email: '',
+      employeeId: a.employeeId,
+      username: a.username,
       role: a.role as AccountRole,
-      department: '',
       status: a.isActive ? 'active' : 'inactive',
       lastLogin: a.lastLoginAt ?? 'Never',
       createdDate: a.createdAt ? a.createdAt.split('T')[0] : '',
-      permissions: [],
     };
   }
 

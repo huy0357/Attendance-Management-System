@@ -18,6 +18,8 @@ export class RequestsManagementComponent implements OnInit {
 
   isLoading = false;
   errorMessage = '';
+  successMessage = '';
+  submittingRequestId: number | null = null;
 
   editForm: FormGroup;
   showEditForm = false;
@@ -72,6 +74,36 @@ export class RequestsManagementComponent implements OnInit {
     });
   }
 
+  submitRequest(request: RequestsResponse): void {
+    if (!this.selectedEmployeeId || request.status !== 'DRAFT' || this.submittingRequestId === request.requestId) {
+      return;
+    }
+
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.submittingRequestId = request.requestId;
+
+    this.requestsService.submitRequest(request.requestId).subscribe({
+      next: () => {
+        this.requestsService.getMyRequests(this.selectedEmployeeId as number).subscribe({
+          next: (data: RequestsResponse[]) => {
+            this.requests = data;
+            this.successMessage = `Request ${request.requestId} submitted successfully.`;
+            this.submittingRequestId = null;
+          },
+          error: (error: HttpErrorResponse) => {
+            this.submittingRequestId = null;
+            this.handleError(error, 'Unable to reload requests after submit.');
+          },
+        });
+      },
+      error: (error: HttpErrorResponse) => {
+        this.submittingRequestId = null;
+        this.handleError(error, 'Unable to submit request.');
+      },
+    });
+  }
+
   openEdit(request: RequestsResponse): void {
     this.selectedRequestId = request.requestId;
     this.editForm.reset({
@@ -106,8 +138,8 @@ export class RequestsManagementComponent implements OnInit {
       requestType: value.requestType,
       title: value.title,
       reason: value.reason,
-      startDatetime: value.startDatetime,
-      endDatetime: value.endDatetime,
+      startDatetime: this.toRequestDateTime(value.startDatetime),
+      endDatetime: this.toRequestDateTime(value.endDatetime),
     }).subscribe({
       next: () => {
         this.showEditForm = false;
@@ -137,6 +169,19 @@ export class RequestsManagementComponent implements OnInit {
   private toDatetimeLocal(value: string): string {
     if (!value) return '';
     return value.replace('Z', '').substring(0, 16);
+  }
+
+  canEdit(request: RequestsResponse): boolean {
+    return request.status === 'DRAFT' || request.status === 'SUBMITTED';
+  }
+
+  canDelete(request: RequestsResponse): boolean {
+    return request.status === 'DRAFT';
+  }
+
+  private toRequestDateTime(value: string): string {
+    if (!value) return '';
+    return value.length === 16 ? `${value}:00` : value;
   }
 
   private handleError(error: HttpErrorResponse, fallback: string): void {

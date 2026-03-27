@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { switchMap } from 'rxjs/operators';
+import { FormBuilder, FormGroup } from '@angular/forms';
 import { AttendanceService, LeaveRequest } from '../attendance.service';
 
 @Component({
@@ -10,91 +9,77 @@ import { AttendanceService, LeaveRequest } from '../attendance.service';
   styleUrls: ['./leave-management.component.scss'],
 })
 export class LeaveManagementComponent implements OnInit {
-  activeTab: 'pending' | 'approved' | 'rejected' | 'all' = 'pending';
-  showAddModal = false;
+  activeTab: 'open' | 'approved' | 'rejected' | 'cancelled' | 'all' = 'open';
   showReviewModal = false;
   selectedRequest: LeaveRequest | null = null;
 
   leaveRequests: LeaveRequest[] = [];
+  isLoading = false;
+  errorMessage = '';
 
   filterForm: FormGroup;
-  newRequestForm: FormGroup;
-  reviewForm: FormGroup;
 
-  readonly departments = ['All', 'Operations', 'Engineering', 'Sales', 'HR', 'Finance'];
-  readonly leaveTypes = ['All', 'Annual', 'Sick', 'Personal', 'Maternity', 'Paternity', 'Unpaid'];
-
-  constructor(private attendanceService: AttendanceService, private fb: FormBuilder) {
+  constructor(
+    private attendanceService: AttendanceService,
+    private fb: FormBuilder,
+  ) {
     this.filterForm = this.fb.group({
       searchQuery: [''],
-      department: ['All'],
-      leaveType: ['All'],
-    });
-
-    this.newRequestForm = this.fb.group({
-      employeeName: ['', Validators.required],
-      department: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      leaveType: ['Annual', Validators.required],
-      startDate: ['', Validators.required],
-      endDate: ['', Validators.required],
-      reason: ['', Validators.required],
-    });
-
-    this.reviewForm = this.fb.group({
-      action: ['Approved', Validators.required],
-      notes: [''],
     });
   }
 
   ngOnInit(): void {
-    this.attendanceService.getLeaveRequests().subscribe((data) => (this.leaveRequests = data));
+    this.loadLeaveRequests();
   }
 
   get filteredRequests(): LeaveRequest[] {
-    const { searchQuery, department, leaveType } = this.filterForm.value as {
+    const { searchQuery } = this.filterForm.value as {
       searchQuery: string;
-      department: string;
-      leaveType: string;
     };
+    const query = (searchQuery || '').trim().toLowerCase();
 
-    return this.leaveRequests.filter((req) => {
-      const matchesTab =
-        this.activeTab === 'all' ||
-        req.status === this.activeTab.charAt(0).toUpperCase() + this.activeTab.slice(1);
-      const query = (searchQuery || '').toLowerCase();
+    return this.leaveRequests.filter((request) => {
+      const matchesTab = this.matchesActiveTab(request);
       const matchesSearch =
-        req.employeeName.toLowerCase().includes(query) ||
-        req.id.toLowerCase().includes(query) ||
-        req.email.toLowerCase().includes(query);
-      const matchesDepartment = department === 'All' || req.department === department;
-      const matchesLeaveType = leaveType === 'All' || req.leaveType === leaveType;
-      return matchesTab && matchesSearch && matchesDepartment && matchesLeaveType;
+        !query ||
+        String(request.requestId).includes(query) ||
+        request.employeeName.toLowerCase().includes(query) ||
+        request.title.toLowerCase().includes(query) ||
+        request.reason.toLowerCase().includes(query);
+
+      return matchesTab && matchesSearch;
     });
   }
 
   get stats(): Array<{ label: string; value: number; color: string; bg: string; icon: string }> {
     return [
       {
-        label: 'Pending Requests',
-        value: this.leaveRequests.filter((r) => r.status === 'Pending').length,
+        label: 'Open Requests',
+        value: this.leaveRequests.filter((request) => this.isOpenStatus(request.status)).length,
         color: 'text-yellow-600',
         bg: 'bg-yellow-50',
         icon: 'clock',
       },
       {
-        label: 'Approved This Month',
-        value: this.leaveRequests.filter((r) => r.status === 'Approved').length,
+        label: 'Approved Requests',
+        value: this.leaveRequests.filter((request) => request.status === 'APPROVED').length,
         color: 'text-green-600',
         bg: 'bg-green-50',
         icon: 'check-circle',
       },
       {
-        label: 'Rejected This Month',
-        value: this.leaveRequests.filter((r) => r.status === 'Rejected').length,
+        label: 'Rejected Requests',
+        value: this.leaveRequests.filter((request) => request.status === 'REJECTED').length,
         color: 'text-red-600',
         bg: 'bg-red-50',
         icon: 'x-circle',
+      },
+      {
+        label: 'Cancelled Requests',
+        value: this.leaveRequests.filter((request) => request.status === 'CANCELLED').length,
+        color: 'text-slate-600',
+        bg: 'bg-slate-50',
+        icon: 'ban',
       },
       {
         label: 'Total Requests',
@@ -106,81 +91,12 @@ export class LeaveManagementComponent implements OnInit {
     ];
   }
 
-  setActiveTab(tab: 'pending' | 'approved' | 'rejected' | 'all'): void {
+  setActiveTab(tab: 'open' | 'approved' | 'rejected' | 'cancelled' | 'all'): void {
     this.activeTab = tab;
   }
 
-  calculateDays(start: string, end: string): number {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  }
-
-  openAddModal(): void {
-    this.showAddModal = true;
-  }
-
-  closeAddModal(): void {
-    this.showAddModal = false;
-  }
-
-  handleAddRequest(): void {
-    if (this.newRequestForm.invalid) return;
-    const formValue = this.newRequestForm.value as {
-      employeeName: string;
-      department: string;
-      email: string;
-      leaveType: LeaveRequest['leaveType'];
-      startDate: string;
-      endDate: string;
-      reason: string;
-    };
-
-    this.attendanceService
-      .findEmployeeByNameOrEmail(formValue.employeeName, formValue.email)
-      .pipe(
-        switchMap((employee) => {
-          if (!employee) {
-            throw new Error('Employee not found');
-          }
-          return this.attendanceService.createRequest({
-            employeeId: employee.employeeId,
-            requestType: 'LEAVE',
-            title: formValue.leaveType,
-            reason: formValue.reason,
-            startDatetime: `${formValue.startDate}T00:00:00`,
-            endDatetime: `${formValue.endDate}T23:59:59`,
-          });
-        }),
-      )
-      .subscribe({
-        next: () => {
-          this.attendanceService.getLeaveRequests().subscribe((data) => (this.leaveRequests = data));
-          this.newRequestForm.reset({
-            employeeName: '',
-            department: '',
-            email: '',
-            leaveType: 'Annual',
-            startDate: '',
-            endDate: '',
-            reason: '',
-          });
-          this.showAddModal = false;
-        },
-        error: () => {
-          alert('Unable to submit leave request. Please verify employee info and try again.');
-        },
-      });
-  }
-
-  openReviewModal(request: LeaveRequest, action?: 'Approved' | 'Rejected'): void {
+  openReviewModal(request: LeaveRequest): void {
     this.selectedRequest = request;
-    this.reviewForm.reset({
-      action: action || 'Approved',
-      notes: '',
-    });
     this.showReviewModal = true;
   }
 
@@ -189,35 +105,18 @@ export class LeaveManagementComponent implements OnInit {
     this.selectedRequest = null;
   }
 
-  handleReview(): void {
-    if (!this.selectedRequest) return;
-    const { action, notes } = this.reviewForm.value as { action: 'Approved' | 'Rejected'; notes: string };
-    const requestId = Number(this.selectedRequest.id);
-    if (!Number.isFinite(requestId)) {
-      alert('Invalid request ID.');
-      return;
-    }
-    const status = action === 'Approved' ? 'APPROVED' : 'REJECTED';
-    this.attendanceService.approveRequest(requestId, status, notes).subscribe({
-      next: () => {
-        this.attendanceService.getLeaveRequests().subscribe((data) => (this.leaveRequests = data));
-        this.showReviewModal = false;
-        this.selectedRequest = null;
-      },
-      error: () => {
-        alert('Unable to update request. Please try again.');
-      },
-    });
-  }
-
   getStatusColor(status: LeaveRequest['status']): string {
     switch (status) {
-      case 'Pending':
+      case 'DRAFT':
+        return 'bg-gray-100 text-gray-700 border-gray-300';
+      case 'SUBMITTED':
         return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-      case 'Approved':
+      case 'APPROVED':
         return 'bg-green-100 text-green-700 border-green-300';
-      case 'Rejected':
+      case 'REJECTED':
         return 'bg-red-100 text-red-700 border-red-300';
+      case 'CANCELLED':
+        return 'bg-slate-100 text-slate-700 border-slate-300';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-300';
     }
@@ -225,25 +124,112 @@ export class LeaveManagementComponent implements OnInit {
 
   getStatusIcon(status: LeaveRequest['status']): string {
     switch (status) {
-      case 'Pending':
+      case 'DRAFT':
+        return 'file-text';
+      case 'SUBMITTED':
         return 'clock';
-      case 'Approved':
+      case 'APPROVED':
         return 'check-circle';
-      case 'Rejected':
+      case 'REJECTED':
         return 'x-circle';
+      case 'CANCELLED':
+        return 'ban';
       default:
         return 'alert-circle';
     }
   }
 
-  formatDate(dateValue: string): string {
-    return new Date(dateValue).toLocaleDateString();
+  getStatusLabel(status: LeaveRequest['status']): string {
+    switch (status) {
+      case 'DRAFT':
+        return 'Draft';
+      case 'SUBMITTED':
+        return 'Submitted';
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'CANCELLED':
+        return 'Cancelled';
+      default:
+        return status;
+    }
   }
 
-  getTabCount(tab: 'pending' | 'approved' | 'rejected' | 'all'): number {
-    if (tab === 'all') return this.leaveRequests.length;
-    const status = tab.charAt(0).toUpperCase() + tab.slice(1);
-    return this.leaveRequests.filter((r) => r.status === status).length;
+  formatDate(dateValue?: string): string {
+    if (!dateValue) {
+      return 'Not submitted';
+    }
+    const parsedDate = new Date(dateValue);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return dateValue;
+    }
+    return parsedDate.toLocaleDateString();
+  }
+
+  formatDateTime(dateValue?: string): string {
+    if (!dateValue) {
+      return 'Not submitted';
+    }
+    const parsedDate = new Date(dateValue);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return dateValue;
+    }
+    return parsedDate.toLocaleString();
+  }
+
+  getTabCount(tab: 'open' | 'approved' | 'rejected' | 'cancelled' | 'all'): number {
+    if (tab === 'all') {
+      return this.leaveRequests.length;
+    }
+    return this.leaveRequests.filter((request) => {
+      if (tab === 'open') {
+        return this.isOpenStatus(request.status);
+      }
+      if (tab === 'approved') {
+        return request.status === 'APPROVED';
+      }
+      if (tab === 'cancelled') {
+        return request.status === 'CANCELLED';
+      }
+      return request.status === 'REJECTED';
+    }).length;
+  }
+
+  private loadLeaveRequests(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.attendanceService.getLeaveRequests().subscribe({
+      next: (data) => {
+        this.leaveRequests = data;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.leaveRequests = [];
+        this.errorMessage = 'Unable to load leave requests for the signed-in employee.';
+        this.isLoading = false;
+      },
+    });
+  }
+
+  private matchesActiveTab(request: LeaveRequest): boolean {
+    if (this.activeTab === 'all') {
+      return true;
+    }
+    if (this.activeTab === 'open') {
+      return this.isOpenStatus(request.status);
+    }
+    if (this.activeTab === 'approved') {
+      return request.status === 'APPROVED';
+    }
+    if (this.activeTab === 'cancelled') {
+      return request.status === 'CANCELLED';
+    }
+    return request.status === 'REJECTED';
+  }
+
+  private isOpenStatus(status: LeaveRequest['status']): boolean {
+    return status === 'DRAFT' || status === 'SUBMITTED';
   }
 }
-
