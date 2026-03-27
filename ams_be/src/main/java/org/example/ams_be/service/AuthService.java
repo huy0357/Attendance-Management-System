@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.ams_be.dto.response.AuthResponse;
 import org.example.ams_be.entity.Account;
 import org.example.ams_be.entity.Employee;
-import org.example.ams_be.entity.Role;
 import org.example.ams_be.repository.AccountRepository;
 import org.example.ams_be.repository.EmployeeRepository;
-import org.example.ams_be.repository.RoleRepository;
 import org.example.ams_be.utils.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,7 +24,6 @@ public class AuthService {
     private final AuditLogService auditLogService;
     private final EmailService emailService;
     private final EmployeeRepository employeeRepository;
-    private final RoleRepository roleRepository;
 
     private String resolveRoleCode(Account acc) {
         if (acc.getRole() == null) {

@@ -1,5 +1,6 @@
 package org.example.ams_be.service;
 
+import org.example.ams_be.dto.response.PageResponse;
 import org.example.ams_be.dto.EmployeeDto;
 import org.example.ams_be.dto.request.RequestsApprovalRequest;
 import org.example.ams_be.dto.request.RequestsUpsertRequest;
@@ -17,6 +18,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -88,7 +93,7 @@ class RequestsServiceTest {
         Requests request = requestEntity(10L, RequestStatus.APPROVED);
         when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
 
-        assertThrows(IllegalStateException.class, () -> requestsService.submit(10L));
+        assertThrows(IllegalStateException.class, () -> requestsService.submit(10L, 1L));
     }
 
     @Test
@@ -97,7 +102,7 @@ class RequestsServiceTest {
         when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
         when(requestRepository.save(request)).thenReturn(request);
 
-        RequestsResponse response = requestsService.submit(10L);
+        RequestsResponse response = requestsService.submit(10L, 1L);
 
         assertEquals(RequestStatus.SUBMITTED, response.status);
         assertEquals(10L, response.requestId);
@@ -111,7 +116,7 @@ class RequestsServiceTest {
         Requests request = requestEntity(10L, RequestStatus.APPROVED);
         when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> requestsService.update(10L, upsertRequest()));
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> requestsService.update(10L, 1L, upsertRequest()));
 
         assertEquals("Cannot update request that is already processed", ex.getMessage());
     }
@@ -128,7 +133,7 @@ class RequestsServiceTest {
         when(requestRepository.findById(11L)).thenReturn(Optional.of(request));
         when(requestRepository.save(request)).thenReturn(request);
 
-        RequestsResponse response = requestsService.update(11L, update);
+        RequestsResponse response = requestsService.update(11L, 1L, update);
 
         assertEquals("WFH", response.title);
         assertEquals("Need focus", response.reason);
@@ -145,7 +150,7 @@ class RequestsServiceTest {
         when(requestRepository.findById(15L)).thenReturn(Optional.of(request));
         when(requestRepository.save(request)).thenReturn(request);
 
-        RequestsResponse response = requestsService.update(15L, update);
+        RequestsResponse response = requestsService.update(15L, 1L, update);
 
         assertEquals("Adjusted", response.title);
         assertEquals(RequestStatus.SUBMITTED, response.status);
@@ -156,7 +161,7 @@ class RequestsServiceTest {
         Requests request = requestEntity(10L, RequestStatus.SUBMITTED);
         when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> requestsService.delete(10L));
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> requestsService.delete(10L, 1L));
 
         assertEquals("Cannot delete request that is already processed", ex.getMessage());
     }
@@ -166,7 +171,7 @@ class RequestsServiceTest {
         Requests request = requestEntity(10L, RequestStatus.DRAFT);
         when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
 
-        requestsService.delete(10L);
+        requestsService.delete(10L, 1L);
 
         verify(requestRepository).delete(request);
         verify(auditLogService).saveAuditLog(org.mockito.ArgumentMatchers.eq("DELETE"), org.mockito.ArgumentMatchers.eq("REQUEST"),
@@ -218,14 +223,16 @@ class RequestsServiceTest {
     void getMyRequestsMapsRepositoryResults() {
         Requests request = requestEntity(10L, RequestStatus.SUBMITTED);
         request.getEmployee().setFullName("Alice");
-        when(requestRepository.findByEmployee_EmployeeIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(request));
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
+        when(requestRepository.findByEmployeeWithFilter(1L, null, null, pageable))
+                .thenReturn(new PageImpl<>(List.of(request), pageable, 1));
 
-        List<RequestsResponse> responses = requestsService.getMyRequests(1L);
+        PageResponse<RequestsResponse> responses = requestsService.getMyRequestsPaged(1L, null, null, 1, 10);
 
-        assertEquals(1, responses.size());
-        assertEquals(1L, responses.get(0).employeeId);
-        assertEquals("Alice", responses.get(0).employeeName);
-        assertNull(responses.get(0).approverId);
+        assertEquals(1, responses.items.size());
+        assertEquals(1L, responses.items.get(0).employeeId);
+        assertEquals("Alice", responses.items.get(0).employeeName);
+        assertNull(responses.items.get(0).approverId);
     }
 
     @Test
@@ -233,13 +240,15 @@ class RequestsServiceTest {
         Requests request = new Requests();
         request.setRequestId(20L);
         request.setStatus(RequestStatus.DRAFT);
-        when(requestRepository.findByEmployee_EmployeeIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(request));
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
+        when(requestRepository.findByEmployeeWithFilter(1L, null, null, pageable))
+                .thenReturn(new PageImpl<>(List.of(request), pageable, 1));
 
-        List<RequestsResponse> responses = requestsService.getMyRequests(1L);
+        PageResponse<RequestsResponse> responses = requestsService.getMyRequestsPaged(1L, null, null, 1, 10);
 
-        assertEquals(1, responses.size());
-        assertNull(responses.get(0).employeeId);
-        assertNull(responses.get(0).employeeName);
+        assertEquals(1, responses.items.size());
+        assertNull(responses.items.get(0).employeeId);
+        assertNull(responses.items.get(0).employeeName);
     }
 
     private RequestsUpsertRequest upsertRequest() {

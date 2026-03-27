@@ -6,7 +6,6 @@ import org.example.ams_be.dto.request.PageRequestDto;
 import org.example.ams_be.dto.request.UpdateAccountRequest;
 import org.example.ams_be.dto.response.AccountResponse;
 import org.example.ams_be.dto.response.PageResponse;
-import org.example.ams_be.entity.Account;
 import org.example.ams_be.service.AccountService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,8 +53,22 @@ class AccountControllerTest {
 
     @Test
     void createReturnsCreated() {
-        CreateAccountRequest request = CreateAccountRequest.builder().employeeId(1L).username("alice").build();
-        AccountResponse created = AccountResponse.builder().accountId(3L).role(Account.Role.admin).build();
+        CreateAccountRequest request = CreateAccountRequest.builder()
+                .employeeId(1L)
+                .username("alice")
+                .build();
+
+        // FIX: Thay đổi Account.Role.admin thành roleId và roleCode cho khớp với
+        // AccountResponse mới
+        AccountResponse created = AccountResponse.builder()
+                .accountId(3L)
+                .username("alice")
+                .employeeId(1L)
+                .roleId(1L)
+                .roleCode("ADMIN")
+                .isActive(true)
+                .build();
+
         when(accountService.createAccount(request)).thenReturn(created);
 
         ResponseEntity<AccountResponse> response = controller.create(request);

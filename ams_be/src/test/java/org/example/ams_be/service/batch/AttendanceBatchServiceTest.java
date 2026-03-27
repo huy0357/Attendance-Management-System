@@ -75,6 +75,7 @@ class AttendanceBatchServiceTest {
 
         attendanceBatchService.processAttendanceForDate(processDate);
 
+        @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AttendanceDaily>> captor = ArgumentCaptor.forClass(List.class);
         verify(attendanceDailyRepository).saveAll(captor.capture());
         AttendanceDaily saved = captor.getValue().get(0);
@@ -125,6 +126,7 @@ class AttendanceBatchServiceTest {
 
         attendanceBatchService.processAttendanceForDate(processDate);
 
+        @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AttendanceDaily>> captor = ArgumentCaptor.forClass(List.class);
         verify(attendanceDailyRepository).saveAll(captor.capture());
         List<AttendanceDaily> saved = captor.getValue();
@@ -184,6 +186,7 @@ class AttendanceBatchServiceTest {
 
         attendanceBatchService.processAttendanceForDate(processDate);
 
+        @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AttendanceDaily>> captor = ArgumentCaptor.forClass(List.class);
         verify(attendanceDailyRepository).saveAll(captor.capture());
         List<AttendanceDaily> saved = captor.getValue();
@@ -220,6 +223,7 @@ class AttendanceBatchServiceTest {
 
         attendanceBatchService.processAttendanceForDate(processDate);
 
+        @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AttendanceDaily>> captor = ArgumentCaptor.forClass(List.class);
         verify(attendanceDailyRepository).saveAll(captor.capture());
         assertEquals(20L, captor.getValue().get(0).getShiftId());

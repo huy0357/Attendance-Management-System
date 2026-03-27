@@ -139,14 +139,6 @@ public final class ModelCoverageAssertions {
         assertTrue(text.contains(type.getSimpleName()));
     }
 
-    private static <T> T instantiateNoArgs(Class<T> type) {
-        Constructor<T> constructor = getNoArgsConstructor(type);
-        if (constructor == null) {
-            throw new IllegalStateException("No no-args constructor for " + type.getName());
-        }
-        return instantiate(constructor);
-    }
-
     private static <T> Constructor<T> getNoArgsConstructor(Class<T> type) {
         try {
             Constructor<T> constructor = type.getDeclaredConstructor();

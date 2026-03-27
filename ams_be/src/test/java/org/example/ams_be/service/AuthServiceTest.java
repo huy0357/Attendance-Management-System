@@ -2,7 +2,9 @@ package org.example.ams_be.service;
 
 import org.example.ams_be.dto.response.AuthResponse;
 import org.example.ams_be.entity.Account;
+import org.example.ams_be.entity.Role;
 import org.example.ams_be.repository.AccountRepository;
+import org.example.ams_be.repository.RoleRepository;
 import org.example.ams_be.utils.JwtUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +36,9 @@ class AuthServiceTest {
     private JwtUtil jwtUtil;
 
     @Mock
+    private RoleRepository roleRepository;
+
+    @Mock
     private TokenStore tokenStore;
 
     @Mock
@@ -54,7 +59,7 @@ class AuthServiceTest {
 
     @Test
     void loginThrowsWhenAccountInactive() {
-        Account account = account(1L, "alice", Account.Role.admin, false);
+        Account account = account(1L, "alice", "admin", false);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login("alice", "secret"));
@@ -64,7 +69,7 @@ class AuthServiceTest {
 
     @Test
     void loginThrowsWhenPasswordDoesNotMatch() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
+        Account account = account(1L, "alice", "admin", true);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("wrong", "hash")).thenReturn(false);
 
@@ -75,11 +80,11 @@ class AuthServiceTest {
 
     @Test
     void loginReturnsTokensStoresRefreshAndWritesAuditLog() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
+        Account account = account(1L, "alice", "admin", true);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
-        when(jwtUtil.generateAccessToken("alice", "admin")).thenReturn("access");
-        when(jwtUtil.generateRefreshToken("alice", "admin")).thenReturn("refresh");
+        when(jwtUtil.generateAccessToken("alice", "admin", 100L)).thenReturn("access");
+        when(jwtUtil.generateRefreshToken("alice", "admin", 100L)).thenReturn("refresh");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
@@ -98,8 +103,8 @@ class AuthServiceTest {
         Account account = account(1L, "alice", null, true);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
-        when(jwtUtil.generateAccessToken("alice", "employee")).thenReturn("access");
-        when(jwtUtil.generateRefreshToken("alice", "employee")).thenReturn("refresh");
+        when(jwtUtil.generateAccessToken("alice", "employee", 100L)).thenReturn("access");
+        when(jwtUtil.generateRefreshToken("alice", "employee", 100L)).thenReturn("refresh");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
@@ -181,13 +186,15 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesFallbackRoleWhenMissingAndRotatesTokens() {
+        Account account = account(1L, "alice", "employee", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
         when(jwtUtil.getRole("token")).thenReturn(" ");
         when(tokenStore.exists("alice", "token")).thenReturn(true);
-        when(jwtUtil.generateRefreshToken("alice", "employee")).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "employee")).thenReturn("new-access");
+        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
+        when(jwtUtil.generateRefreshToken("alice", "employee", 100L)).thenReturn("new-refresh");
+        when(jwtUtil.generateAccessToken("alice", "employee", 100L)).thenReturn("new-access");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
@@ -202,13 +209,15 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesFallbackRoleWhenRoleIsNull() {
+        Account account = account(1L, "alice", "employee", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
         when(jwtUtil.getRole("token")).thenReturn(null);
         when(tokenStore.exists("alice", "token")).thenReturn(true);
-        when(jwtUtil.generateRefreshToken("alice", "employee")).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "employee")).thenReturn("new-access");
+        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
+        when(jwtUtil.generateRefreshToken("alice", "employee", 100L)).thenReturn("new-refresh");
+        when(jwtUtil.generateAccessToken("alice", "employee", 100L)).thenReturn("new-access");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
@@ -219,13 +228,15 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesRoleFromTokenWhenPresent() {
+        Account account = account(1L, "alice", "manager", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
         when(jwtUtil.getRole("token")).thenReturn("manager");
         when(tokenStore.exists("alice", "token")).thenReturn(true);
-        when(jwtUtil.generateRefreshToken("alice", "manager")).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "manager")).thenReturn("new-access");
+        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
+        when(jwtUtil.generateRefreshToken("alice", "manager", 100L)).thenReturn("new-refresh");
+        when(jwtUtil.generateAccessToken("alice", "manager", 100L)).thenReturn("new-access");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
@@ -271,7 +282,7 @@ class AuthServiceTest {
 
     @Test
     void logoutWritesAuditAndRevokesWhenAccountExists() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
+        Account account = account(1L, "alice", "admin", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
@@ -285,7 +296,7 @@ class AuthServiceTest {
 
     @Test
     void logoutWritesAuditWithNullActorWhenEmployeeIdMissing() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
+        Account account = account(1L, "alice", "admin", true);
         account.setEmployeeId(null);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
@@ -298,7 +309,8 @@ class AuthServiceTest {
         verify(tokenStore).revoke("alice", "token");
     }
 
-    private Account account(Long accountId, String username, Account.Role role, boolean active) {
+    private Account account(Long accountId, String username, String roleCode, boolean active) {
+        Role role = Role.builder().roleId(1L).roleCode(roleCode).build();
         return Account.builder()
                 .accountId(accountId)
                 .employeeId(100L)

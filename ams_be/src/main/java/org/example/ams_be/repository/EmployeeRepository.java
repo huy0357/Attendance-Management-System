@@ -41,7 +41,7 @@ public class EmployeeRepository {
             e.hireDate = rs.getObject("hire_date", java.time.LocalDate.class);
             e.terminatedDate = rs.getObject("terminated_date", java.time.LocalDate.class);
             e.createdAt = rs.getObject("created_at", java.time.LocalDateTime.class);
-            e.updatedAt = rs.getObject("updated_at", java.time.LocalDateTime.class);
+            // e.updatedAt = rs.getObject("updated_at", java.time.LocalDateTime.class);
             e.avatarUrl = rs.getString("avatar_url");
             return e;
         }
@@ -51,7 +51,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 ORDER BY employee_id DESC
                 """;
@@ -62,7 +62,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 WHERE employee_id = ?
                 """;
@@ -187,7 +187,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 ORDER BY %s %s
                 LIMIT ? OFFSET ?
@@ -217,7 +217,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 WHERE full_name LIKE ?
                 ORDER BY %s %s
