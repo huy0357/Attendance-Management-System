@@ -1,0 +1,37 @@
+# Bắt buộc: Các file chứa API Key (OpenRouter, DB password...)
+.env
+.env.*
+!.env.example
+
+# Môi trường Ảo Python (Virtual Environments)
+venv/
+.venv/
+env/
+.env_python/
+
+# File Cache và Build của Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+
+# File rác do quá trình huấn luyện của Rasa AI
+models/
+.rasa/
+results/
+*.tar.gz
+
+# File cấu hình của Editor/IDE & Hệ điều hành
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
