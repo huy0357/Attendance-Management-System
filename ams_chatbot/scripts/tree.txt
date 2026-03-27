@@ -1,0 +1,43 @@
+ams_chatbot/
+├── .env.example
+├── README.md
+├── agent.md
+├── plan.md
+├── tasks.md
+├── rule_agent.md
+├── architecture/
+│   ├── antigravity_handoff.md
+│   └── chatbot_architecture.md
+├── docker-compose.yml
+├── rasa/
+│   ├── actions/
+│   │   └── actions.py
+│   ├── config.yml
+│   ├── data/
+│   │   ├── nlu.yml
+│   │   ├── rules.yml
+│   │   └── stories.yml
+│   └── domain.yml
+└── chatbot_service/
+    ├── Dockerfile
+    ├── requirements.txt
+    └── app/
+        ├── connectors/
+        │   ├── ams_backend.py
+        │   └── openrouter.py
+        ├── core/
+        │   ├── logging.py
+        │   └── settings.py
+        ├── main.py
+        ├── models/
+        │   └── user_context.py
+        ├── retrieval/
+        │   └── qdrant_service.py
+        ├── routers/
+        │   ├── chat.py
+        │   └── health.py
+        ├── schemas/
+        │   └── chat.py
+        └── services/
+            ├── chat_service.py
+            └── router_service.py

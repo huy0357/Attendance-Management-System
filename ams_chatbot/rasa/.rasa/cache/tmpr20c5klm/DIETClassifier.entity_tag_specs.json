@@ -1,0 +1,44 @@
+[
+  {
+    "tag_name": "entity",
+    "ids_to_tags": {
+      "1": "B-date",
+      "2": "I-date",
+      "3": "L-date",
+      "4": "U-date",
+      "5": "B-date_range",
+      "6": "I-date_range",
+      "7": "L-date_range",
+      "8": "U-date_range",
+      "9": "B-department",
+      "10": "I-department",
+      "11": "L-department",
+      "12": "U-department",
+      "13": "B-request_type",
+      "14": "I-request_type",
+      "15": "L-request_type",
+      "16": "U-request_type",
+      "0": "O"
+    },
+    "tags_to_ids": {
+      "B-date": 1,
+      "I-date": 2,
+      "L-date": 3,
+      "U-date": 4,
+      "B-date_range": 5,
+      "I-date_range": 6,
+      "L-date_range": 7,
+      "U-date_range": 8,
+      "B-department": 9,
+      "I-department": 10,
+      "L-department": 11,
+      "U-department": 12,
+      "B-request_type": 13,
+      "I-request_type": 14,
+      "L-request_type": 15,
+      "U-request_type": 16,
+      "O": 0
+    },
+    "num_tags": 17
+  }
+]

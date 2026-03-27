@@ -1,10 +1,21 @@
-import { AfterViewChecked, Component, ElementRef, EventEmitter, Output, ViewChild } from '@angular/core';
+import {
+  AfterViewChecked,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  NgZone,
+  OnInit,
+  Output,
+  ViewChild,
+} from '@angular/core';
+import { ChatbotService, ChatbotResponse } from '../../services/chatbot.service';
+import { AuthService } from '../../auth/auth.service';
 
 interface Message {
   id: string;
-  type: 'user' | 'ai' | 'loading';
+  type: 'user' | 'ai' | 'loading' | 'error';
   content: string;
-  data?: any;
   timestamp: Date;
 }
 
@@ -14,29 +25,40 @@ interface Message {
   templateUrl: './ai-chatbot.component.html',
   styleUrls: ['./ai-chatbot.component.scss'],
 })
-export class AiChatbotComponent implements AfterViewChecked {
+export class AiChatbotComponent implements OnInit, AfterViewChecked {
   @Output() close = new EventEmitter<void>();
   @ViewChild('messagesEnd') messagesEnd?: ElementRef<HTMLDivElement>;
 
-  messages: Message[] = [
-    {
-      id: '1',
-      type: 'ai',
-      content:
-        "Hello! I'm your AI attendance assistant. I can help you with insights, analytics, and quick data lookups. Try asking me something!",
-      timestamp: new Date(),
-    },
-  ];
+  messages: Message[] = [];
   input = '';
   isLoading = false;
   private shouldScroll = false;
 
   suggestions = [
-    'Who is late today?',
-    'Show attendance trend last week',
-    'List pending leave requests',
-    'Department attendance comparison',
+    'Hôm nay tôi làm ca gì?',
+    'Quy định nghỉ phép như thế nào?',
+    'Tôi đã chấm công hôm nay chưa?',
+    'Nội quy công ty',
   ];
+
+  constructor(
+    private chatbotService: ChatbotService,
+    private authService: AuthService,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
+  ) {}
+
+  ngOnInit(): void {
+    const username = this.authService.getUsername() || 'bạn';
+    this.messages = [
+      {
+        id: '1',
+        type: 'ai',
+        content: `Xin chào ${username}! Mình là trợ lý AI của hệ thống chấm công. Bạn có thể hỏi mình về ca làm việc, điểm danh, nội quy công ty, và nhiều hơn nữa!`,
+        timestamp: new Date(),
+      },
+    ];
+  }
 
   ngAfterViewChecked(): void {
     if (this.shouldScroll) {
@@ -58,6 +80,7 @@ export class AiChatbotComponent implements AfterViewChecked {
     };
 
     this.messages = [...this.messages, userMessage];
+    const userText = this.input;
     this.input = '';
     this.isLoading = true;
     this.shouldScroll = true;
@@ -65,88 +88,56 @@ export class AiChatbotComponent implements AfterViewChecked {
     const loadingMessage: Message = {
       id: (Date.now() + 1).toString(),
       type: 'loading',
-      content: 'Parsing question...',
+      content: 'Đang xử lý...',
       timestamp: new Date(),
     };
     this.messages = [...this.messages, loadingMessage];
 
-    setTimeout(() => {
-      this.messages = this.messages.map(msg =>
-        msg.type === 'loading' ? { ...msg, content: 'Fetching attendance data...' } : msg,
-      );
-      this.shouldScroll = true;
-    }, 800);
+    this.chatbotService.sendMessage(userText).subscribe({
+      next: (response: ChatbotResponse) => {
+        this.ngZone.run(() => {
+          const aiMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            type: 'ai',
+            content: response.message,
+            timestamp: new Date(),
+          };
+          this.messages = this.messages
+            .filter(msg => msg.type !== 'loading')
+            .concat(aiMessage);
+          this.isLoading = false;
+          this.shouldScroll = true;
 
-    setTimeout(() => {
-      this.messages = this.messages.map(msg =>
-        msg.type === 'loading' ? { ...msg, content: 'Summarizing results...' } : msg,
-      );
-      this.shouldScroll = true;
-    }, 1600);
-
-    setTimeout(() => {
-      let response: Message;
-      const query = userMessage.content.toLowerCase();
-
-      if (query.includes('late')) {
-        response = {
-          id: (Date.now() + 2).toString(),
-          type: 'ai',
-          content: 'Here are the employees who checked in late today:',
-          data: {
-            type: 'table',
-            rows: [
-              { name: 'Michael Ross', time: '09:02:15', late: '2 min' },
-              { name: 'Lisa Wong', time: '09:15:30', late: '15 min' },
-              { name: 'James Kim', time: '09:08:45', late: '8 min' },
-            ],
-          },
-          timestamp: new Date(),
-        };
-      } else if (query.includes('trend') || query.includes('week')) {
-        response = {
-          id: (Date.now() + 2).toString(),
-          type: 'ai',
-          content: "Here's the attendance trend for the last week:",
-          data: {
-            type: 'chart',
-            values: [85, 92, 88, 90, 87, 84, 0],
-          },
-          timestamp: new Date(),
-        };
-      } else if (query.includes('leave') || query.includes('pending')) {
-        response = {
-          id: (Date.now() + 2).toString(),
-          type: 'ai',
-          content: 'There are 3 pending leave requests:',
-          data: {
-            type: 'list',
-            items: [
-              { name: 'Lisa Wong', type: 'Personal', days: '3 days', dates: 'Jan 20-22' },
-              { name: 'David Kumar', type: 'Sick', days: '2 days', dates: 'Jan 18-19' },
-              { name: 'Emma Wilson', type: 'Vacation', days: '5 days', dates: 'Feb 1-5' },
-            ],
-          },
-          timestamp: new Date(),
-        };
-      } else {
-        response = {
-          id: (Date.now() + 2).toString(),
-          type: 'ai',
-          content:
-            'I can help you with attendance data, trends, and employee information. Try asking about late employees, attendance trends, or pending leave requests.',
-          timestamp: new Date(),
-        };
-      }
-
-      this.messages = this.messages.filter(msg => msg.type !== 'loading').concat(response);
-      this.isLoading = false;
-      this.shouldScroll = true;
-    }, 2400);
+          if (response.suggestions && response.suggestions.length > 0) {
+            this.suggestions = response.suggestions;
+          }
+          this.cdr.detectChanges();
+        });
+      },
+      error: (err) => {
+        this.ngZone.run(() => {
+          const errorMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            type: 'error',
+            content: err.status === 0
+              ? 'Không thể kết nối đến server chatbot. Vui lòng kiểm tra lại.'
+              : `Lỗi: ${err.error?.message || err.message || 'Đã xảy ra lỗi không xác định.'}`,
+            timestamp: new Date(),
+          };
+          this.messages = this.messages
+            .filter(msg => msg.type !== 'loading')
+            .concat(errorMessage);
+          this.isLoading = false;
+          this.shouldScroll = true;
+          this.cdr.detectChanges();
+        });
+      },
+    });
   }
 
   handleSuggestionClick(suggestion: string): void {
     this.input = suggestion;
+    this.handleSend();
   }
 
   handleKeyPress(event: KeyboardEvent): void {
