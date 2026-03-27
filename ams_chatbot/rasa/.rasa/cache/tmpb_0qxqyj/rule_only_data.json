@@ -1,0 +1,6 @@
+{
+  "rule_only_slots": [],
+  "rule_only_loops": [
+    "leave_request_form"
+  ]
+}
