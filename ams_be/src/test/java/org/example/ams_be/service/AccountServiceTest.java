@@ -62,8 +62,7 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setEmployeeId(null);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
         assertEquals("employeeId is required", ex.getMessage());
         verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
@@ -74,8 +73,7 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setPassword("123");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
         assertEquals("password is required (min 6 chars)", ex.getMessage());
     }
@@ -85,8 +83,7 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setPassword(null);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
         assertEquals("password is required (min 6 chars)", ex.getMessage());
         verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
@@ -97,8 +94,7 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setUsername(" ");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
         assertEquals("username is required", ex.getMessage());
         verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
@@ -109,8 +105,7 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         when(accountRepository.existsByUsername("alice")).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
         assertEquals("username already exists", ex.getMessage());
         verify(accountRepository, never()).save(any());
@@ -122,8 +117,7 @@ class AccountServiceTest {
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
         when(accountRepository.existsByEmployeeId(1L)).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
         assertEquals("employee already has an account", ex.getMessage());
     }
@@ -141,7 +135,6 @@ class AccountServiceTest {
     @Test
     void createAccountUsesProvidedRoleIdAndActiveFlagAndEncodesPassword() {
         CreateAccountRequest req = createRequest();
-        req.setRoleId(2L);
         req.setIsActive(false);
         Role managerRole = role(2L, "manager");
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
@@ -210,8 +203,7 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(accountRepository.existsByUsername("bob")).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> accountService.update(1L, req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.update(1L, req));
 
         assertEquals("username already exists", ex.getMessage());
     }
@@ -317,9 +309,7 @@ class AccountServiceTest {
         PageRequestDto req = new PageRequestDto();
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findAll(pageable))
-
-                .thenReturn(new PageImpl<>(List.of(account(2L, "bob", "employee", false)), pageable, 1));
-
+                .thenReturn(new PageImpl<>(List.of(account(2L, "bob", role(3L, "employee"), false)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.getAccountsPage(req, null);
 
@@ -337,9 +327,7 @@ class AccountServiceTest {
         req.sortDir = "asc";
         Pageable pageable = PageRequest.of(1, 3, Sort.by("username").ascending());
         when(accountRepository.findAllByIsActive(false, pageable))
-
-                .thenReturn(new PageImpl<>(List.of(account(2L, "bob", "employee", false)), pageable, 7));
-
+                .thenReturn(new PageImpl<>(List.of(account(2L, "bob", role(3L, "employee"), false)), pageable, 7));
 
         PageResponse<AccountDto> response = accountService.getAccountsPage(req, false);
 
@@ -358,15 +346,14 @@ class AccountServiceTest {
         req.sortDir = " ";
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findAll(pageable))
-                .thenReturn(new PageImpl<>(List.of(account(4L, "dave", (String) null, true)), pageable, 1));
+                .thenReturn(new PageImpl<>(List.of(account(4L, "dave", null, true)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.getAccountsPage(req, null);
 
         assertEquals(1, response.page);
         assertEquals(10, response.size);
-
-        assertEquals(null, response.items.get(0).getRoleCode());
-
+        assertNull(response.items.get(0).getRoleId());
+        assertNull(response.items.get(0).getRoleCode());
         verify(accountRepository).findAll(pageable);
     }
 
@@ -379,9 +366,7 @@ class AccountServiceTest {
         req.sortDir = "asc";
         Pageable pageable = PageRequest.of(1, 5, Sort.by("username").ascending());
         when(accountRepository.findByUsernameContainingIgnoreCase("ali", pageable))
-
-                .thenReturn(new PageImpl<>(List.of(account(1L, "alice", "admin", true)), pageable, 6));
-
+                .thenReturn(new PageImpl<>(List.of(account(1L, "alice", role(1L, "admin"), true)), pageable, 6));
 
         PageResponse<AccountDto> response = accountService.searchAccountsByUsername(req, "ali");
 
@@ -397,15 +382,14 @@ class AccountServiceTest {
         PageRequestDto req = new PageRequestDto();
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findByUsernameContainingIgnoreCase("adm", pageable))
-                .thenReturn(new PageImpl<>(List.of(account(3L, "admin", (String) null, true)), pageable, 1));
+                .thenReturn(new PageImpl<>(List.of(account(3L, "admin", null, true)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.searchAccountsByUsername(req, "adm");
 
         assertEquals(1, response.page);
         assertEquals("admin", response.items.get(0).getUsername());
-
-        assertEquals(null, response.items.get(0).getRoleCode());
-
+        assertNull(response.items.get(0).getRoleId());
+        assertNull(response.items.get(0).getRoleCode());
     }
 
     @Test
@@ -417,9 +401,7 @@ class AccountServiceTest {
         req.sortDir = " ";
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findByUsernameContainingIgnoreCase("adm", pageable))
-
-                .thenReturn(new PageImpl<>(List.of(account(5L, "adam", "manager", true)), pageable, 1));
-
+                .thenReturn(new PageImpl<>(List.of(account(5L, "adam", role(2L, "manager"), true)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.searchAccountsByUsername(req, "adm");
 
@@ -433,27 +415,8 @@ class AccountServiceTest {
                 .employeeId(1L)
                 .username("alice")
                 .password("secret1")
-
-                .roleId(3L)
-
+                .roleId(2L)
                 .isActive(true)
-                .build();
-    }
-
-
-    private Account account(Long id, String username, String roleCode, boolean isActive) {
-        Role role = roleCode != null ? Role.builder().roleId(1L).roleCode(roleCode).build() : null;
-
-        return Account.builder()
-                .accountId(id)
-                .employeeId(1L)
-                .username(username)
-                .passwordHash("hash")
-                .role(role)
-                .isActive(isActive)
-                .lastLoginAt(LocalDateTime.of(2026, 3, 18, 8, 0))
-                .createdAt(LocalDateTime.of(2026, 3, 1, 8, 0))
-                .updatedAt(LocalDateTime.of(2026, 3, 2, 8, 0))
                 .build();
     }
 

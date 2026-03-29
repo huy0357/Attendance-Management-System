@@ -37,7 +37,7 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
 
   navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: 'layout-dashboard' },
-    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN', 'HR'] },
+    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN'] },
     { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { label: 'Departments', path: '/hrm/departments', icon: 'building', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar', requiredRoles: ['ADMIN'] },
@@ -56,7 +56,6 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
     { label: 'Shift Templates', path: '/attendance/shift-templates', icon: 'calendar', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Attendance Email', path: '/attendance/attendance-email', icon: 'mail', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Leave Requests', path: '/attendance/leave-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
-    { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'clock', requiredRoles: ['MANAGER'] },
     { label: 'Requests', path: '/attendance/requests-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { label: 'Accounts', path: '/admin/account-management', icon: 'users', requiredRoles: ['ADMIN'] },
   ];
@@ -153,14 +152,13 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
 
   get searchResults(): Array<{ name: string; type: string; path?: string }> {
     const baseResults: Array<{ name: string; type: string; path?: string; roles?: string[] }> = [
-      { name: 'Employees', type: 'Page', path: '/hrm/employees', roles: ['ADMIN', 'HR'] },
+      { name: 'Employees', type: 'Page', path: '/hrm/employees', roles: ['ADMIN'] },
       { name: 'Departments', type: 'Page', path: '/hrm/departments', roles: ['ADMIN', 'HR', 'MANAGER'] },
       { name: 'Employee Portal', type: 'Page', path: '/hrm/employee-portal', roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
       { name: 'My Profile', type: 'Page', path: '/profile' },
       { name: 'Attendance Daily', type: 'Page', path: this.resolveAttendanceDailyPath(), roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
       { name: 'Requests', type: 'Page', path: '/attendance/requests-management', roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
       { name: 'Leave Requests', type: 'Page', path: '/attendance/leave-management', roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
-      { name: 'OT Requests', type: 'Page', path: '/attendance/ot-requests', roles: ['MANAGER'] },
       { name: 'Scheduling', type: 'Page', path: '/attendance/scheduling', roles: ['ADMIN'] },
       { name: 'Shift Templates', type: 'Page', path: '/attendance/shift-templates', roles: ['ADMIN', 'HR', 'MANAGER'] },
       { name: 'Attendance Monthly Summary', type: 'Page', path: '/attendance/monthly-summary', roles: ['ADMIN', 'HR', 'MANAGER'] },

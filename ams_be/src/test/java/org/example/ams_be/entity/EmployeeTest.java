@@ -14,14 +14,11 @@ class EmployeeTest {
     void equalsAndHashCodeCoverGeneratedBranches() {
         LombokPojoBranchAssertions.assertEqualsAndHashCodeBranches(
                 this::populated,
-
-                // Cập nhật constructor: thêm 1 trường null cho avatarUrl (tổng 15 tham số)
-                () -> new Employee(null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                        null),
-
+                () -> new Employee(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
                 populatedMismatchMutators(),
                 emptyMismatchMutators(),
-                employee -> new NonEqualEmployee(employee));
+                employee -> new NonEqualEmployee(employee)
+        );
     }
 
     private List<UnaryOperator<Employee>> populatedMismatchMutators() {
@@ -40,10 +37,8 @@ class EmployeeTest {
                 employee -> setHireDate(employee, LocalDate.of(2025, 2, 1)),
                 employee -> setTerminatedDate(employee, LocalDate.of(2026, 3, 20)),
                 employee -> setCreatedAt(employee, LocalDateTime.of(2025, 1, 1, 9, 0)),
-
-                // Thêm trường mới
-                employee -> setAvatarUrl(employee, "http://new-avatar.jpg"));
-
+                employee -> setAvatarUrl(employee, "/avatars/bob.png")
+        );
     }
 
     private List<UnaryOperator<Employee>> emptyMismatchMutators() {
@@ -62,10 +57,8 @@ class EmployeeTest {
                 employee -> setHireDate(employee, LocalDate.of(2025, 1, 1)),
                 employee -> setTerminatedDate(employee, LocalDate.of(2026, 3, 19)),
                 employee -> setCreatedAt(employee, LocalDateTime.of(2025, 1, 1, 8, 0)),
-
-                // Thêm trường mới
-                employee -> setAvatarUrl(employee, "http://avatar.jpg"));
-
+                employee -> setAvatarUrl(employee, "/avatars/alice.png")
+        );
     }
 
     private Employee populated() {
@@ -84,86 +77,25 @@ class EmployeeTest {
                 .hireDate(LocalDate.of(2025, 1, 1))
                 .terminatedDate(LocalDate.of(2026, 3, 19))
                 .createdAt(LocalDateTime.of(2025, 1, 1, 8, 0))
-
-                .avatarUrl("http://avatar.jpg") // Thêm avatarUrl
+                .avatarUrl("/avatars/alice.png")
                 .build();
     }
 
-    private Employee setEmployeeId(Employee employee, Long value) {
-        employee.setEmployeeId(value);
-        return employee;
-    }
-
-    private Employee setEmployeeCode(Employee employee, String value) {
-        employee.setEmployeeCode(value);
-        return employee;
-    }
-
-    private Employee setFullName(Employee employee, String value) {
-        employee.setFullName(value);
-        return employee;
-    }
-
-    private Employee setDob(Employee employee, LocalDate value) {
-        employee.setDob(value);
-        return employee;
-    }
-
-    private Employee setGender(Employee employee, String value) {
-        employee.setGender(value);
-        return employee;
-    }
-
-    private Employee setPhone(Employee employee, String value) {
-        employee.setPhone(value);
-        return employee;
-    }
-
-    private Employee setEmail(Employee employee, String value) {
-        employee.setEmail(value);
-        return employee;
-    }
-
-    private Employee setStatus(Employee employee, String value) {
-        employee.setStatus(value);
-        return employee;
-    }
-
-    private Employee setDepartmentId(Employee employee, Long value) {
-        employee.setDepartmentId(value);
-        return employee;
-    }
-
-    private Employee setPositionId(Employee employee, Long value) {
-        employee.setPositionId(value);
-        return employee;
-    }
-
-    private Employee setManagerId(Employee employee, Long value) {
-        employee.setManagerId(value);
-        return employee;
-    }
-
-    private Employee setHireDate(Employee employee, LocalDate value) {
-        employee.setHireDate(value);
-        return employee;
-    }
-
-    private Employee setTerminatedDate(Employee employee, LocalDate value) {
-        employee.setTerminatedDate(value);
-        return employee;
-    }
-
-    private Employee setCreatedAt(Employee employee, LocalDateTime value) {
-        employee.setCreatedAt(value);
-        return employee;
-    }
-
-    private Employee setAvatarUrl(Employee employee, String value) {
-        employee.setAvatarUrl(value);
-        return employee;
-    }
-
+    private Employee setEmployeeId(Employee employee, Long value) { employee.setEmployeeId(value); return employee; }
+    private Employee setEmployeeCode(Employee employee, String value) { employee.setEmployeeCode(value); return employee; }
+    private Employee setFullName(Employee employee, String value) { employee.setFullName(value); return employee; }
+    private Employee setDob(Employee employee, LocalDate value) { employee.setDob(value); return employee; }
+    private Employee setGender(Employee employee, String value) { employee.setGender(value); return employee; }
+    private Employee setPhone(Employee employee, String value) { employee.setPhone(value); return employee; }
+    private Employee setEmail(Employee employee, String value) { employee.setEmail(value); return employee; }
+    private Employee setStatus(Employee employee, String value) { employee.setStatus(value); return employee; }
+    private Employee setDepartmentId(Employee employee, Long value) { employee.setDepartmentId(value); return employee; }
+    private Employee setPositionId(Employee employee, Long value) { employee.setPositionId(value); return employee; }
+    private Employee setManagerId(Employee employee, Long value) { employee.setManagerId(value); return employee; }
+    private Employee setHireDate(Employee employee, LocalDate value) { employee.setHireDate(value); return employee; }
+    private Employee setTerminatedDate(Employee employee, LocalDate value) { employee.setTerminatedDate(value); return employee; }
+    private Employee setCreatedAt(Employee employee, LocalDateTime value) { employee.setCreatedAt(value); return employee; }
+    private Employee setAvatarUrl(Employee employee, String value) { employee.setAvatarUrl(value); return employee; }
 
     private static final class NonEqualEmployee extends Employee {
         private NonEqualEmployee(Employee base) {
@@ -182,14 +114,11 @@ class EmployeeTest {
                     base.getHireDate(),
                     base.getTerminatedDate(),
                     base.getCreatedAt(),
-
-                    base.getAvatarUrl() // Thêm avatarUrl vào super()
-
+                    base.getAvatarUrl()
             );
         }
 
         @Override
-        @SuppressWarnings("squid:S00120") // Lombok canEqual pattern
         protected boolean canEqual(Object other) {
             return false;
         }

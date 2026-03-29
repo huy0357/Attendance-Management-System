@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { RequestsService } from '../../../core/services/requests.service';
@@ -29,7 +28,6 @@ interface OtRequest {
   styleUrls: ['./ot-requests.component.scss'],
 })
 export class OtRequestsComponent implements OnInit {
-  private readonly destroyRef = inject(DestroyRef);
   requests: OtRequest[] = [];
   filteredRequests: OtRequest[] = [];
   errorMessage: string | null = null;
@@ -70,35 +68,29 @@ export class OtRequestsComponent implements OnInit {
 
     this.helperMessage = 'This page only renders OT fields backed by /api/requests. Employee lookup is intentionally hidden because backend does not expose a manager-safe /api/employees lookup flow.';
 
-    this.filterForm.get('searchQuery')?.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.applyFilters());
-    this.filterForm.get('status')?.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.applyFilters());
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((queryParams) => {
-        const routeEmployeeId = Number(queryParams.get('employeeId'));
-        const nextEmployeeId = Number.isInteger(routeEmployeeId) && routeEmployeeId > 0
-          ? routeEmployeeId
-          : null;
+    this.filterForm.get('searchQuery')?.valueChanges.subscribe(() => this.applyFilters());
+    this.filterForm.get('status')?.valueChanges.subscribe(() => this.applyFilters());
+    this.route.queryParamMap.subscribe((queryParams) => {
+      const routeEmployeeId = Number(queryParams.get('employeeId'));
+      const nextEmployeeId = Number.isInteger(routeEmployeeId) && routeEmployeeId > 0
+        ? routeEmployeeId
+        : null;
 
-        if (nextEmployeeId === this.selectedEmployeeId) {
-          return;
-        }
+      if (nextEmployeeId === this.selectedEmployeeId) {
+        return;
+      }
 
-        this.selectedEmployeeId = nextEmployeeId;
+      this.selectedEmployeeId = nextEmployeeId;
 
-        if (!this.selectedEmployeeId) {
-          this.requests = [];
-          this.filteredRequests = [];
-          this.errorMessage = null;
-          return;
-        }
+      if (!this.selectedEmployeeId) {
+        this.requests = [];
+        this.filteredRequests = [];
+        this.errorMessage = null;
+        return;
+      }
 
-        this.loadRequests(this.selectedEmployeeId);
-      });
+      this.loadRequests(this.selectedEmployeeId);
+    });
   }
 
   get stats(): Array<{ label: string; value: string | number; color: string; bg: string; icon: string }> {
@@ -249,14 +241,6 @@ export class OtRequestsComponent implements OnInit {
   formatDate(dateValue: string): string {
     const parsed = new Date(dateValue);
     return Number.isNaN(parsed.getTime()) ? dateValue : parsed.toLocaleString();
-  }
-
-  trackByRequestId(_: number, request: OtRequest): string {
-    return request.id;
-  }
-
-  trackByStatLabel(_: number, stat: { label: string }): string {
-    return stat.label;
   }
 
   private loadRequests(employeeId: number, afterLoad?: () => void): void {

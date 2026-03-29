@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { finalize } from 'rxjs/operators';
+import { Component, OnInit } from '@angular/core';
 import { ProfileService } from '../../../core/services/profile.service';
 import { ProfileRecord } from '../../../shared/models/profile.model';
 
@@ -14,10 +13,7 @@ export class EmployeePortalComponent implements OnInit {
   employee: ProfileRecord | null = null;
   isLoadingProfile = true;
   profileErrorMessage = '';
-  constructor(
-    private readonly profileService: ProfileService,
-    private readonly cdr: ChangeDetectorRef
-  ) {}
+  constructor(private readonly profileService: ProfileService) {}
 
   ngOnInit(): void {
     this.loadProfile();
@@ -45,18 +41,15 @@ export class EmployeePortalComponent implements OnInit {
     this.isLoadingProfile = true;
     this.profileErrorMessage = '';
 
-    this.profileService.getMyProfile()
-      .pipe(finalize(() => {
-        this.isLoadingProfile = false;
-        this.cdr.detectChanges();
-      }))
-      .subscribe({
+    this.profileService.getMyProfile().subscribe({
       next: (employee) => {
         this.employee = employee;
+        this.isLoadingProfile = false;
       },
       error: (error: HttpErrorResponse) => {
         this.employee = null;
         this.profileErrorMessage = this.resolveProfileError(error);
+        this.isLoadingProfile = false;
       },
     });
   }

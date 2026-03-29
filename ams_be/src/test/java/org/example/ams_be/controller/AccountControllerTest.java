@@ -53,8 +53,8 @@ class AccountControllerTest {
 
     @Test
     void createReturnsCreated() {
-        CreateAccountRequest request = CreateAccountRequest.builder().employeeId(1L).username("alice").build();
-        AccountResponse created = AccountResponse.builder().accountId(3L).roleId(1L).roleCode("admin").build();
+        CreateAccountRequest request = CreateAccountRequest.builder().employeeId(1L).username("alice").roleId(2L).build();
+        AccountResponse created = AccountResponse.builder().accountId(3L).roleId(2L).roleCode("manager").build();
         when(accountService.createAccount(request)).thenReturn(created);
 
         ResponseEntity<AccountResponse> response = controller.create(request);
