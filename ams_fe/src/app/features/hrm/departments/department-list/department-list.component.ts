@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
@@ -28,6 +28,14 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
     pageSize = 10;
     totalItems = 0;
     totalPages = 0;
+    sortBy: 'departmentId' | 'departmentName' | 'departmentCode' = 'departmentId';
+    sortDir: 'asc' | 'desc' = 'desc';
+    readonly pageSizeOptions = [10, 20, 50];
+    readonly sortOptions = [
+        { value: 'departmentId', label: 'Department ID' },
+        { value: 'departmentName', label: 'Department Name' },
+        { value: 'departmentCode', label: 'Department Code' },
+    ];
 
     // Search
     searchQuery = '';
@@ -83,7 +91,7 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
     loadDepartments(): void {
         this.isLoading = true;
         this.apiError = false;
-        this.departmentService.getAll(this.currentPage, this.pageSize, this.searchQuery).subscribe({
+        this.departmentService.getAll(this.currentPage, this.pageSize, this.searchQuery, this.sortBy, this.sortDir).subscribe({
             next: (response) => {
                 this.departments = response.items;
                 this.totalItems = response.totalItems;
@@ -145,6 +153,16 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
         this.goToPage(this.currentPage - 1);
     }
 
+    onSortChange(): void {
+        this.currentPage = 1;
+        this.loadDepartments();
+    }
+
+    onPageSizeChange(): void {
+        this.currentPage = 1;
+        this.loadDepartments();
+    }
+
     // Actions
     openAddModal(): void {
         this.showEditModal = false;
@@ -204,7 +222,16 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
 
     // CRUD
     saveDepartment(): void {
-        if (this.departmentForm.invalid) return;
+        if (this.departmentForm.invalid) {
+            this.departmentForm.markAllAsTouched();
+            return;
+        }
+
+        if (this.isSelfParentSelected()) {
+            this.departmentForm.get('parentDepartmentId')?.setErrors({ selfParent: true });
+            this.departmentForm.markAllAsTouched();
+            return;
+        }
 
         const modalClose = () => {
             this.closeFormModal();
@@ -248,5 +275,14 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
 
     get endItemIndex(): number {
         return Math.min(this.currentPage * this.pageSize, this.totalItems);
+    }
+
+    private isSelfParentSelected(): boolean {
+        if (!this.showEditModal || !this.selectedDepartment) {
+            return false;
+        }
+
+        const parentDepartmentId = Number(this.departmentForm.get('parentDepartmentId')?.value);
+        return Number.isInteger(parentDepartmentId) && parentDepartmentId === this.selectedDepartment.departmentId;
     }
 }

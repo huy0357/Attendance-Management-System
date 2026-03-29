@@ -2,23 +2,25 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { RoleResponse } from '../../../shared/models/account.model';
 
 export interface EmployeeDto {
   employeeId: number;
-  employeeCode: string;
-  fullName: string;
-  dob: string;
-  gender: string;
-  phone: string;
-  email: string;
-  status: string;
-  departmentId: number;
-  positionId: number;
-  managerId: number;
-  hireDate: string;
-  terminatedDate: string;
-  createdAt: string;
-  updatedAt: string;
+  employeeCode: string | null;
+  fullName: string | null;
+  dob: string | null;
+  gender: string | null;
+  phone: string | null;
+  email: string | null;
+  status: string | null;
+  departmentId: number | null;
+  positionId: number | null;
+  managerId: number | null;
+  hireDate: string | null;
+  terminatedDate: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  avatarUrl: string | null;
 }
 
 export interface EmployeeRequest {
@@ -60,6 +62,7 @@ export class EmployeeService {
   private readonly baseUrl = `${environment.apiBaseUrl}/employees`;
   private readonly departmentsUrl = `${environment.apiBaseUrl}/departments`;
   private readonly exportsUrl = `${environment.apiBaseUrl}/exports`;
+  private readonly rolesUrl = `${environment.apiBaseUrl}/roles`;
 
   constructor(private http: HttpClient) { }
 
@@ -145,5 +148,21 @@ export class EmployeeService {
       observe: 'response',
       responseType: 'blob',
     });
+  }
+
+  getAllRoles(): Observable<RoleResponse[]> {
+    return this.http.get<RoleResponse[]>(this.rolesUrl);
+  }
+
+  getEmployeeRoles(employeeId: number): Observable<RoleResponse[]> {
+    return this.http.get<RoleResponse[]>(`${this.baseUrl}/${employeeId}/roles`);
+  }
+
+  assignRoleToEmployee(employeeId: number, roleId: number): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/${employeeId}/roles`, { roleId });
+  }
+
+  removeRoleFromEmployee(employeeId: number, roleId: number): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.baseUrl}/${employeeId}/roles/${roleId}`);
   }
 }

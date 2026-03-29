@@ -1,33 +1,34 @@
 export type RequestType = 'LEAVE' | 'OVERTIME' | 'REMOTE' | 'LATE_EARLY';
 export type RequestStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type RequestApprovalStatus = 'APPROVED' | 'REJECTED';
 
 export interface RequestsResponse {
   requestId: number;
-  employeeId: number;
-  employeeName: string;
+  employeeId: number | null;
+  employeeName: string | null;
   requestType: RequestType;
-  title: string;
-  reason: string;
-  startDatetime: string;
-  endDatetime: string;
+  title: string | null;
+  reason: string | null;
+  startDatetime: string | null;
+  endDatetime: string | null;
   status: RequestStatus;
-  approverId?: number;
-  approverName?: string;
-  decisionNote?: string;
-  submittedAt?: string;
+  approverId?: number | null;
+  approverName?: string | null;
+  decisionNote?: string | null;
+  submittedAt?: string | null;
 }
 
 export interface RequestsUpsertRequest {
   employeeId: number;
   requestType: RequestType;
   title: string;
-  reason: string;
+  reason?: string;
   startDatetime: string;
   endDatetime: string;
 }
 
 export interface RequestsApprovalRequest {
   approverId: number;
-  status: RequestStatus;
+  status: RequestApprovalStatus;
   decisionNote?: string;
 }

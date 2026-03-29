@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AttendanceEmailEmployee, AttendanceService } from '../attendance.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   standalone: false,
@@ -28,13 +29,36 @@ export class AttendanceEmailComponent implements OnInit {
   employeeSearchTotalItems = 0;
   employeeSearchTotalPages = 0;
 
-  constructor(private attendanceService: AttendanceService) {}
+  constructor(
+    private attendanceService: AttendanceService,
+    private authService: AuthService,
+  ) {}
+
+  get canManageAttendanceEmails(): boolean {
+    return this.authService.hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
+  }
+
+  get canSelectAttendanceEmailRecipient(): boolean {
+    return this.authService.hasRole('ADMIN');
+  }
+
+  get canSendAttendanceEmailToAll(): boolean {
+    return this.canManageAttendanceEmails;
+  }
 
   ngOnInit(): void {
-    this.searchEmployees();
+    if (this.canSelectAttendanceEmailRecipient) {
+      this.searchEmployees();
+    }
   }
 
   searchEmployees(page: number = 1): void {
+    if (!this.canSelectAttendanceEmailRecipient) {
+      this.employees = [];
+      this.selectedEmployeeId = null;
+      return;
+    }
+
     this.isSearchingEmployees = true;
     this.errorMessage = '';
     this.employeeSearchPage = page;
@@ -65,6 +89,9 @@ export class AttendanceEmailComponent implements OnInit {
   }
 
   onEmployeeSearch(): void {
+    if (!this.canSelectAttendanceEmailRecipient) {
+      return;
+    }
     this.searchEmployees(1);
   }
 
@@ -73,8 +100,15 @@ export class AttendanceEmailComponent implements OnInit {
   }
 
   sendToSelectedEmployee(): void {
-    if (!this.month) {
-      this.errorMessage = 'Month is required.';
+    if (!this.canSelectAttendanceEmailRecipient) {
+      this.errorMessage = 'Single-recipient attendance email is hidden because backend employee lookup is not available for your role.';
+      this.successMessage = '';
+      return;
+    }
+
+    const normalizedMonth = this.normalizeMonth(this.month);
+    if (!normalizedMonth) {
+      this.errorMessage = 'Month must use yyyy-MM format.';
       this.successMessage = '';
       return;
     }
@@ -89,7 +123,7 @@ export class AttendanceEmailComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.attendanceService.sendAttendanceEmail(this.month, this.selectedEmployeeId, this.regenerate).subscribe({
+    this.attendanceService.sendAttendanceEmail(normalizedMonth, this.selectedEmployeeId, this.regenerate).subscribe({
       next: (response) => {
         this.successMessage = response.message;
         this.isSendingOne = false;
@@ -102,8 +136,9 @@ export class AttendanceEmailComponent implements OnInit {
   }
 
   sendToAllEmployees(): void {
-    if (!this.month) {
-      this.errorMessage = 'Month is required.';
+    const normalizedMonth = this.normalizeMonth(this.month);
+    if (!normalizedMonth) {
+      this.errorMessage = 'Month must use yyyy-MM format.';
       this.successMessage = '';
       return;
     }
@@ -112,7 +147,7 @@ export class AttendanceEmailComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.attendanceService.sendAttendanceEmailToAll(this.month, this.regenerate).subscribe({
+    this.attendanceService.sendAttendanceEmailToAll(normalizedMonth, this.regenerate).subscribe({
       next: (response) => {
         this.successMessage = response.message;
         this.isSendingAll = false;
@@ -153,5 +188,10 @@ export class AttendanceEmailComponent implements OnInit {
     const year = date.getFullYear();
     const month = `${date.getMonth() + 1}`.padStart(2, '0');
     return `${year}-${month}`;
+  }
+
+  private normalizeMonth(value: string): string | null {
+    const normalized = String(value ?? '').trim();
+    return /^\d{4}-\d{2}$/.test(normalized) ? normalized : null;
   }
 }

@@ -1,48 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { PageResponse, SpringPage } from '../../shared/models/page-response.model';
-import {
-  RequestStatus,
-  RequestsApprovalRequest,
-  RequestsResponse,
-  RequestsUpsertRequest,
-} from '../../shared/models/requests.model';
-
-export interface LeaveRequest {
-  requestId: number;
-  employeeId: number;
-  employeeName: string;
-  title: string;
-  startDatetime: string;
-  endDatetime: string;
-  days: number;
-  reason: string;
-  status: RequestStatus;
-  submittedAt?: string;
-  approverName?: string;
-  decisionNote?: string;
-}
-
-export interface OtRequest {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  employeeAvatar: string;
-  department: string;
-  position: string;
-  date: string;
-  hours: number;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  submittedDate: string;
-  reviewedBy?: string;
-  reviewedDate?: string;
-  reviewNotes?: string;
-  estimatedPay?: number;
-}
 
 export interface ShiftTemplate {
   id: string;
@@ -69,7 +30,7 @@ export interface Shift {
   type: 'morning' | 'afternoon' | 'night';
   shiftId?: number;
   workDate?: string;
-  isAiGenerated?: boolean;
+  scheduleSource?: 'MANUAL' | 'IMPORT';
   hasConflict?: boolean;
 }
 
@@ -87,6 +48,19 @@ export interface ShiftTemplateResponse {
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ShiftTemplateUpsertPayload {
+  shiftCode: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  breakMinutes: number;
+  graceInMinutes: number;
+  graceOutMinutes: number;
+  isNightShift: boolean;
+  minWorkMinutes: number;
+  isActive: boolean;
 }
 
 export interface AttendanceDailyResponse {
@@ -190,7 +164,6 @@ export class AttendanceService {
   private readonly attendanceEmailUrl = `${environment.apiBaseUrl}/attendance-email`;
   private readonly monthlySummaryUrl = `${environment.apiBaseUrl}/monthly-summary`;
   private readonly exportsUrl = `${environment.apiBaseUrl}/exports`;
-  private readonly requestsUrl = `${environment.apiBaseUrl}/requests`;
   private readonly employeesUrl = `${environment.apiBaseUrl}/employees`;
   private readonly departmentsUrl = `${environment.apiBaseUrl}/departments`;
   private readonly schedulesUrl = `${environment.apiBaseUrl}/v1/schedules`;
@@ -249,28 +222,28 @@ export class AttendanceService {
 
   sendAttendanceEmail(month: string, employeeId: number, regenerate: boolean): Observable<AttendanceEmailSendResponse> {
     const params = new HttpParams()
-      .set('month', month)
+      .set('month', this.normalizeMonthParam(month))
       .set('employeeId', employeeId.toString())
-      .set('regenerate', regenerate.toString());
+      .set('regenerate', String(Boolean(regenerate)));
 
     return this.http.post<AttendanceEmailSendResponse>(`${this.attendanceEmailUrl}/send`, null, { params });
   }
 
   sendAttendanceEmailToAll(month: string, regenerate: boolean): Observable<AttendanceEmailSendResponse> {
     const params = new HttpParams()
-      .set('month', month)
-      .set('regenerate', regenerate.toString());
+      .set('month', this.normalizeMonthParam(month))
+      .set('regenerate', String(Boolean(regenerate)));
 
     return this.http.post<AttendanceEmailSendResponse>(`${this.attendanceEmailUrl}/send-all`, null, { params });
   }
 
   generateMonthlySummary(month: string): Observable<MonthlySummaryGenerateResponse> {
-    const params = new HttpParams().set('month', month);
+    const params = new HttpParams().set('month', this.normalizeMonthParam(month));
     return this.http.post<MonthlySummaryGenerateResponse>(`${this.monthlySummaryUrl}/generate`, null, { params });
   }
 
   exportAttendanceMonthly(month: string): Observable<HttpResponse<Blob>> {
-    const params = new HttpParams().set('month', month);
+    const params = new HttpParams().set('month', this.normalizeMonthParam(month));
     return this.http.get(`${this.exportsUrl}/attendance-monthly`, {
       params,
       observe: 'response',
@@ -295,11 +268,11 @@ export class AttendanceService {
     return this.http.get<ShiftTemplateResponse>(`${this.shiftsUrl}/${id}`);
   }
 
-  createShiftTemplate(shift: any): Observable<ShiftTemplateResponse> {
+  createShiftTemplate(shift: ShiftTemplateUpsertPayload): Observable<ShiftTemplateResponse> {
     return this.http.post<ShiftTemplateResponse>(this.shiftsUrl, shift);
   }
 
-  updateShiftTemplate(id: number, shift: any): Observable<ShiftTemplateResponse> {
+  updateShiftTemplate(id: number, shift: ShiftTemplateUpsertPayload): Observable<ShiftTemplateResponse> {
     return this.http.put<ShiftTemplateResponse>(`${this.shiftsUrl}/${id}`, shift);
   }
 
@@ -313,83 +286,8 @@ export class AttendanceService {
     return this.http.delete<void>(`${this.shiftsUrl}/${id}`);
   }
 
-  findEmployeeByNameOrEmail(nameOrEmail: string, email?: string): Observable<EmployeeLookupDto | null> {
-    const nameQuery = nameOrEmail.trim().toLowerCase();
-    const emailQuery = (email ?? '').trim().toLowerCase();
-    return this.http.get<EmployeeLookupDto[]>(this.employeesUrl).pipe(
-      map((employees) => {
-        const matched = employees.find((employee) => {
-          const employeeName = employee.fullName?.toLowerCase() ?? '';
-          const employeeEmail = employee.email?.toLowerCase() ?? '';
-          return (
-            employeeName === nameQuery ||
-            employeeEmail === emailQuery ||
-            employeeEmail === nameQuery ||
-            employeeName.includes(nameQuery)
-          );
-        });
-        return matched ?? null;
-      }),
-    );
-  }
-
-  createRequest(payload: RequestsUpsertRequest): Observable<RequestsResponse> {
-    return this.http.post<RequestsResponse>(this.requestsUrl, payload);
-  }
-
-  approveRequest(requestId: number, status: RequestStatus, note?: string): Observable<RequestsResponse> {
-    return this.resolveEmployeeIdFromUsername().pipe(
-      switchMap((approverId) => {
-        const payload: RequestsApprovalRequest = {
-          approverId,
-          status,
-          decisionNote: note,
-        };
-        return this.http.put<RequestsResponse>(`${this.requestsUrl}/${requestId}/approval`, payload);
-      }),
-    );
-  }
-
-  getRequestsByEmployee(employeeId: number): Observable<RequestsResponse[]> {
-    const params = new HttpParams().set('employeeId', employeeId.toString());
-    return this.http.get<RequestsResponse[]>(this.requestsUrl, { params });
-  }
-
-  updateRequest(requestId: number, payload: RequestsUpsertRequest): Observable<RequestsResponse> {
-    return this.http.put<RequestsResponse>(`${this.requestsUrl}/${requestId}`, payload);
-  }
-
-  deleteRequest(requestId: number): Observable<void> {
-    return this.http.delete<void>(`${this.requestsUrl}/${requestId}`);
-  }
-
   assignShiftRange(payload: AssignShiftRangeRequest): Observable<AssignShiftRangeResponse> {
-    return this.http.post<AssignShiftRangeResponse>(`${this.schedulesUrl}/assign-range`, payload);
-  }
-
-  getLeaveRequests(): Observable<LeaveRequest[]> {
-    return this.resolveEmployeeIdFromUsername().pipe(
-      switchMap((employeeId) => this.getRequestsByEmployee(employeeId)),
-      map((requests) =>
-        requests
-          .filter((request) => request.requestType === 'LEAVE')
-          .map((request) => this.mapRequestToLeave(request)),
-      ),
-    );
-  }
-
-  getOtRequests(): Observable<OtRequest[]> {
-    return this.resolveEmployeeIdFromUsername().pipe(
-      switchMap((employeeId) => {
-        const params = new HttpParams().set('employeeId', employeeId.toString());
-        return this.http.get<RequestsResponse[]>(this.requestsUrl, { params });
-      }),
-      map((requests) =>
-        requests
-          .filter((request) => request.requestType === 'OVERTIME')
-          .map((request) => this.mapRequestToOt(request)),
-      ),
-    );
+    return this.http.post<AssignShiftRangeResponse>(`${this.schedulesUrl}/assign-range`, this.normalizeAssignShiftRangePayload(payload));
   }
 
   getScheduleEmployees(): Observable<ScheduleEmployee[]> {
@@ -474,122 +372,32 @@ export class AttendanceService {
     );
   }
 
-  private resolveEmployeeIdFromUsername(): Observable<number> {
-    const username = (localStorage.getItem('ams.username') || '').trim().toLowerCase();
-    if (!username) {
-      return throwError(() => new Error('Missing username in auth context.'));
-    }
-
-    return this.http.get<EmployeeLookupDto[]>(this.employeesUrl).pipe(
-      map((employees) => {
-        const match = employees.find((employee) => {
-          const name = employee.fullName?.toLowerCase() ?? '';
-          const email = employee.email?.toLowerCase() ?? '';
-          const code = employee.employeeCode?.toLowerCase() ?? '';
-          return email === username || name === username || code === username;
-        });
-        if (!match) {
-          throw new Error(`Employee not found for username '${username}'.`);
-        }
-        return match.employeeId;
-      }),
-    );
-  }
-
   private buildAttendanceDailyParams(from: string, to: string, page: number, size: number): HttpParams {
     return new HttpParams()
-      .set('from', from)
-      .set('to', to)
-      .set('page', page.toString())
-      .set('size', size.toString());
+      .set('from', this.normalizeDateParam(from))
+      .set('to', this.normalizeDateParam(to))
+      .set('page', Math.max(0, page).toString())
+      .set('size', Math.max(1, size).toString());
   }
 
-  private mapRequestToOt(request: RequestsResponse): OtRequest {
-    const employeeName = request.employeeName ?? '';
+  private normalizeAssignShiftRangePayload(payload: AssignShiftRangeRequest): AssignShiftRangeRequest {
     return {
-      id: String(request.requestId),
-      employeeId: String(request.employeeId ?? ''),
-      employeeName,
-      employeeAvatar: this.toInitials(employeeName),
-      department: '',
-      position: '',
-      date: request.startDatetime ?? request.endDatetime ?? request.submittedAt ?? '',
-      hours: this.calculateHours(request.startDatetime, request.endDatetime),
-      reason: request.reason ?? '',
-      status: this.mapRequestStatus(request.status),
-      submittedDate: request.submittedAt ?? request.startDatetime ?? '',
-      reviewedBy: request.approverName ?? undefined,
-      reviewNotes: request.decisionNote ?? undefined,
-      estimatedPay: undefined,
+      employeeId: Number(payload.employeeId),
+      shiftId: Number(payload.shiftId),
+      startDate: this.normalizeDateParam(payload.startDate),
+      endDate: this.normalizeDateParam(payload.endDate),
+      scheduleSource: payload.scheduleSource === 'IMPORT' ? 'IMPORT' : 'MANUAL',
+      note: payload.note?.trim() || undefined,
+      overwrite: Boolean(payload.overwrite),
     };
   }
 
-  private mapRequestToLeave(request: RequestsResponse): LeaveRequest {
-    return {
-      requestId: request.requestId,
-      employeeId: request.employeeId ?? 0,
-      employeeName: request.employeeName ?? '',
-      title: request.title ?? 'Leave request',
-      startDatetime: request.startDatetime ?? '',
-      endDatetime: request.endDatetime ?? '',
-      days: this.calculateDays(request.startDatetime, request.endDatetime),
-      reason: request.reason ?? '',
-      status: request.status,
-      submittedAt: request.submittedAt ?? undefined,
-      approverName: request.approverName ?? undefined,
-      decisionNote: request.decisionNote ?? undefined,
-    };
+  private normalizeMonthParam(month: string): string {
+    return String(month ?? '').trim();
   }
 
-  private mapRequestStatus(status: RequestStatus): OtRequest['status'] {
-    if (status === 'APPROVED') {
-      return 'approved';
-    }
-    if (status === 'REJECTED' || status === 'CANCELLED') {
-      return 'rejected';
-    }
-    return 'pending';
-  }
-
-  private calculateHours(start?: string, end?: string): number {
-    if (!start || !end) {
-      return 0;
-    }
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      return 0;
-    }
-    const diffMs = endDate.getTime() - startDate.getTime();
-    if (diffMs <= 0) {
-      return 0;
-    }
-    return Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
-  }
-
-  private calculateDays(start?: string, end?: string): number {
-    if (!start || !end) {
-      return 0;
-    }
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      return 0;
-    }
-    const diffMs = endDate.getTime() - startDate.getTime();
-    if (diffMs < 0) {
-      return 0;
-    }
-    return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-  }
-
-  private toInitials(name: string): string {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) {
-      return '';
-    }
-    const initials = parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '');
-    return initials.join('');
+  private normalizeDateParam(value: string): string {
+    return String(value ?? '').trim();
   }
 
   private toHourMinute(value: string): string {

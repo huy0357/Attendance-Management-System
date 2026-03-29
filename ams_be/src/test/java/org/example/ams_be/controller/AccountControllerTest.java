@@ -6,7 +6,6 @@ import org.example.ams_be.dto.request.PageRequestDto;
 import org.example.ams_be.dto.request.UpdateAccountRequest;
 import org.example.ams_be.dto.response.AccountResponse;
 import org.example.ams_be.dto.response.PageResponse;
-import org.example.ams_be.entity.Account;
 import org.example.ams_be.service.AccountService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,8 +53,8 @@ class AccountControllerTest {
 
     @Test
     void createReturnsCreated() {
-        CreateAccountRequest request = CreateAccountRequest.builder().employeeId(1L).username("alice").build();
-        AccountResponse created = AccountResponse.builder().accountId(3L).role(Account.Role.admin).build();
+        CreateAccountRequest request = CreateAccountRequest.builder().employeeId(1L).username("alice").roleId(2L).build();
+        AccountResponse created = AccountResponse.builder().accountId(3L).roleId(2L).roleCode("manager").build();
         when(accountService.createAccount(request)).thenReturn(created);
 
         ResponseEntity<AccountResponse> response = controller.create(request);
@@ -112,6 +111,8 @@ class AccountControllerTest {
         AccountDto dto = new AccountDto();
         dto.setAccountId(id);
         dto.setUsername("user-" + id);
+        dto.setRoleId(2L);
+        dto.setRoleCode("manager");
         return dto;
     }
 }

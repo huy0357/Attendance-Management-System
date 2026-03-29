@@ -1,12 +1,15 @@
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { EmployeeDto, EmployeeService } from './employee.service';
+import { RoleResponse } from '../../../shared/models/account.model';
+import { AuthService } from '../../../core/auth/auth.service';
 
 interface UiEmployee {
   id: string;
-  employeeCode?: string;
+  employeeCode?: string | null;
   fullName: string;
   email: string;
   phone: string;
@@ -37,11 +40,13 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   showAddModal = false;
   showEditModal = false;
   showDeleteModal = false;
+  showRoleModal = false;
   selectedEmployee: UiEmployee | null = null;
   viewMode: 'grid' | 'table' = 'table';
 
   apiLoaded = false;
   apiError = false;
+  isExporting = false;
 
   employees: UiEmployee[] = [];
   currentPage = 1;
@@ -49,6 +54,22 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   totalItems = 0;
   totalPages = 0;
   isLoading = false;
+  sortBy = 'employee_id';
+  sortDir: 'asc' | 'desc' = 'asc';
+  isRoleLoading = false;
+  isRoleSaving = false;
+  roleModalError = '';
+  roleModalMessage = '';
+  availableRoles: RoleResponse[] = [];
+  currentEmployeeRoles: RoleResponse[] = [];
+  selectedRoleId: number | null = null;
+  readonly pageSizeOptions = [10, 20, 50];
+  readonly sortOptions = [
+    { value: 'employee_id', label: 'Employee ID' },
+    { value: 'employee_code', label: 'Employee Code' },
+    { value: 'full_name', label: 'Full Name' },
+    { value: 'hire_date', label: 'Hire Date' },
+  ];
 
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
@@ -59,6 +80,8 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private employeeService: EmployeeService,
+    private authService: AuthService,
+    private router: Router,
     private cdr: ChangeDetectorRef,
   ) {
     this.addForm = this.fb.group({
@@ -104,6 +127,22 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     return this.totalItems;
   }
 
+  get canManageEmployees(): boolean {
+    return this.authService.hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
+  }
+
+  get canExportEmployees(): boolean {
+    return this.canManageEmployees;
+  }
+
+  get canManageEmployeeRoles(): boolean {
+    return this.authService.hasRole('ADMIN');
+  }
+
+  get canOpenOtherEmployeeAttendance(): boolean {
+    return this.authService.hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
+  }
+
   openAddModal(): void {
     this.addForm.reset({
       employeeCode: '',
@@ -118,6 +157,35 @@ export class EmployeesComponent implements OnInit, OnDestroy {
       hireDate: '',
     });
     this.showAddModal = true;
+  }
+
+  exportEmployees(): void {
+    this.isExporting = true;
+    this.employeeService.exportEmployees().subscribe({
+      next: (response) => {
+        const blob = response.body;
+        if (!blob) {
+          this.isExporting = false;
+          alert('Unable to export employees. Empty response.');
+          return;
+        }
+
+        const contentDisposition = response.headers.get('content-disposition') ?? '';
+        const fileNameMatch = /filename=([^;]+)/i.exec(contentDisposition);
+        const fileName = fileNameMatch?.[1]?.replace(/"/g, '')?.trim() || 'employees.xlsx';
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = fileName;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        this.isExporting = false;
+      },
+      error: () => {
+        this.isExporting = false;
+        alert('Unable to export employees. Please try again.');
+      },
+    });
   }
 
   closeAddModal(): void {
@@ -215,6 +283,91 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.selectedEmployee = null;
   }
 
+  openRoleModal(employee: UiEmployee): void {
+    this.selectedEmployee = employee;
+    this.showRoleModal = true;
+    this.roleModalError = '';
+    this.roleModalMessage = '';
+    this.availableRoles = [];
+    this.currentEmployeeRoles = [];
+    this.selectedRoleId = null;
+    this.loadRoleData(employee);
+  }
+
+  closeRoleModal(): void {
+    this.showRoleModal = false;
+    this.selectedEmployee = null;
+    this.availableRoles = [];
+    this.currentEmployeeRoles = [];
+    this.selectedRoleId = null;
+    this.roleModalError = '';
+    this.roleModalMessage = '';
+  }
+
+  assignSelectedRole(): void {
+    if (!this.selectedEmployee || !this.selectedRoleId || this.isRoleSaving) {
+      return;
+    }
+
+    const employeeId = Number(this.selectedEmployee.id);
+    if (!Number.isFinite(employeeId)) {
+      this.roleModalError = 'Invalid employee ID.';
+      return;
+    }
+
+    this.isRoleSaving = true;
+    this.roleModalError = '';
+    this.roleModalMessage = '';
+    this.employeeService.assignRoleToEmployee(employeeId, this.selectedRoleId).subscribe({
+      next: (response) => {
+        this.isRoleSaving = false;
+        this.roleModalMessage = response.message || 'Role assigned successfully.';
+        this.loadRoleData(this.selectedEmployee as UiEmployee);
+      },
+      error: (error) => {
+        this.isRoleSaving = false;
+        this.roleModalError = this.resolveApiError(error, 'Unable to assign role.');
+      },
+    });
+  }
+
+  removeRole(role: RoleResponse): void {
+    if (!this.selectedEmployee || this.isRoleSaving) {
+      return;
+    }
+
+    const employeeId = Number(this.selectedEmployee.id);
+    if (!Number.isFinite(employeeId)) {
+      this.roleModalError = 'Invalid employee ID.';
+      return;
+    }
+
+    this.isRoleSaving = true;
+    this.roleModalError = '';
+    this.roleModalMessage = '';
+    this.employeeService.removeRoleFromEmployee(employeeId, role.roleId).subscribe({
+      next: (response) => {
+        this.isRoleSaving = false;
+        this.roleModalMessage = response.message || 'Role removed successfully.';
+        this.loadRoleData(this.selectedEmployee as UiEmployee);
+      },
+      error: (error) => {
+        this.isRoleSaving = false;
+        this.roleModalError = this.resolveApiError(error, 'Unable to remove role.');
+      },
+    });
+  }
+
+  navigateToAttendance(employee: UiEmployee): void {
+    const employeeId = Number(employee.id);
+    if (!Number.isFinite(employeeId)) {
+      alert('Invalid employee ID.');
+      return;
+    }
+
+    this.router.navigate(['/attendance/attendance-daily/employee', employeeId]);
+  }
+
   handleDeleteEmployee(): void {
     if (!this.selectedEmployee) {
       return;
@@ -287,12 +440,30 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.goToPage(this.currentPage - 1);
   }
 
+  onSortChange(): void {
+    this.currentPage = 1;
+    this.reloadCurrentData();
+  }
+
+  onPageSizeChange(): void {
+    this.currentPage = 1;
+    this.reloadCurrentData();
+  }
+
   formatDate(value?: string | null): string {
     return value || '-';
   }
 
   formatOptionalNumber(value?: number | null): string {
     return value == null ? '-' : String(value);
+  }
+
+  getCurrentRoleLabel(employee: UiEmployee): string {
+    if (this.selectedEmployee?.id === employee.id && this.currentEmployeeRoles.length > 0) {
+      return this.currentEmployeeRoles[0].roleCode;
+    }
+
+    return 'Manage role';
   }
 
   private setupSearchDebounce(): void {
@@ -317,7 +488,7 @@ export class EmployeesComponent implements OnInit, OnDestroy {
 
   private loadEmployeesPage(): void {
     this.isLoading = true;
-    this.employeeService.getPage(this.currentPage, this.pageSize).subscribe({
+    this.employeeService.getPage(this.currentPage, this.pageSize, this.sortBy, this.sortDir).subscribe({
       next: response => {
         this.applyPageResponse(response.items || response.content || []);
         this.totalItems = response.totalItems || 0;
@@ -331,7 +502,7 @@ export class EmployeesComponent implements OnInit, OnDestroy {
 
   private searchEmployeesServer(query: string): void {
     this.isLoading = true;
-    this.employeeService.searchByName(query, this.currentPage, this.pageSize).subscribe({
+    this.employeeService.searchByName(query, this.currentPage, this.pageSize, this.sortBy, this.sortDir).subscribe({
       next: response => {
         this.applyPageResponse(response.items || response.content || []);
         this.totalItems = response.totalItems || 0;
@@ -485,5 +656,50 @@ export class EmployeesComponent implements OnInit, OnDestroy {
         inline: 'nearest',
       });
     });
+  }
+
+  private loadRoleData(employee: UiEmployee): void {
+    const employeeId = Number(employee.id);
+    if (!Number.isFinite(employeeId)) {
+      this.roleModalError = 'Invalid employee ID.';
+      return;
+    }
+
+    this.isRoleLoading = true;
+    this.employeeService.getAllRoles().subscribe({
+      next: (roles) => {
+        this.availableRoles = roles;
+        this.employeeService.getEmployeeRoles(employeeId).subscribe({
+          next: (currentRoles) => {
+            this.isRoleLoading = false;
+            this.currentEmployeeRoles = currentRoles;
+            this.selectedRoleId = currentRoles[0]?.roleId ?? roles[0]?.roleId ?? null;
+            this.cdr.markForCheck();
+          },
+          error: (error) => {
+            this.isRoleLoading = false;
+            this.currentEmployeeRoles = [];
+            this.selectedRoleId = roles[0]?.roleId ?? null;
+            this.roleModalError = this.resolveApiError(error, 'Unable to load current role.');
+            this.cdr.markForCheck();
+          },
+        });
+      },
+      error: (error) => {
+        this.isRoleLoading = false;
+        this.availableRoles = [];
+        this.currentEmployeeRoles = [];
+        this.roleModalError = this.resolveApiError(error, 'Unable to load roles.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private resolveApiError(error: unknown, fallback: string): string {
+    return (
+      (error as { error?: { message?: string; error?: string } })?.error?.message ||
+      (error as { error?: { message?: string; error?: string } })?.error?.error ||
+      fallback
+    );
   }
 }

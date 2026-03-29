@@ -1,20 +1,17 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { AuditLogComponent } from './audit-log/audit-log.component';
-import { BackupRestoreComponent } from './backup-restore/backup-restore.component';
-import { SettingsComponent } from './settings/settings.component';
 import { ProfileComponent } from './profile/profile.component';
-import { DevicesLocationsComponent } from './devices-locations/devices-locations.component';
 import { AccountManagementComponent } from './account-management/account-management.component';
 
 const routes: Routes = [
-  { path: 'audit-log', component: AuditLogComponent },
-  { path: 'backup-restore', component: BackupRestoreComponent },
-  { path: 'devices-locations', component: DevicesLocationsComponent },
+  // Legacy redirects for removed mock-only admin screens.
+  { path: 'audit-log', redirectTo: 'account-management', pathMatch: 'full' },
+  { path: 'backup-restore', redirectTo: 'account-management', pathMatch: 'full' },
+  { path: 'devices-locations', redirectTo: 'account-management', pathMatch: 'full' },
   { path: 'account-management', component: AccountManagementComponent },
-  { path: 'settings', component: SettingsComponent },
+  { path: 'settings', redirectTo: 'account-management', pathMatch: 'full' },
   { path: 'profile', component: ProfileComponent },
-  { path: '', redirectTo: 'settings', pathMatch: 'full' },
+  { path: '', redirectTo: 'account-management', pathMatch: 'full' },
 ];
 
 @NgModule({

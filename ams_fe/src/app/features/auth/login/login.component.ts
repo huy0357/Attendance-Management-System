@@ -10,9 +10,13 @@ import { AuthService } from '../../../core/auth/auth.service';
   styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
+  authMode: 'login' | 'forgot' | 'verify' | 'reset' = 'login';
   showPassword = false;
   isLoading = false;
   error = '';
+  success = '';
+  forgotEmail = '';
+  verifiedOtp = '';
   form!: ReturnType<FormBuilder['group']>;
 
   constructor(
@@ -29,7 +33,11 @@ export class LoginComponent {
   }
 
   submit(): void {
+    if (this.authMode !== 'login') {
+      return;
+    }
     this.error = '';
+    this.success = '';
     if (this.form.invalid) {
       this.error = 'Please enter valid credentials';
       return;
@@ -55,9 +63,95 @@ export class LoginComponent {
     });
   }
 
-  demoLogin(): void {
-    this.form.patchValue({ username: 'admin@amscore.com', password: 'demo123' });
-    this.submit();
+  openForgotPassword(): void {
+    this.authMode = 'forgot';
+    this.error = '';
+    this.success = '';
+    this.forgotEmail = (this.form.get('username')?.value ?? '').trim();
+    this.verifiedOtp = '';
+    this.form.patchValue({ password: '' });
+  }
+
+  backToLogin(): void {
+    this.authMode = 'login';
+    this.error = '';
+    this.success = '';
+    this.verifiedOtp = '';
+    this.form.patchValue({ password: '' });
+  }
+
+  sendOtp(): void {
+    const email = (this.form.get('username')?.value ?? '').trim();
+    this.error = '';
+    this.success = '';
+    if (!email) {
+      this.error = 'Please enter your email address.';
+      return;
+    }
+
+    this.forgotEmail = email;
+    this.isLoading = true;
+    this.authService.forgotPassword(email).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        this.success = response.message;
+        this.authMode = 'verify';
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.error = error.error?.message || 'Unable to send OTP.';
+      },
+    });
+  }
+
+  verifyOtp(): void {
+    const otp = (this.form.get('password')?.value ?? '').trim();
+    this.error = '';
+    this.success = '';
+    if (!this.forgotEmail.trim() || !otp) {
+      this.error = 'Please enter email and OTP.';
+      return;
+    }
+
+    this.isLoading = true;
+    this.authService.verifyOtp(this.forgotEmail.trim(), otp).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        this.success = response.message;
+        this.verifiedOtp = otp;
+        this.form.patchValue({ password: '' });
+        this.authMode = 'reset';
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.error = error.error?.message || 'OTP verification failed.';
+      },
+    });
+  }
+
+  resetPassword(): void {
+    const newPassword = (this.form.get('password')?.value ?? '').trim();
+    this.error = '';
+    this.success = '';
+    if (newPassword.length < 6) {
+      this.error = 'New password must be at least 6 characters.';
+      return;
+    }
+
+    this.isLoading = true;
+    this.authService.resetPassword(this.forgotEmail.trim(), this.verifiedOtp, newPassword).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        this.success = response.message;
+        this.authMode = 'login';
+        this.form.patchValue({ username: this.forgotEmail.trim(), password: '' });
+        this.verifiedOtp = '';
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.error = error.error?.message || 'Unable to reset password.';
+      },
+    });
   }
 }
 

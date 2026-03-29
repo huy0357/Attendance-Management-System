@@ -37,13 +37,35 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 flex-wrap">
             <div class="relative flex-1">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">🔍</span>
                 <input type="text" placeholder="Search departments..." [(ngModel)]="searchQuery"
                     (ngModelChange)="onSearchChange()"
                     class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
             </div>
+            <select
+                [(ngModel)]="sortBy"
+                (ngModelChange)="onSortChange()"
+                class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+                <option *ngFor="let option of sortOptions" [ngValue]="option.value">Sort by {{ option.label }}</option>
+            </select>
+            <select
+                [(ngModel)]="sortDir"
+                (ngModelChange)="onSortChange()"
+                class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+                <option value="desc">Newest first</option>
+                <option value="asc">Oldest first</option>
+            </select>
+            <select
+                [(ngModel)]="pageSize"
+                (ngModelChange)="onPageSizeChange()"
+                class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+                <option *ngFor="let option of pageSizeOptions" [ngValue]="option">{{ option }} / page</option>
+            </select>
         </div>
     </div>
 
@@ -182,6 +204,10 @@
                         {{ dept.departmentName }}
                     </option>
                 </select>
+                <p *ngIf="departmentForm.get('parentDepartmentId')?.hasError('selfParent') && departmentForm.get('parentDepartmentId')?.touched"
+                    class="text-red-500 text-xs mt-1">
+                    Parent department cannot be itself.
+                </p>
             </div>
 
             <div class="flex items-center gap-2">

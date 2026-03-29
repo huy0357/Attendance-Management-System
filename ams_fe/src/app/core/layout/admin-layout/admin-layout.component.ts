@@ -14,104 +14,103 @@ interface NavItem {
   activeMatchPaths?: string[];
 }
 
-interface NotificationItem {
-  id: number;
-  title: string;
-  time: string;
-  type: 'warning' | 'info' | 'success';
-  unread: boolean;
-}
-
 @Component({
   standalone: false,
   selector: 'app-admin-layout',
   templateUrl: './admin-layout.component.html',
   styleUrls: ['./admin-layout.component.scss'],
 })
-export class AdminLayoutComponent {
+export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
   @ViewChildren('navLink', { read: ElementRef }) navLinks!: QueryList<ElementRef<HTMLElement>>;
 
   density: Density = 'comfortable';
   densityOptions: Density[] = ['compact', 'comfortable', 'spacious'];
-  chatbotOpen = false;
   notificationsOpen = false;
   searchOpen = false;
   searchQuery = '';
   userMenuOpen = false;
-  notificationsEnabled = true;
   darkMode = false;
   language: 'en' | 'es' | 'fr' | 'de' | 'zh' = 'en';
   autoSaveEnabled = true;
   lastAutoSave = new Date();
   private readonly subscriptions = new Subscription();
 
-  notifications: NotificationItem[] = [
-    { id: 1, title: '5 payslips awaiting approval', time: '5 min ago', type: 'warning', unread: true },
-    { id: 2, title: 'John Doe checked in late', time: '1 hour ago', type: 'info', unread: true },
-    { id: 3, title: 'Weekly report generated', time: '2 hours ago', type: 'success', unread: false },
-    { id: 4, title: 'System update completed', time: '1 day ago', type: 'success', unread: false },
-  ];
-
   navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: 'layout-dashboard' },
-    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
-    { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
-    { label: 'Departments', path: '/hrm/departments', icon: 'building' },
-    { label: 'Contracts', path: '/hrm/contracts', icon: 'file-text', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
+    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN'] },
+    { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    { label: 'Departments', path: '/hrm/departments', icon: 'building', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar', requiredRoles: ['ADMIN'] },
     {
       label: 'Attendance Daily',
       path: '/attendance/attendance-daily',
       icon: 'clock',
-      requiredRoles: ['ADMIN'],
-      activeMatchPaths: ['/attendance/attendance-daily', '/attendance/attendance-daily/admin'],
+      requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'],
+      activeMatchPaths: [
+        '/attendance/attendance-daily',
+        '/attendance/attendance-daily/admin',
+        '/attendance/attendance-daily/employee',
+      ],
     },
-    { label: 'Shift Setup', path: '/attendance/shift-templates', icon: 'calendar' },
-    { label: 'Attendance Email', path: '/attendance/attendance-email', icon: 'mail', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
-    { label: 'Leave Management', path: '/attendance/leave-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
-    { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'calculator', requiredRoles: ['MANAGER'] },
-    { label: 'Requests Management', path: '/attendance/requests-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'EMPLOYEE'] },
-    { label: 'Performance & KPI', path: '/hrm/performance-review', icon: 'target', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Onboarding/Exit', path: '/hrm/onboarding', icon: 'user-plus', requiredRoles: ['ADMIN', 'HR'] },
-    { label: 'Payroll Formula', path: '/payroll/formula', icon: 'dollar-sign', requiredRoles: ['ADMIN', 'HR'] },
-    { label: 'Payroll Review', path: '/payroll/review', icon: 'dollar-sign', requiredRoles: ['ADMIN', 'HR'] },
-    { label: 'Payroll Periods', path: '/payroll/periods', icon: 'lock', requiredRoles: ['ADMIN', 'HR'] },
-    { label: 'Tax Configuration', path: '/payroll/tax-configuration', icon: 'shield', requiredRoles: ['ADMIN'] },
-    { label: 'Organization', path: '/hrm/org-chart', icon: 'users', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Audit Log', path: '/admin/audit-log', icon: 'file-text', requiredRoles: ['ADMIN'] },
-    { label: 'Reports', path: '/reports/standard', icon: 'bar-chart-3', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Custom Reports', path: '/reports/custom', icon: 'edit', requiredRoles: ['ADMIN', 'HR'] },
-    { label: 'Backup & Restore', path: '/admin/backup-restore', icon: 'database', requiredRoles: ['ADMIN'] },
+    { label: 'Attendance Monthly Summary', path: '/attendance/monthly-summary', icon: 'file-text', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
+    { label: 'Shift Templates', path: '/attendance/shift-templates', icon: 'calendar', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
+    { label: 'Attendance Email', path: '/attendance/attendance-email', icon: 'mail', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
+    { label: 'Leave Requests', path: '/attendance/leave-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    { label: 'Requests', path: '/attendance/requests-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { label: 'Accounts', path: '/admin/account-management', icon: 'users', requiredRoles: ['ADMIN'] },
-    { label: 'Settings', path: '/admin/settings', icon: 'settings', requiredRoles: ['ADMIN'] },
   ];
 
   get visibleNavItems(): NavItem[] {
-    const normalizedUserRole = this.getNormalizedUserRole();
-    if (!normalizedUserRole) {
-      return this.navItems.filter(item => !item.requiredRoles || item.requiredRoles.length === 0);
-    }
-
     return this.navItems.filter(item => {
       if (!item.requiredRoles || item.requiredRoles.length === 0) {
-        return true;
+        return this.authService.isAuthenticated();
       }
-      return item.requiredRoles.some(role =>
-        role.toUpperCase().replace('ROLE_', '') === normalizedUserRole
-      );
+      return this.authService.hasAnyRole(item.requiredRoles);
     });
   }
 
   hasRole(roles: string[]): boolean {
-    const normalizedUserRole = this.getNormalizedUserRole();
-    if (!normalizedUserRole || !roles || roles.length === 0) {
+    if (!roles || roles.length === 0) {
       return false;
     }
-    return roles.some(role => role.toUpperCase().replace('ROLE_', '') === normalizedUserRole);
+    return this.authService.hasAnyRole(roles);
   }
 
   get isAdmin(): boolean {
     return this.hasRole(['ADMIN']);
+  }
+
+  get displayUsername(): string {
+    return this.authService.getUsername() ?? 'User';
+  }
+
+  get displayRoleLabel(): string {
+    const role = this.authService.getNormalizedRole();
+    if (!role) {
+      return 'Authenticated User';
+    }
+
+    switch (role) {
+      case 'ADMIN':
+        return 'System Administrator';
+      case 'HR':
+        return 'HR';
+      case 'MANAGER':
+        return 'Manager';
+      case 'EMPLOYEE':
+        return 'Employee';
+      default:
+        return role;
+    }
+  }
+
+  get displayInitials(): string {
+    return this.displayUsername
+      .split(/[\s._-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0]?.toUpperCase() ?? '')
+      .join('') || 'U';
   }
 
   constructor(private router: Router, private authService: AuthService, private uiState: UiStateService) {
@@ -152,13 +151,25 @@ export class AdminLayoutComponent {
   }
 
   get searchResults(): Array<{ name: string; type: string; path?: string }> {
-    const baseResults = [
-      { name: 'Sarah Chen', type: 'Employee', path: '/hrm/employees' },
-      { name: 'Payroll Formula', type: 'Page', path: '/payroll/formula' },
-      { name: 'Attendance Report', type: 'Report', path: '/reports/standard' },
+    const baseResults: Array<{ name: string; type: string; path?: string; roles?: string[] }> = [
+      { name: 'Employees', type: 'Page', path: '/hrm/employees', roles: ['ADMIN'] },
+      { name: 'Departments', type: 'Page', path: '/hrm/departments', roles: ['ADMIN', 'HR', 'MANAGER'] },
+      { name: 'Employee Portal', type: 'Page', path: '/hrm/employee-portal', roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+      { name: 'My Profile', type: 'Page', path: '/profile' },
+      { name: 'Attendance Daily', type: 'Page', path: this.resolveAttendanceDailyPath(), roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+      { name: 'Requests', type: 'Page', path: '/attendance/requests-management', roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+      { name: 'Leave Requests', type: 'Page', path: '/attendance/leave-management', roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+      { name: 'Scheduling', type: 'Page', path: '/attendance/scheduling', roles: ['ADMIN'] },
+      { name: 'Shift Templates', type: 'Page', path: '/attendance/shift-templates', roles: ['ADMIN', 'HR', 'MANAGER'] },
+      { name: 'Attendance Monthly Summary', type: 'Page', path: '/attendance/monthly-summary', roles: ['ADMIN', 'HR', 'MANAGER'] },
+      { name: 'Attendance Email', type: 'Page', path: '/attendance/attendance-email', roles: ['ADMIN', 'HR', 'MANAGER'] },
+      { name: 'Accounts', type: 'Page', path: '/admin/account-management', roles: ['ADMIN'] },
     ];
 
-    return baseResults.filter(item => item.name.toLowerCase().includes(this.searchQuery.toLowerCase()));
+    return baseResults
+      .filter(item => !item['roles'] || this.authService.hasAnyRole(item['roles']))
+      .filter(item => item.name.toLowerCase().includes(this.searchQuery.toLowerCase()))
+      .map(({ name, type, path }) => ({ name, type, path }));
   }
 
   isActive(item: NavItem): boolean {
@@ -170,6 +181,9 @@ export class AdminLayoutComponent {
   }
 
   resolveNavPath(item: NavItem): string {
+    if (item.path === '/attendance/attendance-daily') {
+      return this.resolveAttendanceDailyPath();
+    }
     return item.path;
   }
 
@@ -219,9 +233,10 @@ export class AdminLayoutComponent {
     });
   }
 
-  private getNormalizedUserRole(): string | null {
-    const userRole = this.authService.getRole();
-    return userRole ? userRole.toUpperCase().replace('ROLE_', '') : null;
+  private resolveAttendanceDailyPath(): string {
+    return this.hasRole(['ADMIN'])
+      ? '/attendance/attendance-daily/admin'
+      : '/attendance/attendance-daily';
   }
 }
 

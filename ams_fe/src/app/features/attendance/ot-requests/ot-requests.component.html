@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Overtime Request Management</h1>
-        <p class="text-gray-600 mt-1">Review and approve employee overtime requests</p>
+        <p class="text-gray-600 mt-1">Manager reviewer flow for OT requests only. Self-service OT creation stays in Requests Management.</p>
       </div>
     </div>
   </div>
@@ -13,6 +13,14 @@
       <h1 class="text-3xl font-bold text-gray-900">Overtime Request Management</h1>
       <p class="text-gray-600 mt-1">Review and approve employee overtime requests</p>
     </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+    {{ errorMessage }}
+  </div>
+
+  <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900">
+    {{ helperMessage }}
   </div>
 
   <div *ngIf="requests.length > 0" class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -44,7 +52,7 @@
         <input
           type="text"
           formControlName="searchQuery"
-          placeholder="Search by employee name, request ID, or department..."
+          placeholder="Search loaded OT rows by employee name, request ID, or employee ID..."
           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -57,6 +65,10 @@
     </form>
   </div>
 
+  <div *ngIf="isLoading" class="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center text-gray-500">
+    Loading OT requests...
+  </div>
+
   <ng-container *ngIf="filteredRequests.length > 0; else emptyOtState">
     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
@@ -67,7 +79,6 @@
             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Employee</th>
             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">OT Date</th>
             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Hours</th>
-            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Est. Pay</th>
             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Submitted</th>
             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
@@ -85,7 +96,7 @@
                 </div>
                 <div>
                   <p class="font-semibold text-gray-900">{{ request.employeeName }}</p>
-                  <p class="text-sm text-gray-600">{{ request.position }}</p>
+                  <p class="text-sm text-gray-600">Employee ID {{ request.employeeId }}</p>
                 </div>
               </div>
             </td>
@@ -94,9 +105,6 @@
             </td>
             <td class="px-6 py-4">
               <p class="font-semibold text-blue-600">{{ request.hours }}h</p>
-            </td>
-            <td class="px-6 py-4">
-              <p class="font-semibold text-green-600">${{ request.estimatedPay?.toFixed(2) }}</p>
             </td>
             <td class="px-6 py-4">
               <p class="text-sm text-gray-900">{{ formatDate(request.submittedDate) }}</p>
@@ -148,7 +156,7 @@
     <div class="bg-white rounded-xl border border-gray-200 text-center py-12 px-6">
       <lucide-icon name="clock" class="w-12 h-12 text-gray-400 mx-auto mb-4"></lucide-icon>
       <p class="text-gray-600 font-medium">No OT requests found</p>
-      <p class="text-sm text-gray-500 mt-1">Try adjusting your filters or search query</p>
+      <p class="text-sm text-gray-500 mt-1">Open this page with a direct <code>employeeId</code> query when that context is already known. FE does not expose manager employee lookup because backend blocks <code>/api/employees/**</code> for MANAGER.</p>
     </div>
   </ng-template>
 
@@ -168,7 +176,7 @@
             </div>
             <div>
               <p class="font-semibold text-gray-900">{{ selectedRequest.employeeName }}</p>
-              <p class="text-sm text-gray-600">{{ selectedRequest.position }}</p>
+              <p class="text-sm text-gray-600">Employee ID {{ selectedRequest.employeeId }}</p>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
@@ -179,10 +187,6 @@
             <div>
               <p class="text-sm text-gray-600">Hours</p>
               <p class="font-semibold text-blue-600">{{ selectedRequest.hours }}h</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">Est. Pay</p>
-              <p class="font-semibold text-green-600">${{ selectedRequest.estimatedPay?.toFixed(2) }}</p>
             </div>
             <div>
               <p class="text-sm text-gray-600">Submitted</p>
@@ -209,7 +213,7 @@
           <p class="text-sm font-semibold flex items-center gap-2">
             <lucide-icon [name]="reviewAction === 'approve' ? 'check' : 'x'" class="w-4 h-4"></lucide-icon>
             {{ reviewAction === 'approve'
-              ? 'This OT request will be approved and linked to payroll'
+              ? 'This OT request will be approved'
               : 'This OT request will be rejected' }}
           </p>
         </div>
@@ -225,10 +229,11 @@
         <button
           type="button"
           (click)="handleReview()"
+          [disabled]="isReviewSaving"
           class="px-6 py-2.5 rounded-lg transition-colors font-semibold text-white"
           [ngClass]="reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
         >
-          {{ reviewAction === 'approve' ? 'Approve Request' : 'Reject Request' }}
+          {{ isReviewSaving ? 'Saving...' : (reviewAction === 'approve' ? 'Approve Request' : 'Reject Request') }}
         </button>
       </div>
     </div>
@@ -257,8 +262,7 @@
             </div>
             <div>
               <p class="font-semibold text-gray-900">{{ selectedRequest.employeeName }}</p>
-              <p class="text-sm text-gray-600">{{ selectedRequest.position }}</p>
-              <p class="text-sm text-gray-600">{{ selectedRequest.department }}</p>
+              <p class="text-sm text-gray-600">Employee ID {{ selectedRequest.employeeId }}</p>
             </div>
           </div>
         </div>
@@ -273,10 +277,6 @@
             <div>
               <p class="text-sm text-gray-600">Hours Requested</p>
               <p class="font-semibold text-blue-600">{{ selectedRequest.hours }}h</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">Estimated Pay</p>
-              <p class="font-semibold text-green-600">${{ selectedRequest.estimatedPay?.toFixed(2) }}</p>
             </div>
             <div>
               <p class="text-sm text-gray-600">Submitted Date</p>
@@ -298,7 +298,7 @@
             </div>
             <div>
               <p class="text-sm text-gray-600">Reviewed Date</p>
-              <p class="font-semibold text-gray-900">{{ selectedRequest.reviewedDate ? formatDate(selectedRequest.reviewedDate) : '' }}</p>
+              <p class="font-semibold text-gray-900">Not exposed by backend</p>
             </div>
           </div>
           <div *ngIf="selectedRequest.reviewNotes" class="mt-3">
@@ -307,12 +307,6 @@
           </div>
         </div>
 
-        <div *ngIf="selectedRequest.status === 'approved'" class="bg-purple-50 border border-purple-200 rounded-lg p-3">
-          <p class="text-sm font-semibold text-purple-900 flex items-center gap-2">
-            <lucide-icon name="trending-up" class="w-4 h-4"></lucide-icon>
-            This OT will be automatically added to the next payroll calculation
-          </p>
-        </div>
       </div>
       <div class="p-6 border-t border-gray-200 flex gap-3 justify-end">
         <button
