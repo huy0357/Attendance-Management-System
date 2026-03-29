@@ -1,4 +1,4 @@
-﻿<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 flex items-center justify-center p-4">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 flex items-center justify-center p-4">
   <div class="absolute inset-0 overflow-hidden pointer-events-none">
     <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl"></div>
     <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl"></div>
@@ -54,16 +54,19 @@
           <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
             {{ authMode === 'login' ? 'Email Address' : 'Account Email' }}
           </label>
-          <div class="relative">
-            <lucide-icon name="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+          <div class="flex items-center w-full h-12 rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all overflow-hidden">
+            <div class="flex-shrink-0 flex items-center justify-center w-12 h-full text-gray-400">
+              <lucide-icon name="mail" class="w-5 h-5"></lucide-icon>
+            </div>
             <input
               id="username"
               type="email"
               placeholder="admin@amscore.com"
               formControlName="username"
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              class="flex-1 w-full h-full py-0 px-2 text-[15px] text-gray-900 placeholder:text-gray-400 bg-transparent !border-0 !ring-0 !outline-none focus:!border-none focus:!ring-0 focus:!outline-none"
               [disabled]="isLoading || authMode === 'verify' || authMode === 'reset'"
             />
+            <div class="w-4"></div>
           </div>
         </div>
 
@@ -77,25 +80,29 @@
                 : 'New Password'
             }}
           </label>
-          <div class="relative">
-            <lucide-icon name="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+          <div class="flex items-center w-full h-12 rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all overflow-hidden">
+            <div class="flex-shrink-0 flex items-center justify-center w-12 h-full text-gray-400">
+              <lucide-icon name="lock" class="w-5 h-5"></lucide-icon>
+            </div>
             <input
               id="password"
               [type]="authMode === 'verify' ? 'text' : showPassword ? 'text' : 'password'"
               [placeholder]="authMode === 'verify' ? 'Enter 6-digit OTP' : 'Enter your password'"
               formControlName="password"
-              class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              class="flex-1 w-full h-full py-0 px-2 text-[15px] text-gray-900 placeholder:text-gray-400 bg-transparent !border-0 !ring-0 !outline-none focus:!border-none focus:!ring-0 focus:!outline-none"
               [disabled]="isLoading"
             />
             <button
               type="button"
               (click)="showPassword = !showPassword"
               *ngIf="authMode !== 'verify'"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              class="flex-shrink-0 flex items-center justify-center w-12 h-full text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
               [disabled]="isLoading"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
             >
               <lucide-icon [name]="showPassword ? 'eye-off' : 'eye'" class="w-5 h-5"></lucide-icon>
             </button>
+            <div *ngIf="authMode === 'verify'" class="w-4"></div>
           </div>
         </div>
 
@@ -178,16 +185,6 @@
         </button>
       </form>
 
-    </div>
-
-    <div class="mt-6 flex items-center justify-center gap-2 text-sm text-gray-600">
-      <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-      <span>All systems operational</span>
-    </div>
-
-    <div class="mt-8 text-center text-xs text-gray-500">
-      <p>� 2026 AMS Core. All rights reserved.</p>
-      <p class="mt-1">Version 2.4.1 � Enterprise Edition</p>
     </div>
   </div>
 </div>
