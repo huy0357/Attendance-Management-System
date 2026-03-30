@@ -11,7 +11,7 @@ const routes: Routes = [
     path: 'employees',
     component: EmployeesComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR'] },
+    data: { roles: ['ADMIN'] },
   },
   {
     path: 'employee-portal',

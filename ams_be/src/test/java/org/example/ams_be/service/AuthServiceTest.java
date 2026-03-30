@@ -14,8 +14,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -32,6 +34,9 @@ class AuthServiceTest {
 
     @Mock
     private JwtUtil jwtUtil;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @Mock
     private TokenStore tokenStore;
@@ -90,12 +95,22 @@ class AuthServiceTest {
         assertEquals("alice", response.getUsername());
         assertEquals("admin", response.getRole());
         verify(tokenStore).storeRefreshToken("alice", "refresh", 7200L);
-        verify(auditLogService).saveAuditLog("LOGIN", "ACCOUNT", 1L, 100L, null, "Login successful");
+        verify(auditLogService).saveAuditLog(
+                org.mockito.ArgumentMatchers.eq("LOGIN"),
+                org.mockito.ArgumentMatchers.eq("ACCOUNT"),
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.isNull(),
+                argThat((String payload) -> payload.contains("\"status\":\"SUCCESS\"")
+                        && payload.contains("\"username\":\"alice\"")
+                        && payload.contains("\"message\""))
+        );
     }
 
     @Test
     void loginUsesEmployeeRoleWhenAccountRoleMissing() {
-        Account account = account(1L, "alice", null, true);
+        Account account = account(1L, "alice", "admin", true);
+        account.setRole(null);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
         when(jwtUtil.generateAccessToken("alice", "employee")).thenReturn("access");
@@ -181,6 +196,7 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesFallbackRoleWhenMissingAndRotatesTokens() {
+        Account account = account(1L, "alice", "employee", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
@@ -202,6 +218,7 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesFallbackRoleWhenRoleIsNull() {
+        Account account = account(1L, "alice", "employee", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
@@ -219,6 +236,7 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesRoleFromTokenWhenPresent() {
+        Account account = account(1L, "alice", "manager", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");

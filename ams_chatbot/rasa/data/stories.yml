@@ -1,0 +1,51 @@
+version: "3.1"
+stories:
+  - story: greet flow
+    steps:
+      - intent: greet
+      - action: utter_greet
+
+  - story: ask today shift
+    steps:
+      - intent: ask_today_shift
+      - action: action_get_today_shift
+
+  - story: ask attendance today
+    steps:
+      - intent: ask_my_attendance_today
+      - action: action_get_my_attendance_today
+
+  - story: ask request status
+    steps:
+      - intent: ask_request_status
+      - action: action_get_request_status
+
+  - story: create leave form happy path
+    steps:
+      - intent: create_leave_request
+      - action: leave_request_form
+      - active_loop: leave_request_form
+      - active_loop: null
+      - action: utter_submit_confirm
+      - intent: affirm
+      - action: action_submit_leave_request
+
+  - story: create ot form happy path
+    steps:
+      - intent: create_ot_request
+      - action: ot_request_form
+      - active_loop: ot_request_form
+      - active_loop: null
+      - action: utter_submit_confirm
+      - intent: affirm
+      - action: action_submit_ot_request
+
+  - story: create explanation form happy path
+    steps:
+      - intent: create_explanation_request
+      - action: explanation_request_form
+      - active_loop: explanation_request_form
+      - active_loop: null
+      - action: utter_submit_confirm
+      - intent: affirm
+      - action: action_submit_explanation_request

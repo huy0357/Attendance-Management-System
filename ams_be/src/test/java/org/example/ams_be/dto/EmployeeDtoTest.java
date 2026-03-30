@@ -36,8 +36,8 @@ class EmployeeDtoTest {
                 dto -> setManagerId(dto, 40L),
                 dto -> setHireDate(dto, LocalDate.of(2025, 2, 1)),
                 dto -> setTerminatedDate(dto, LocalDate.of(2026, 3, 20)),
-                dto -> setCreatedAt(dto, LocalDateTime.of(2025, 1, 1, 9, 0)),
-                dto -> setUpdatedAt(dto, LocalDateTime.of(2026, 3, 19, 9, 0))
+                dto -> setCreatedAt(dto, LocalDateTime.of(2025, 1, 1, 9, 0)) //,
+                // dto -> setUpdatedAt(dto, LocalDateTime.of(2026, 3, 19, 9, 0))
         );
     }
 
@@ -56,8 +56,8 @@ class EmployeeDtoTest {
                 dto -> setManagerId(dto, 30L),
                 dto -> setHireDate(dto, LocalDate.of(2025, 1, 1)),
                 dto -> setTerminatedDate(dto, LocalDate.of(2026, 3, 19)),
-                dto -> setCreatedAt(dto, LocalDateTime.of(2025, 1, 1, 8, 0)),
-                dto -> setUpdatedAt(dto, LocalDateTime.of(2026, 3, 19, 8, 0))
+                dto -> setCreatedAt(dto, LocalDateTime.of(2025, 1, 1, 8, 0)) //,
+                // dto -> setUpdatedAt(dto, LocalDateTime.of(2026, 3, 19, 8, 0))
         );
     }
 
@@ -77,7 +77,7 @@ class EmployeeDtoTest {
         dto.setHireDate(LocalDate.of(2025, 1, 1));
         dto.setTerminatedDate(LocalDate.of(2026, 3, 19));
         dto.setCreatedAt(LocalDateTime.of(2025, 1, 1, 8, 0));
-        dto.setUpdatedAt(LocalDateTime.of(2026, 3, 19, 8, 0));
+        // dto.setUpdatedAt(LocalDateTime.of(2026, 3, 19, 8, 0));
         return dto;
     }
 
@@ -95,7 +95,7 @@ class EmployeeDtoTest {
     private EmployeeDto setHireDate(EmployeeDto dto, LocalDate value) { dto.setHireDate(value); return dto; }
     private EmployeeDto setTerminatedDate(EmployeeDto dto, LocalDate value) { dto.setTerminatedDate(value); return dto; }
     private EmployeeDto setCreatedAt(EmployeeDto dto, LocalDateTime value) { dto.setCreatedAt(value); return dto; }
-    private EmployeeDto setUpdatedAt(EmployeeDto dto, LocalDateTime value) { dto.setUpdatedAt(value); return dto; }
+    // private EmployeeDto setUpdatedAt(EmployeeDto dto, LocalDateTime value) { dto.setUpdatedAt(value); return dto; }
 
     private static final class NonEqualEmployeeDto extends EmployeeDto {
         private NonEqualEmployeeDto(EmployeeDto base) {
@@ -113,7 +113,7 @@ class EmployeeDtoTest {
             setHireDate(base.getHireDate());
             setTerminatedDate(base.getTerminatedDate());
             setCreatedAt(base.getCreatedAt());
-            setUpdatedAt(base.getUpdatedAt());
+            // setUpdatedAt(base.getUpdatedAt());
         }
 
         @Override

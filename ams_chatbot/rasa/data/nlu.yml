@@ -1,0 +1,106 @@
+version: "3.1"
+nlu:
+  - intent: greet
+    examples: |
+      - xin chào
+      - hello
+      - chào bot
+      - chào bạn
+
+  - intent: ask_today_shift
+    examples: |
+      - hôm nay tôi có ca gì
+      - lịch làm việc hôm nay của tôi là gì
+      - ca hôm nay của tôi
+      - hôm nay tôi làm ca nào
+
+  - intent: ask_my_attendance_today
+    examples: |
+      - hôm nay tôi check in lúc mấy giờ
+      - hôm nay tôi đã chấm công chưa
+      - cho tôi xem chấm công hôm nay
+      - check out hôm nay của tôi là bao nhiêu
+
+  - intent: ask_attendance_history
+    examples: |
+      - cho tôi xem lịch sử chấm công tuần này
+      - lịch sử chấm công từ [01/03/2026 đến 07/03/2026](date_range)
+      - bảng công của tôi tháng này
+      - lịch sử check in check out của tôi
+
+  - intent: ask_request_status
+    examples: |
+      - đơn nghỉ phép của tôi đang ở trạng thái nào
+      - kiểm tra trạng thái đơn [nghỉ phép](request_type)
+      - đơn [ot](request_type) của tôi đã được duyệt chưa
+      - xem trạng thái đơn gần nhất của tôi
+
+  - intent: create_leave_request
+    examples: |
+      - tôi muốn tạo đơn nghỉ phép
+      - tạo đơn xin nghỉ vào [25/03/2026](date)
+      - xin nghỉ phép ngày [mai](date)
+      - gửi đơn nghỉ phép giúp tôi
+
+  - intent: create_ot_request
+    examples: |
+      - tôi muốn tạo đơn ot
+      - đăng ký làm thêm giờ
+      - tạo đơn tăng ca cho [tối nay](date)
+      - gửi đơn ot giúp tôi
+
+  - intent: create_explanation_request
+    examples: |
+      - tôi muốn tạo đơn giải trình
+      - tạo giải trình đi muộn
+      - gửi đơn giải trình cho ngày [hôm qua](date)
+      - tôi cần giải trình chấm công
+
+  - intent: ask_team_attendance
+    examples: |
+      - xem chấm công của team hôm nay
+      - đội của tôi hôm nay đi làm thế nào
+      - cho tôi xem attendance của phòng [IT](department)
+      - tình hình chấm công nhân viên dưới quyền hôm nay
+
+  - intent: ask_report_summary
+    examples: |
+      - tóm tắt báo cáo chấm công tháng này
+      - cho tôi xem tổng hợp chấm công của phòng ban
+      - báo cáo attendance tuần này
+      - summary chấm công
+
+  - intent: fallback_search_policy
+    examples: |
+      - quy định đi muộn là gì
+      - chính sách ot như thế nào
+      - cách tạo đơn nghỉ phép
+      - hướng dẫn giải trình chấm công
+
+  - intent: handoff_human
+    examples: |
+      - cho tôi gặp người hỗ trợ
+      - chuyển tôi cho admin
+      - tôi muốn hỗ trợ thủ công
+      - nhờ người thật xử lý
+
+  - intent: affirm
+    examples: |
+      - đồng ý
+      - xác nhận
+      - đúng rồi
+      - ok
+
+  - intent: deny
+    examples: |
+      - không
+      - hủy
+      - chưa
+      - thôi
+
+  - intent: stop
+    examples: |
+      - dừng lại
+      - thôi khỏi
+      - cancel
+      - ngừng giúp tôi

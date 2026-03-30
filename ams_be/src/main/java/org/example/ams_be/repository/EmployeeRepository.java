@@ -41,7 +41,7 @@ public class EmployeeRepository {
             e.hireDate = rs.getObject("hire_date", java.time.LocalDate.class);
             e.terminatedDate = rs.getObject("terminated_date", java.time.LocalDate.class);
             e.createdAt = rs.getObject("created_at", java.time.LocalDateTime.class);
-            e.updatedAt = rs.getObject("updated_at", java.time.LocalDateTime.class);
+            // e.updatedAt = rs.getObject("updated_at", java.time.LocalDateTime.class);
             e.avatarUrl = rs.getString("avatar_url");
             return e;
         }
@@ -51,7 +51,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 ORDER BY employee_id DESC
                 """;
@@ -62,7 +62,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 WHERE employee_id = ?
                 """;
@@ -87,10 +87,10 @@ public class EmployeeRepository {
                 INSERT INTO employees
                     (employee_code, full_name, dob, gender, phone, email, status,
                      department_id, position_id, manager_id, hire_date,
-                     created_at, updated_at, avatar_url)
+                     created_at, avatar_url) -- XÓA updated_at ở đây
                 VALUES
                     (?, ?, ?, ?, ?, ?, ?,
-                     ?, ?, ?, ?, ?, ?, ?)
+                     ?, ?, ?, ?, ?, ?) 
                 """;
 
         jdbcTemplate.update(
@@ -107,9 +107,8 @@ public class EmployeeRepository {
                 req.managerId,
                 req.hireDate,
                 Timestamp.valueOf(createdAt),
-                Timestamp.valueOf(createdAt),
-                null
-        );
+                // Timestamp.valueOf(createdAt),
+                null);
 
         Long id = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
         return id != null ? id : 0L;
@@ -126,8 +125,8 @@ public class EmployeeRepository {
                     department_id = ?,
                     position_id = ?,
                     manager_id = ?,
-                    hire_date = ?,
-                    updated_at = ?
+                    hire_date = ?
+                    -- XÓA updated_at = ? ở đây
                 WHERE employee_id = ?
                 """;
 
@@ -142,25 +141,22 @@ public class EmployeeRepository {
                 req.positionId,
                 req.managerId,
                 req.hireDate,
-                Timestamp.valueOf(updatedAt),
-                employeeId
-        );
+                // Timestamp.valueOf(updatedAt),
+                employeeId);
     }
 
     public int updateAvatar(Long employeeId, String avatarUrl, LocalDateTime updatedAt) {
         String sql = """
                 UPDATE employees
                 SET avatar_url = ?,
-                    updated_at = ?
                 WHERE employee_id = ?
                 """;
 
         return jdbcTemplate.update(
                 sql,
                 avatarUrl,
-                Timestamp.valueOf(updatedAt),
-                employeeId
-        );
+                // Timestamp.valueOf(updatedAt),
+                employeeId);
     }
 
     public int deleteById(Long employeeId) {
@@ -177,8 +173,9 @@ public class EmployeeRepository {
     public List<EmployeeDto> findPage(int offset, int limit, String sortBy, String sortDir) {
         String safeSortBy = switch (sortBy) {
             case "employee_id", "employee_code", "full_name", "email",
-                 "status", "department_id", "position_id", "manager_id",
-                 "hire_date", "terminated_date", "created_at", "updated_at" -> sortBy;
+                    "status", "department_id", "position_id", "manager_id",
+                    "hire_date", "terminated_date", "created_at", "updated_at" ->
+                sortBy;
             default -> "employee_id";
         };
 
@@ -187,7 +184,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 ORDER BY %s %s
                 LIMIT ? OFFSET ?
@@ -206,8 +203,9 @@ public class EmployeeRepository {
     public List<EmployeeDto> findPageByName(int offset, int limit, String name, String sortBy, String sortDir) {
         String safeSortBy = switch (sortBy) {
             case "employee_id", "employee_code", "full_name", "email",
-                 "status", "department_id", "position_id", "manager_id",
-                 "hire_date", "terminated_date", "created_at", "updated_at" -> sortBy;
+                    "status", "department_id", "position_id", "manager_id",
+                    "hire_date", "terminated_date", "created_at", "updated_at" ->
+                sortBy;
             default -> "employee_id";
         };
 
@@ -217,7 +215,7 @@ public class EmployeeRepository {
         String sql = """
                 SELECT employee_id, employee_code, full_name, dob, gender, phone, email, status,
                        department_id, position_id, manager_id, hire_date, terminated_date,
-                       created_at, updated_at, avatar_url
+                       created_at, avatar_url
                 FROM employees
                 WHERE full_name LIKE ?
                 ORDER BY %s %s
@@ -236,26 +234,24 @@ public class EmployeeRepository {
                 WHERE email = ?
                 """;
 
-        List<Employee> list = jdbcTemplate.query(sql, (rs, rowNum) ->
-                        Employee.builder()
-                                .employeeId(rs.getLong("employee_id"))
-                                .employeeCode(rs.getString("employee_code"))
-                                .fullName(rs.getString("full_name"))
-                                .dob(rs.getObject("dob", java.time.LocalDate.class))
-                                .gender(rs.getString("gender"))
-                                .phone(rs.getString("phone"))
-                                .email(rs.getString("email"))
-                                .status(rs.getString("status"))
-                                .departmentId(rs.getObject("department_id", Long.class))
-                                .positionId(rs.getObject("position_id", Long.class))
-                                .managerId(rs.getObject("manager_id", Long.class))
-                                .hireDate(rs.getObject("hire_date", java.time.LocalDate.class))
-                                .terminatedDate(rs.getObject("terminated_date", java.time.LocalDate.class))
-                                .createdAt(rs.getObject("created_at", java.time.LocalDateTime.class))
-                                .avatarUrl(rs.getString("avatar_url"))
-                                .build(),
-                email
-        );
+        List<Employee> list = jdbcTemplate.query(sql, (rs, rowNum) -> Employee.builder()
+                .employeeId(rs.getLong("employee_id"))
+                .employeeCode(rs.getString("employee_code"))
+                .fullName(rs.getString("full_name"))
+                .dob(rs.getObject("dob", java.time.LocalDate.class))
+                .gender(rs.getString("gender"))
+                .phone(rs.getString("phone"))
+                .email(rs.getString("email"))
+                .status(rs.getString("status"))
+                .departmentId(rs.getObject("department_id", Long.class))
+                .positionId(rs.getObject("position_id", Long.class))
+                .managerId(rs.getObject("manager_id", Long.class))
+                .hireDate(rs.getObject("hire_date", java.time.LocalDate.class))
+                .terminatedDate(rs.getObject("terminated_date", java.time.LocalDate.class))
+                .createdAt(rs.getObject("created_at", java.time.LocalDateTime.class))
+                .avatarUrl(rs.getString("avatar_url"))
+                .build(),
+                email);
 
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }

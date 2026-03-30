@@ -2,6 +2,7 @@ package org.example.ams_be.controller;
 
 import org.example.ams_be.dto.request.RequestsApprovalRequest;
 import org.example.ams_be.dto.request.RequestsUpsertRequest;
+import org.example.ams_be.dto.response.PageResponse;
 import org.example.ams_be.dto.response.RequestsResponse;
 import org.example.ams_be.enums.RequestStatus;
 import org.example.ams_be.service.RequestsService;
@@ -15,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,32 +45,41 @@ class RequestsControllerTest {
     @Test
     void submitRequestReturnsOk() {
         RequestsResponse submitted = response(2L);
-        when(requestsService.submit(2L)).thenReturn(submitted);
+        Long empId = 8L; // Giả định empId
+        // Cập nhật: Service submit giờ nhận 2 tham số (id, employeeId)
+        when(requestsService.submit(2L, empId)).thenReturn(submitted);
 
-        ResponseEntity<RequestsResponse> response = controller.submitRequest(2L);
+        ResponseEntity<RequestsResponse> response = controller.submitRequest(2L, empId);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(submitted, response.getBody());
     }
 
     @Test
-    void getMyRequestsReturnsOkList() {
-        List<RequestsResponse> expected = List.of(response(3L));
-        when(requestsService.getMyRequests(8L)).thenReturn(expected);
+    void getMyRequestsReturnsOkPage() {
+        // Cập nhật: Chuyển từ List sang PageResponse
+        List<RequestsResponse> content = List.of(response(3L));
+        PageResponse<RequestsResponse> expectedPage = new PageResponse<>(content, 1, 10, 1L);
 
-        ResponseEntity<List<RequestsResponse>> response = controller.getMyRequests(8L);
+        // Cập nhật param cho khớp getMyRequestsPaged trong Service
+        when(requestsService.getMyRequestsPaged(eq(8L), any(), any(), eq(1), eq(10)))
+                .thenReturn(expectedPage);
+
+        ResponseEntity<PageResponse<RequestsResponse>> response = controller.getMyRequests(8L, null, null, 1, 10);
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(expected, response.getBody());
+        assertEquals(expectedPage, response.getBody());
     }
 
     @Test
     void updateReturnsOk() {
         RequestsUpsertRequest request = new RequestsUpsertRequest();
         RequestsResponse updated = response(4L);
-        when(requestsService.update(4L, request)).thenReturn(updated);
+        Long empId = 8L;
+        // Cập nhật: Service update giờ nhận 3 tham số
+        when(requestsService.update(4L, empId, request)).thenReturn(updated);
 
-        ResponseEntity<RequestsResponse> response = controller.update(4L, request);
+        ResponseEntity<RequestsResponse> response = controller.update(4L, empId, request);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(updated, response.getBody());
@@ -75,10 +87,14 @@ class RequestsControllerTest {
 
     @Test
     void deleteReturnsNoContent() {
-        ResponseEntity<Void> response = controller.delete(5L);
+        Long requestId = 5L;
+        Long empId = 8L;
+
+        ResponseEntity<Void> response = controller.delete(requestId, empId);
 
         assertEquals(204, response.getStatusCode().value());
-        verify(requestsService).delete(5L);
+        // Cập nhật: Verify theo tham số mới
+        verify(requestsService).delete(requestId, empId);
     }
 
     @Test
@@ -93,6 +109,17 @@ class RequestsControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(decided, response.getBody());
+    }
+
+    @Test
+    void getByIdReturnsOk() {
+        RequestsResponse expected = response(7L);
+        when(requestsService.getRequestById(7L)).thenReturn(expected);
+
+        ResponseEntity<RequestsResponse> response = controller.getById(7L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(expected, response.getBody());
     }
 
     private RequestsResponse response(Long id) {

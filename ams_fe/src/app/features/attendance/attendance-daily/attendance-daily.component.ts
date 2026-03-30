@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { AttendanceBatchResponse, AttendanceDailyResponse, AttendanceService } from '../attendance.service';
@@ -16,7 +16,7 @@ export class AttendanceDailyComponent implements OnInit {
   mode: 'self' | 'employee' | 'admin' = 'self';
   employeeId: number | null = null;
 
-  from = '';
+  from = this.formatDate(this.addDays(new Date(), -7));
   to = this.formatDate(new Date());
   batchDate = this.formatDate(new Date());
 
@@ -37,14 +37,9 @@ export class AttendanceDailyComponent implements OnInit {
     private readonly attendanceService: AttendanceService,
     private readonly route: ActivatedRoute,
     private readonly authService: AuthService,
-    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
-    const today = new Date();
-    this.to = this.formatDate(today);
-    this.from = this.formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
-
     this.route.data.subscribe((data) => {
       this.mode = (data['mode'] as 'self' | 'employee' | 'admin' | undefined) ?? 'self';
       this.employeeId = this.resolveEmployeeId();
@@ -174,10 +169,7 @@ export class AttendanceDailyComponent implements OnInit {
     }
 
     request$
-      .pipe(finalize(() => {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }))
+      .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (response) => {
           this.records = response.content ?? [];

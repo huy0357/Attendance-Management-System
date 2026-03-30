@@ -6,12 +6,14 @@ import org.example.ams_be.dto.request.EmployeeRequest;
 import org.example.ams_be.dto.response.PageResponse;
 import org.example.ams_be.service.EmployeeService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/employees")
+@PreAuthorize("hasRole('ADMIN')")
 public class EmployeeController {
 
     private final EmployeeService employeeService;

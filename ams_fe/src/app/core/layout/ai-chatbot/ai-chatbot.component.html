@@ -1,23 +1,114 @@
-<div class="fixed right-0 top-0 h-screen w-[420px] bg-white shadow-2xl flex flex-col border-l border-gray-200 z-50">
-  <div class="border-b border-gray-200 p-6 flex items-center justify-between">
-    <div>
-      <h2 class="text-xl font-semibold text-gray-900">AI Assistant</h2>
-      <p class="text-sm text-gray-600">Placeholder only</p>
+<div class="chatbot-panel">
+  <div class="chatbot-header">
+    <div class="header-info">
+      <div class="header-icon">
+        <lucide-icon name="sparkles" class="w-5 h-5"></lucide-icon>
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold">AI Assistant</h2>
+        <p class="text-sm opacity-90">Attendance insights and quick lookups</p>
+      </div>
     </div>
-    <button (click)="closed.emit()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+
+    <button type="button" (click)="close.emit()" class="close-btn">
       <lucide-icon name="x" class="w-5 h-5"></lucide-icon>
     </button>
   </div>
 
-  <div class="flex-1 flex items-center justify-center p-8 text-center bg-gray-50">
-    <div>
-      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-200">
-        <lucide-icon name="sparkles" class="w-6 h-6 text-gray-500"></lucide-icon>
-      </div>
-      <h3 class="text-lg font-semibold text-gray-900">No Chatbot Backend</h3>
-      <p class="mt-2 text-sm text-gray-600">
-        This shell no longer simulates AI answers. Re-enable it only after a real chatbot API/domain exists.
-      </p>
+  <div class="suggestions-bar">
+    <p class="text-xs text-gray-600 mb-2 font-medium">Try asking:</p>
+    <div class="flex flex-wrap gap-2">
+      <button
+        *ngFor="let suggestion of suggestions"
+        type="button"
+        (click)="handleSuggestionClick(suggestion)"
+        class="suggestion-chip"
+        [disabled]="isLoading"
+      >
+        {{ suggestion }}
+      </button>
     </div>
+  </div>
+
+  <div class="messages-container">
+    <div
+      *ngFor="let message of messages; let i = index"
+      class="message-row"
+      [ngClass]="{
+        'justify-end': message.type === 'user',
+        'justify-start': message.type !== 'user'
+      }"
+      [class.message-animate]="true"
+      [style.animationDelay]="i * 0.05 + 's'"
+    >
+      <div *ngIf="message.type === 'ai' || message.type === 'error'" class="avatar avatar-ai">
+        <lucide-icon
+          [name]="message.type === 'error' ? 'alert-triangle' : 'sparkles'"
+          class="w-4 h-4 text-white"
+        ></lucide-icon>
+      </div>
+
+      <div class="max-w-[80%]" [ngClass]="message.type === 'user' ? 'order-1' : ''">
+        <div *ngIf="message.type === 'loading'" class="bubble bubble-loading">
+          <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span class="text-sm italic text-gray-500 ml-2">{{ message.content }}</span>
+        </div>
+
+        <div
+          *ngIf="message.type !== 'loading'"
+          class="bubble"
+          [ngClass]="{
+            'bubble-user': message.type === 'user',
+            'bubble-ai': message.type === 'ai',
+            'bubble-error': message.type === 'error'
+          }"
+        >
+          <p class="text-sm message-text" style="white-space: pre-line">{{ message.content }}</p>
+        </div>
+
+        <div *ngIf="message.type === 'ai' || message.type === 'error'" class="flex items-center gap-3 mt-1.5 ml-2">
+          <span class="text-xs text-gray-400">
+            {{ message.timestamp | date: 'HH:mm' }}
+          </span>
+        </div>
+      </div>
+
+      <div *ngIf="message.type === 'user'" class="avatar avatar-user">
+        <lucide-icon name="user" class="w-4 h-4 text-white"></lucide-icon>
+      </div>
+    </div>
+
+    <div #messagesEnd></div>
+  </div>
+
+  <div class="input-bar">
+    <div class="input-wrapper">
+      <input
+        type="text"
+        [value]="input"
+        (input)="input = $any($event.target).value"
+        (keypress)="handleKeyPress($event)"
+        placeholder="Ask about attendance, shifts, or pending requests..."
+        class="chat-input"
+        [disabled]="isLoading"
+      />
+
+      <button
+        type="button"
+        (click)="handleSend()"
+        [disabled]="!input.trim() || isLoading"
+        class="send-btn"
+      >
+        <lucide-icon name="send" class="w-5 h-5"></lucide-icon>
+      </button>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 text-center">
+      AI responses may be inaccurate. Verify important information.
+    </p>
   </div>
 </div>

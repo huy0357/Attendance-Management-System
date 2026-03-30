@@ -47,8 +47,10 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<?> response = handler.handleValidation(ex);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        @SuppressWarnings("unchecked")
         Map<String, Object> body = assertInstanceOf(Map.class, response.getBody());
         assertCommonBody(body, HttpStatus.BAD_REQUEST, "Validation failed");
+        @SuppressWarnings("unchecked")
         Map<String, String> errors = assertInstanceOf(Map.class, body.get("errors"));
         assertEquals("must not be blank", errors.get("username"));
         assertEquals("must have at least 8 chars", errors.get("password"));
@@ -70,6 +72,7 @@ class GlobalExceptionHandlerTest {
 
     private void assertErrorResponse(ResponseEntity<?> response, HttpStatus status, String message) {
         assertEquals(status, response.getStatusCode());
+        @SuppressWarnings("unchecked")
         Map<String, Object> body = assertInstanceOf(Map.class, response.getBody());
         assertCommonBody(body, status, message);
     }

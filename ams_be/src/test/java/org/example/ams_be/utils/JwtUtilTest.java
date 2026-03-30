@@ -97,4 +97,19 @@ class JwtUtilTest {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+
+    private String buildTokenWithoutEmployeeId() {
+        Key key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + 3600_000L);
+
+        return Jwts.builder()
+                .setSubject("charlie")
+                .setIssuedAt(now)
+                .setExpiration(exp)
+                .claim("role", "ADMIN")
+                .claim("type", "access")
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
 }

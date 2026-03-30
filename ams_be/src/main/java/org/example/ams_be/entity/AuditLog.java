@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "audit_logs")
 @Data
-@NoArgsConstructor // Cần thiết cho Hibernate
+@NoArgsConstructor
 @AllArgsConstructor
 public class AuditLog {
     @Id
