@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { finalize } from 'rxjs/operators';
 import { RequestsService } from '../../../core/services/requests.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { RequestsResponse } from '../../../shared/models/requests.model';
@@ -30,6 +31,7 @@ export class RequestsManagementComponent implements OnInit {
     private readonly requestsService: RequestsService,
     private readonly authService: AuthService,
     private readonly fb: FormBuilder,
+    private readonly cdr: ChangeDetectorRef,
   ) {
     this.createForm = this.fb.group({
       requestType: ['LEAVE', Validators.required],
@@ -79,14 +81,17 @@ export class RequestsManagementComponent implements OnInit {
 
     this.isLoading = true;
     this.errorMessage = '';
-    this.requestsService.getRequestsByEmployee(this.currentEmployeeId).subscribe({
+    this.requestsService.getRequestsByEmployee(this.currentEmployeeId)
+      .pipe(finalize(() => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
       next: (data: RequestsResponse[]) => {
         this.requests = data;
-        this.isLoading = false;
       },
       error: (error: HttpErrorResponse) => {
         this.requests = [];
-        this.isLoading = false;
         this.handleError(error, 'Unable to load requests.');
       },
     });

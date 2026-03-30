@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { ProfileService } from '../../../core/services/profile.service';
@@ -24,6 +24,7 @@ export class ProfileComponent implements OnInit {
   constructor(
     private readonly profileService: ProfileService,
     private readonly fb: FormBuilder,
+    private readonly cdr: ChangeDetectorRef,
   ) {
     this.form = this.fb.group({
       fullName: ['', [Validators.required]],
@@ -166,7 +167,10 @@ export class ProfileComponent implements OnInit {
     this.errorMessage = '';
 
     this.profileService.getMyProfile()
-      .pipe(finalize(() => (this.isLoading = false)))
+      .pipe(finalize(() => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }))
       .subscribe({
         next: (profile) => {
           this.profile = profile;

@@ -10,9 +10,19 @@ import { AuthService } from '../../../core/auth/auth.service';
   styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
-  authMode: 'login' | 'forgot' | 'verify' | 'reset' = 'login';
+  private _authMode: 'login' | 'forgot' | 'verify' | 'reset' = 'login';
+  get authMode() { return this._authMode; }
+  set authMode(value: 'login' | 'forgot' | 'verify' | 'reset') {
+    this._authMode = value;
+    this.updateFormState();
+  }
   showPassword = false;
-  isLoading = false;
+  private _isLoading = false;
+  get isLoading() { return this._isLoading; }
+  set isLoading(value: boolean) {
+    this._isLoading = value;
+    this.updateFormState();
+  }
   error = '';
   success = '';
   forgotEmail = '';
@@ -30,6 +40,19 @@ export class LoginComponent {
       password: ['', [Validators.required]],
       rememberMe: [false],
     });
+    this.updateFormState();
+  }
+
+  private updateFormState(): void {
+    if (!this.form) return;
+    if (this._isLoading) {
+      this.form.disable({ emitEvent: false });
+    } else {
+      this.form.enable({ emitEvent: false });
+      if (this._authMode === 'verify' || this._authMode === 'reset') {
+        this.form.get('username')?.disable({ emitEvent: false });
+      }
+    }
   }
 
   submit(): void {

@@ -57,8 +57,14 @@ export interface DepartmentDto {
   isActive?: boolean;
 }
 
+export interface PositionDto {
+  positionId: number;
+  positionName: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
+  private readonly positionsUrl = `/positions`;
   private readonly baseUrl = `${environment.apiBaseUrl}/employees`;
   private readonly departmentsUrl = `${environment.apiBaseUrl}/departments`;
   private readonly exportsUrl = `${environment.apiBaseUrl}/exports`;
@@ -79,6 +85,11 @@ export class EmployeeService {
           return [];
         }),
       );
+  }
+
+  getPositions(): Observable<PositionDto[]> {
+    const params = new HttpParams().set('page', '0').set('size', '1000').set('sort', 'positionId,asc');
+    return this.http.get<any>(this.positionsUrl, { params }).pipe(map(response => { if (Array.isArray(response)) return response; if (response?.items && Array.isArray(response.items)) return response.items; if (response?.content && Array.isArray(response.content)) return response.content; if (response?.data && Array.isArray(response.data)) return response.data; return []; }));
   }
 
   getDepartments(): Observable<DepartmentDto[]> {
