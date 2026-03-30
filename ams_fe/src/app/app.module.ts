@@ -8,9 +8,10 @@ import { SharedModule } from './shared/shared.module';
 import { LoginComponent } from './features/auth/login/login.component';
 import { AdminLayoutComponent } from './core/layout/admin-layout/admin-layout.component';
 import { AiChatbotComponent } from './core/layout/ai-chatbot/ai-chatbot.component';
+import { ProfileComponent } from './features/admin/profile/profile.component';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent, AdminLayoutComponent, AiChatbotComponent],
+  declarations: [AppComponent, LoginComponent, AdminLayoutComponent, AiChatbotComponent, ProfileComponent],
   imports: [BrowserModule, HttpClientModule, AppRoutingModule, CoreModule, SharedModule],
   bootstrap: [AppComponent],
 })

@@ -6,6 +6,16 @@ import { DepartmentDto, DepartmentRequest } from '../../../shared/models/departm
 import { PageResponse } from '../../../shared/models/page-response.model';
 import { environment } from '../../../../environments/environment';
 
+interface DepartmentPageApiResponse {
+    content?: DepartmentDto[];
+    totalElements?: number;
+    totalPages?: number;
+    number?: number;
+    size?: number;
+    last?: boolean;
+    first?: boolean;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -32,11 +42,8 @@ export class DepartmentService {
             params = params.set('keyword', keyword);
         }
 
-        return this.http.get<any>(this.apiUrl, { params }).pipe(
+        return this.http.get<DepartmentPageApiResponse>(this.apiUrl, { params }).pipe(
             map(response => {
-                // Map Backend Page<DepartmentDto> to Frontend PageResponse<DepartmentDto>
-                // Backend Page: { content: [], totalElements: 0, totalPages: 0, ... }
-                // Frontend PageResponse: { items: [], totalItems: 0, totalPages: 0, ... }
                 return {
                     items: response.content || [],
                     totalItems: response.totalElements || 0,

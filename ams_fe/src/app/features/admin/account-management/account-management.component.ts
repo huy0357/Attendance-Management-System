@@ -1,19 +1,18 @@
 import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import {
+  AccountRoleDefinition,
   AdminService,
   UserAccountRecord,
 } from '../admin.service';
 import {
+  AccountDto,
   CreateAccountRequest,
   UpdateAccountRequest,
-  AccountRole,
 } from '../../../shared/models/account.model';
 import { Subject, Subscription, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { EmployeeDto, EmployeeService } from '../../hrm/employees/employee.service';
-
-type RoleType = 'admin' | 'manager' | 'hr' | 'employee';
 
 @Component({
   standalone: false,
@@ -43,14 +42,25 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   totalPages = 0;
   isLoading = false;
   apiError = false;
+  sortBy: 'accountId' | 'username' | 'isActive' | 'createdAt' | 'lastLoginAt' = 'accountId';
+  sortDir: 'asc' | 'desc' = 'desc';
+  readonly pageSizeOptions = [10, 20, 50];
+  readonly sortOptions = [
+    { value: 'accountId', label: 'Account ID' },
+    { value: 'username', label: 'Username' },
+    { value: 'isActive', label: 'Status' },
+    { value: 'createdAt', label: 'Created At' },
+    { value: 'lastLoginAt', label: 'Last Login' },
+  ];
 
   userAccounts: UserAccountRecord[] = [];
   availableEmployees: EmployeeDto[] = [];
+  accountRoles: AccountRoleDefinition[] = [];
 
   addUserForm: FormGroup;
   editUserForm: FormGroup;
 
-  readonly roleColors: Record<RoleType, string> = {
+  readonly roleColors: Record<string, string> = {
     admin: 'bg-red-100 text-red-700',
     manager: 'bg-blue-100 text-blue-700',
     hr: 'bg-green-100 text-green-700',
@@ -70,22 +80,23 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   ) {
     this.addUserForm = this.fb.group({
       employeeId: [null, Validators.required],
-      username: ['', Validators.required],
-      role: ['admin', Validators.required],
+      username: ['', [Validators.required, this.trimmedRequiredValidator]],
+      roleId: [null, Validators.required],
       password: ['', [Validators.required, Validators.minLength(6)]],
       status: ['active', Validators.required],
     });
 
     this.editUserForm = this.fb.group({
       employeeId: [{ value: null, disabled: true }],
-      username: ['', Validators.required],
-      role: ['admin', Validators.required],
+      username: ['', [Validators.required, this.trimmedRequiredValidator]],
+      roleId: [null, Validators.required],
       status: ['active', Validators.required],
     });
   }
 
   ngOnInit(): void {
     this.loadData();
+    this.loadRoles();
     this.loadAvailableEmployeesForCreate();
 
     this.searchSubscription = this.searchSubject.pipe(
@@ -119,15 +130,15 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.searchQuery,
         this.currentPage,
         this.pageSize,
-        'accountId',
-        'desc'
+        this.sortBy,
+        this.sortDir
       );
     } else {
       request$ = this.adminService.getAccountsPage(
         this.currentPage,
         this.pageSize,
-        'accountId',
-        'desc',
+        this.sortBy,
+        this.sortDir,
         isActive
       );
     }
@@ -141,8 +152,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.cdr.markForCheck();
       },
-      error: (err) => {
-        console.error('Failed to load accounts', err);
+      error: () => {
         this.userAccounts = [];
         this.totalItems = 0;
         this.isLoading = false;
@@ -168,15 +178,22 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     this.goToPage(this.currentPage - 1);
   }
 
-  private mapAccountDtoToRecord(a: any): UserAccountRecord {
+  trackByUserId(_: number, user: UserAccountRecord): string {
+    return user.id;
+  }
+
+  private mapAccountDtoToRecord(a: AccountDto): UserAccountRecord {
+    const roleCode = (a.roleCode ?? '').toUpperCase();
     return {
       id: String(a.accountId),
       employeeId: a.employeeId,
       username: a.username,
-      role: a.role as AccountRole,
+      role: roleCode.toLowerCase(),
       status: a.isActive ? 'active' : 'inactive',
       lastLogin: a.lastLoginAt ?? 'Never',
       createdDate: a.createdAt ? a.createdAt.split('T')[0] : '',
+      roleId: a.roleId ?? null,
+      roleCode: a.roleCode ?? null,
     };
   }
 
@@ -193,6 +210,16 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   }
 
   onStatusFilterChange(): void {
+    this.currentPage = 1;
+    this.loadData();
+  }
+
+  onSortChange(): void {
+    this.currentPage = 1;
+    this.loadData();
+  }
+
+  onPageSizeChange(): void {
     this.currentPage = 1;
     this.loadData();
   }
@@ -223,7 +250,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     this.addUserForm.reset({
       employeeId: null,
       username: '',
-      role: 'employee',
+      roleId: this.getDefaultRoleId(),
       password: '',
       status: 'active',
     });
@@ -245,7 +272,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
       this.editUserForm.reset({
         employeeId: user.employeeId,
         username: user.username,
-        role: user.role,
+        roleId: user.roleId,
         status: user.status,
       });
       this.showEditUser = true;
@@ -260,7 +287,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.editUserForm.reset({
           employeeId: accountDetail.employeeId,
           username: accountDetail.username,
-          role: accountDetail.role,
+          roleId: accountDetail.roleId,
           status: accountDetail.status,
         });
         this.showEditUser = true;
@@ -271,7 +298,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.editUserForm.reset({
           employeeId: user.employeeId,
           username: user.username,
-          role: user.role,
+          roleId: user.roleId,
           status: user.status,
         });
         this.showEditUser = true;
@@ -304,7 +331,6 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     // Parse to number for API
     const userIdNum = Number(this.selectedUser.id);
     if (isNaN(userIdNum)) {
-      console.error('UserId is not a number:', this.selectedUser.id);
       return;
     }
 
@@ -316,8 +342,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         }
         this.loadData();
       },
-      error: (err) => {
-        console.error('Delete failed', err);
+      error: () => {
         alert('Failed to delete user');
       }
     });
@@ -330,16 +355,17 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
     const value = this.addUserForm.value;
     const employeeId = Number(value.employeeId);
+    const roleId = Number(value.roleId);
 
-    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+    if (!Number.isInteger(employeeId) || employeeId <= 0 || !Number.isInteger(roleId) || roleId <= 0) {
       return;
     }
 
     const request: CreateAccountRequest = {
       employeeId,
-      username: value.username,
-      password: value.password,
-      role: value.role as AccountRole,
+      username: String(value.username ?? '').trim(),
+      password: String(value.password ?? ''),
+      roleId,
       isActive: value.status !== 'inactive',
     };
 
@@ -348,9 +374,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.closeAddUserModal();
         this.loadData();
       },
-      error: (err) => {
-        console.error('Failed to create account', err);
-      },
+      error: () => {},
     });
   }
 
@@ -361,10 +385,15 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
 
     const value = this.editUserForm.value;
     const accountId = Number(this.selectedUser.id);
+    const roleId = Number(value.roleId);
+
+    if (!Number.isInteger(roleId) || roleId <= 0) {
+      return;
+    }
 
     const request: UpdateAccountRequest = {
-      username: value.username,
-      role: value.role as AccountRole,
+      username: String(value.username ?? '').trim(),
+      roleId,
       isActive: value.status !== 'inactive',
     };
 
@@ -373,8 +402,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.closeEditUserModal();
         this.loadData();
       },
-      error: (err) => {
-        console.error('Failed to update account', err);
+      error: () => {
         this.closeEditUserModal();
       },
     });
@@ -396,8 +424,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.syncDefaultEmployeeForCreateForm();
         this.cdr.markForCheck();
       },
-      error: (err) => {
-        console.error('Failed to load available employees for account creation', err);
+      error: () => {
         this.availableEmployees = [];
         this.cdr.markForCheck();
       },
@@ -405,7 +432,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
   }
 
   private syncDefaultEmployeeForCreateForm(): void {
-    if (!this.showAddUser || this.addUserForm.get('role')?.value !== 'employee') {
+    if (!this.showAddUser) {
       return;
     }
 
@@ -419,5 +446,42 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
       employeeControl.updateValueAndValidity();
       this.addUserForm.updateValueAndValidity();
     }
+  }
+
+  getRoleLabel(roleId: number | null): string {
+    if (roleId == null) {
+      return 'Unknown';
+    }
+    return this.accountRoles.find((role) => role.id === roleId)?.name ?? 'Unknown';
+  }
+
+  private loadRoles(): void {
+    this.adminService.getAccountRoles().subscribe({
+      next: (roles) => {
+        this.accountRoles = roles;
+        const defaultRoleId = this.getDefaultRoleId();
+        if (defaultRoleId !== null) {
+          this.addUserForm.patchValue({ roleId: defaultRoleId }, { emitEvent: false });
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.accountRoles = [];
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private getDefaultRoleId(): number | null {
+    return this.findRoleIdByCode('EMPLOYEE') ?? this.accountRoles[0]?.id ?? null;
+  }
+
+  private findRoleIdByCode(roleCode: string): number | null {
+    const matched = this.accountRoles.find((role) => role.code?.toUpperCase() === roleCode);
+    return matched?.id ?? null;
+  }
+
+  private trimmedRequiredValidator(control: AbstractControl): ValidationErrors | null {
+    return String(control.value ?? '').trim() ? null : { trimmedRequired: true };
   }
 }

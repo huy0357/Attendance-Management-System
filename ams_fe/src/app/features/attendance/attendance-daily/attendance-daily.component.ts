@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { AttendanceBatchResponse, AttendanceDailyResponse, AttendanceService } from '../attendance.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   standalone: false,
@@ -12,9 +13,10 @@ import { AttendanceBatchResponse, AttendanceDailyResponse, AttendanceService } f
 export class AttendanceDailyComponent implements OnInit {
   title = 'Attendance Daily';
   description = 'Review calculated attendance records for the selected date range.';
-  mode = 'admin';
+  mode: 'self' | 'employee' | 'admin' = 'self';
+  employeeId: number | null = null;
 
-  from = this.formatDate(this.addDays(new Date(), -7));
+  from = '';
   to = this.formatDate(new Date());
   batchDate = this.formatDate(new Date());
 
@@ -34,11 +36,19 @@ export class AttendanceDailyComponent implements OnInit {
   constructor(
     private readonly attendanceService: AttendanceService,
     private readonly route: ActivatedRoute,
+    private readonly authService: AuthService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
+    const today = new Date();
+    this.to = this.formatDate(today);
+    this.from = this.formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+
     this.route.data.subscribe((data) => {
-      this.mode = (data['mode'] as string | undefined) ?? 'admin';
+      this.mode = (data['mode'] as 'self' | 'employee' | 'admin' | undefined) ?? 'self';
+      this.employeeId = this.resolveEmployeeId();
+      this.applyModeMetadata();
       this.loadRecords();
     });
   }
@@ -141,6 +151,14 @@ export class AttendanceDailyComponent implements OnInit {
       return;
     }
 
+    if (this.to < this.from) {
+      this.records = [];
+      this.totalElements = 0;
+      this.totalPages = 0;
+      this.errorMessage = 'To date must be on or after From date.';
+      return;
+    }
+
     this.isLoading = true;
 
     let request$;
@@ -156,7 +174,10 @@ export class AttendanceDailyComponent implements OnInit {
     }
 
     request$
-      .pipe(finalize(() => (this.isLoading = false)))
+      .pipe(finalize(() => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }))
       .subscribe({
         next: (response) => {
           this.records = response.content ?? [];
@@ -175,7 +196,44 @@ export class AttendanceDailyComponent implements OnInit {
   }
 
   private getAttendanceRequest() {
-    return this.attendanceService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size);
+    if (this.mode === 'admin') {
+      return this.attendanceService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size);
+    }
+
+    if (this.mode === 'employee') {
+      if (!this.employeeId) {
+        throw new Error('Employee ID is required for employee attendance view.');
+      }
+      return this.attendanceService.getAttendanceDailyByEmployee(this.employeeId, this.from, this.to, this.page, this.size);
+    }
+
+    return this.attendanceService.getMyAttendanceDaily(this.from, this.to, this.page, this.size);
+  }
+
+  private resolveEmployeeId(): number | null {
+    if (this.mode === 'employee') {
+      const routeEmployeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
+      return Number.isInteger(routeEmployeeId) && routeEmployeeId > 0 ? routeEmployeeId : null;
+    }
+
+    return this.authService.getEmployeeId();
+  }
+
+  private applyModeMetadata(): void {
+    if (this.mode === 'admin') {
+      this.title = 'Attendance Daily Admin';
+      this.description = 'Review calculated attendance records for all employees in the selected date range.';
+      return;
+    }
+
+    if (this.mode === 'employee') {
+      this.title = 'Attendance Daily By Employee';
+      this.description = 'Review calculated attendance records for the selected employee.';
+      return;
+    }
+
+    this.title = 'My Attendance Daily';
+    this.description = 'Review your calculated attendance records for the selected date range.';
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {

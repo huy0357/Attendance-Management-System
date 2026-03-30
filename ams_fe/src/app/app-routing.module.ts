@@ -4,6 +4,7 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { AdminLayoutComponent } from './core/layout/admin-layout/admin-layout.component';
 import { AuthGuard } from './core/auth/auth.guard';
 import { RoleGuard } from './core/auth/role.guard';
+import { ProfileComponent } from './features/admin/profile/profile.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -18,6 +19,10 @@ const routes: Routes = [
         loadChildren: () => import('./features/dashboard/dashboard.module').then(m => m.DashboardModule),
       },
       {
+        path: 'profile',
+        component: ProfileComponent,
+      },
+      {
         path: 'hrm',
         loadChildren: () => import('./features/hrm/hrm.module').then(m => m.HrmModule),
         canActivate: [RoleGuard],
@@ -26,18 +31,6 @@ const routes: Routes = [
       {
         path: 'attendance',
         loadChildren: () => import('./features/attendance/attendance.module').then(m => m.AttendanceModule),
-      },
-      {
-        path: 'payroll',
-        loadChildren: () => import('./features/payroll/payroll.module').then(m => m.PayrollModule),
-        canActivate: [RoleGuard],
-        data: { roles: ['ADMIN', 'HR'] },
-      },
-      {
-        path: 'reports',
-        loadChildren: () => import('./features/reports/reports.module').then(m => m.ReportsModule),
-        canActivate: [RoleGuard],
-        data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
       },
       {
         path: 'admin',

@@ -2,12 +2,30 @@
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-3xl font-bold text-gray-900">My Leave Requests</h1>
-      <p class="text-gray-600 mt-1">View leave requests linked to the signed-in employee account</p>
+      <p class="text-gray-600 mt-1">This page is your own leave history only. Leave approval still runs through the shared request reviewer flow in Requests Management.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <a routerLink="/attendance/requests-management" class="rounded-lg bg-blue-600 px-4 py-2 text-white">
+        Go to Requests Management
+        <lucide-icon name="arrow-right" class="w-4 h-4 ml-2 inline-block"></lucide-icon>
+      </a>
+      <a
+        *ngIf="canOpenReviewerFlow"
+        routerLink="/attendance/requests-management"
+        class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-amber-800"
+      >
+        Review Submitted Requests
+      </a>
     </div>
   </div>
 
+  <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+    Draft, edit, delete, and submit actions are handled in <a routerLink="/attendance/requests-management" class="font-semibold underline">Requests Management</a>.
+    This leave page stays focused on self-service tracking so employees are not pushed into reviewer/admin flow by mistake.
+  </div>
+
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-    <div *ngFor="let stat of stats" class="{{ stat.bg }} rounded-xl p-6 border border-gray-200">
+    <div *ngFor="let stat of stats; trackBy: trackByStatLabel" class="{{ stat.bg }} rounded-xl p-6 border border-gray-200">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
@@ -110,7 +128,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          <tr *ngFor="let request of filteredRequests" class="hover:bg-gray-50 transition-colors">
+          <tr *ngFor="let request of filteredRequests; trackBy: trackByRequestId" class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4">
               <span class="font-semibold text-gray-900">#{{ request.requestId }}</span>
             </td>

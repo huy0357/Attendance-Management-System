@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { EMPTY, Observable, Subject, forkJoin, from, of } from 'rxjs';
 import { auditTime, catchError, finalize, map, mergeMap, switchMap, takeUntil, toArray } from 'rxjs/operators';
 import {
@@ -50,9 +51,14 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   detailDays: Array<{ date: string; items: EmployeeScheduleDayResponse[] }> = [];
   detailLoading = false;
   detailError: string | null = null;
+  successMessage: string | null = null;
   searchTerm = '';
   hideEmptyRows = false;
   groupedEmployees: DepartmentGroupView[] = [];
+  showAssignRangeModal = false;
+  assignRangeForm: FormGroup;
+  isAssigningRange = false;
+  assignRangeEmployeeSearch = '';
 
   templates: ShiftTemplate[] = [];
   employees: ScheduleEmployee[] = [];
@@ -74,8 +80,19 @@ export class SchedulingComponent implements OnInit, OnDestroy {
 
   constructor(
     private attendanceService: AttendanceService,
+    private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-  ) { }
+  ) {
+    this.assignRangeForm = this.fb.group({
+      employeeId: [null, Validators.required],
+      shiftId: [null, Validators.required],
+      startDate: ['', Validators.required],
+      endDate: ['', Validators.required],
+      scheduleSource: ['MANUAL', Validators.required],
+      note: [''],
+      overwrite: [true, Validators.required],
+    }, { validators: this.assignRangeValidator() });
+  }
 
   ngOnInit(): void {
     this.selectedDate = new Date();
@@ -265,12 +282,13 @@ export class SchedulingComponent implements OnInit, OnDestroy {
       type: this.draggedTemplate.type,
       shiftId: shiftIdNum,
       workDate,
-      isAiGenerated: false,
+      scheduleSource: 'MANUAL',
     };
 
     this.pendingAssignKeys.add(dayKey);
     this.upsertShiftForCell(optimisticShift);
     this.errorMessage = null;
+    this.successMessage = null;
     this.draggedTemplate = null;
     this.dragOver = null;
     this.cdr.markForCheck();
@@ -294,6 +312,127 @@ export class SchedulingComponent implements OnInit, OnDestroy {
           this.removeShiftForCell(employeeId, day);
         }
         this.errorMessage = 'Unable to assign shift. Please try again.';
+        this.successMessage = null;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  get filteredAssignRangeEmployees(): ScheduleEmployee[] {
+    const query = this.assignRangeEmployeeSearch.trim().toLowerCase();
+    if (!query) {
+      return this.employees;
+    }
+
+    return this.employees.filter((employee) => {
+      const employeeName = employee.name.toLowerCase();
+      const employeeCode = (employee.employeeCode ?? '').toLowerCase();
+      const department = (employee.department ?? '').toLowerCase();
+      return (
+        employeeName.includes(query) ||
+        employeeCode.includes(query) ||
+        department.includes(query) ||
+        employee.id.includes(query)
+      );
+    });
+  }
+
+  openAssignRangeModal(employee?: ScheduleEmployee | null): void {
+    const targetEmployee = employee ?? this.selectedEmployee;
+    this.assignRangeForm.reset({
+      employeeId: targetEmployee ? Number(targetEmployee.id) : null,
+      shiftId: null,
+      startDate: this.toYmd(this.weekStart),
+      endDate: this.toYmd(this.addDays(this.weekStart, this.days.length - 1)),
+      scheduleSource: 'MANUAL',
+      note: '',
+      overwrite: true,
+    });
+    this.assignRangeEmployeeSearch = targetEmployee
+      ? `${targetEmployee.name}${targetEmployee.employeeCode ? ` ${targetEmployee.employeeCode}` : ''}`
+      : '';
+    this.errorMessage = null;
+    this.successMessage = null;
+    this.showAssignRangeModal = true;
+  }
+
+  closeAssignRangeModal(): void {
+    this.showAssignRangeModal = false;
+    this.isAssigningRange = false;
+    this.assignRangeEmployeeSearch = '';
+  }
+
+  submitAssignRange(): void {
+    if (this.assignRangeForm.invalid) {
+      this.assignRangeForm.markAllAsTouched();
+      this.errorMessage = this.assignRangeForm.hasError('invalidDateRange')
+        ? 'End date must be on or after start date.'
+        : 'Please complete the assign-range form with valid values.';
+      this.successMessage = null;
+      return;
+    }
+
+    const raw = this.assignRangeForm.getRawValue();
+    const employeeId = Number(raw['employeeId']);
+    const shiftId = Number(raw['shiftId']);
+    const startDate = String(raw['startDate'] ?? '');
+    const endDate = String(raw['endDate'] ?? '');
+    const scheduleSource = String(raw['scheduleSource'] ?? '').trim().toUpperCase();
+
+    if (!Number.isInteger(employeeId) || employeeId <= 0 || !Number.isInteger(shiftId) || shiftId <= 0) {
+      this.errorMessage = 'Employee and shift template are required.';
+      this.successMessage = null;
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      this.errorMessage = 'Start date and end date are required.';
+      this.successMessage = null;
+      return;
+    }
+
+    if (endDate < startDate) {
+      this.errorMessage = 'End date must be on or after start date.';
+      this.successMessage = null;
+      return;
+    }
+
+    if (!this.isValidScheduleSource(scheduleSource)) {
+      this.errorMessage = 'Schedule source must be MANUAL or IMPORT.';
+      this.successMessage = null;
+      return;
+    }
+
+    this.isAssigningRange = true;
+    this.errorMessage = null;
+    this.successMessage = null;
+
+    this.attendanceService.assignShiftRange({
+      employeeId,
+      shiftId,
+      startDate,
+      endDate,
+      scheduleSource,
+      note: String(raw['note'] ?? '').trim() || undefined,
+      overwrite: !!raw['overwrite'],
+    }).subscribe({
+      next: (response) => {
+        this.isAssigningRange = false;
+        this.closeAssignRangeModal();
+        this.invalidateRange(employeeId, startDate, endDate);
+        this.triggerReload();
+        if (this.isDetailOpen && Number(this.selectedEmployee?.id) === employeeId) {
+          this.loadEmployeeDetail(employeeId, this.getDetailDates());
+        }
+        this.successMessage =
+          `Assigned shift ${response.shiftId} for employee ${response.employeeId} from ${response.startDate} to ${response.endDate}. ` +
+          `Created ${response.created}, updated ${response.updated}.`;
+        this.cdr.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.isAssigningRange = false;
+        this.errorMessage = this.resolveApiError(error, 'Unable to assign shift range.');
+        this.successMessage = null;
         this.cdr.markForCheck();
       },
     });
@@ -322,7 +461,7 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   }
 
   getImportedAssignmentCount(): number {
-    return this.shifts.filter((shift) => shift.isAiGenerated).length;
+    return this.shifts.filter((shift) => shift.scheduleSource === 'IMPORT').length;
   }
 
   getTemplateColor(type: Shift['type']): string {
@@ -479,7 +618,7 @@ export class SchedulingComponent implements OnInit, OnDestroy {
       type: this.deriveShiftType(item.isNightShift, item.startTime),
       shiftId: item.shiftId,
       workDate: item.workDate,
-      isAiGenerated: item.scheduleSource === 'IMPORT',
+      scheduleSource: item.scheduleSource,
     };
   }
 
@@ -556,6 +695,20 @@ export class SchedulingComponent implements OnInit, OnDestroy {
 
   private invalidateCache(employeeId: number, ymd: string): void {
     this.dayCache.delete(this.cacheKey(employeeId, ymd));
+  }
+
+  private invalidateRange(employeeId: number, startDate: string, endDate: string): void {
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T00:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return;
+    }
+
+    const current = new Date(start);
+    while (current <= end) {
+      this.invalidateCache(employeeId, this.toYmd(current));
+      current.setDate(current.getDate() + 1);
+    }
   }
 
   private cacheKey(employeeId: number, ymd: string): string {
@@ -739,5 +892,33 @@ export class SchedulingComponent implements OnInit, OnDestroy {
     start.setHours(0, 0, 0, 0);
     const current = new Date(`${ymd}T00:00:00`);
     return Math.round((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  private resolveApiError(error: HttpErrorResponse, fallback: string): string {
+    const backendMessage = error.error?.message || error.error?.error;
+    if (typeof backendMessage === 'string' && backendMessage.trim()) {
+      return backendMessage;
+    }
+    if (typeof error.message === 'string' && error.message.trim()) {
+      return error.message;
+    }
+    return fallback;
+  }
+
+  private isValidScheduleSource(value: string): value is 'MANUAL' | 'IMPORT' {
+    return value === 'MANUAL' || value === 'IMPORT';
+  }
+
+  private assignRangeValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const startDate = String(control.get('startDate')?.value ?? '').trim();
+      const endDate = String(control.get('endDate')?.value ?? '').trim();
+
+      if (!startDate || !endDate) {
+        return null;
+      }
+
+      return endDate >= startDate ? null : { invalidDateRange: true };
+    };
   }
 }
