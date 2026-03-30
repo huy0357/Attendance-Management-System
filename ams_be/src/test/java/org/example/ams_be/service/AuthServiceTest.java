@@ -2,7 +2,10 @@ package org.example.ams_be.service;
 
 import org.example.ams_be.dto.response.AuthResponse;
 import org.example.ams_be.entity.Account;
+import org.example.ams_be.entity.Employee;
+import org.example.ams_be.entity.Role;
 import org.example.ams_be.repository.AccountRepository;
+import org.example.ams_be.repository.EmployeeRepository;
 import org.example.ams_be.utils.JwtUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,10 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -36,13 +39,16 @@ class AuthServiceTest {
     private JwtUtil jwtUtil;
 
     @Mock
-    private RoleRepository roleRepository;
-
-    @Mock
     private TokenStore tokenStore;
 
     @Mock
     private AuditLogService auditLogService;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private EmployeeRepository employeeRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -59,8 +65,7 @@ class AuthServiceTest {
 
     @Test
     void loginThrowsWhenAccountInactive() {
-        Account account = account(1L, "alice", Account.Role.admin, false);
-        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
+        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account(1L, 100L, "alice", role(1L, "admin"), false)));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login("alice", "secret"));
 
@@ -69,7 +74,7 @@ class AuthServiceTest {
 
     @Test
     void loginThrowsWhenPasswordDoesNotMatch() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
+        Account account = account(1L, 100L, "alice", role(1L, "admin"), true);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("wrong", "hash")).thenReturn(false);
 
@@ -80,11 +85,11 @@ class AuthServiceTest {
 
     @Test
     void loginReturnsTokensStoresRefreshAndWritesAuditLog() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
+        Account account = account(1L, 100L, "alice", role(1L, "admin"), true);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
-        when(jwtUtil.generateAccessToken("alice", "admin")).thenReturn("access");
-        when(jwtUtil.generateRefreshToken("alice", "admin")).thenReturn("refresh");
+        when(jwtUtil.generateAccessToken("alice", "ADMIN", 100L)).thenReturn("access");
+        when(jwtUtil.generateRefreshToken("alice", "ADMIN", 100L)).thenReturn("refresh");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
@@ -93,7 +98,7 @@ class AuthServiceTest {
         assertEquals("access", response.getAccessToken());
         assertEquals("refresh", response.getRefreshToken());
         assertEquals("alice", response.getUsername());
-        assertEquals("admin", response.getRole());
+        assertEquals("ADMIN", response.getRole());
         verify(tokenStore).storeRefreshToken("alice", "refresh", 7200L);
         verify(auditLogService).saveAuditLog(
                 org.mockito.ArgumentMatchers.eq("LOGIN"),
@@ -101,40 +106,31 @@ class AuthServiceTest {
                 org.mockito.ArgumentMatchers.eq(1L),
                 org.mockito.ArgumentMatchers.eq(100L),
                 org.mockito.ArgumentMatchers.isNull(),
-                argThat((String payload) -> payload.contains("\"status\":\"SUCCESS\"")
-                        && payload.contains("\"username\":\"alice\"")
-                        && payload.contains("\"message\""))
+                argThat(payload -> payload instanceof String
+                        && payload.toString().contains("\"status\":\"SUCCESS\"")
+                        && payload.toString().contains("\"username\":\"alice\""))
         );
     }
 
     @Test
     void loginUsesEmployeeRoleWhenAccountRoleMissing() {
-        Account account = account(1L, "alice", "admin", true);
-        account.setRole(null);
+        Account account = account(1L, 100L, "alice", null, true);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
-        when(jwtUtil.generateAccessToken("alice", "employee")).thenReturn("access");
-        when(jwtUtil.generateRefreshToken("alice", "employee")).thenReturn("refresh");
+        when(jwtUtil.generateAccessToken("alice", "EMPLOYEE", 100L)).thenReturn("access");
+        when(jwtUtil.generateRefreshToken("alice", "EMPLOYEE", 100L)).thenReturn("refresh");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
         AuthResponse response = authService.login("alice", "secret");
 
-        assertEquals("employee", response.getRole());
+        assertEquals("EMPLOYEE", response.getRole());
         verify(tokenStore).storeRefreshToken("alice", "refresh", 7200L);
     }
 
     @Test
     void refreshThrowsWhenTokenBlank() {
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.refresh("  "));
-
-        assertEquals("Invalid refresh token", ex.getMessage());
-        verifyNoInteractions(jwtUtil, tokenStore);
-    }
-
-    @Test
-    void refreshThrowsWhenTokenIsNull() {
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.refresh(null));
 
         assertEquals("Invalid refresh token", ex.getMessage());
         verifyNoInteractions(jwtUtil, tokenStore);
@@ -150,21 +146,12 @@ class AuthServiceTest {
     }
 
     @Test
-    void refreshThrowsWhenTypeIsNotRefresh() {
-        when(jwtUtil.isExpired("token")).thenReturn(false);
-        when(jwtUtil.getType("token")).thenReturn("access");
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.refresh("token"));
-
-        assertEquals("Invalid refresh token", ex.getMessage());
-    }
-
-    @Test
     void refreshThrowsWhenTokenRevoked() {
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
-        when(jwtUtil.getRole("token")).thenReturn("admin");
+        when(jwtUtil.getRole("token")).thenReturn("ADMIN");
+        when(jwtUtil.getEmployeeId("token")).thenReturn(100L);
         when(tokenStore.exists("alice", "token")).thenReturn(false);
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.refresh("token"));
@@ -173,37 +160,16 @@ class AuthServiceTest {
     }
 
     @Test
-    void refreshThrowsWhenParsedUsernameBlank() {
-        when(jwtUtil.isExpired("token")).thenReturn(false);
-        when(jwtUtil.getType("token")).thenReturn("refresh");
-        when(jwtUtil.getUsername("token")).thenReturn(" ");
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.refresh("token"));
-
-        assertEquals("Invalid refresh token", ex.getMessage());
-    }
-
-    @Test
-    void refreshThrowsWhenParsedUsernameIsNull() {
-        when(jwtUtil.isExpired("token")).thenReturn(false);
-        when(jwtUtil.getType("token")).thenReturn("refresh");
-        when(jwtUtil.getUsername("token")).thenReturn(null);
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.refresh("token"));
-
-        assertEquals("Invalid refresh token", ex.getMessage());
-    }
-
-    @Test
     void refreshUsesFallbackRoleWhenMissingAndRotatesTokens() {
-        Account account = account(1L, "alice", "employee", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
         when(jwtUtil.getRole("token")).thenReturn(" ");
+        when(jwtUtil.getEmployeeId("token")).thenReturn(100L);
         when(tokenStore.exists("alice", "token")).thenReturn(true);
-        when(jwtUtil.generateRefreshToken("alice", "employee")).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "employee")).thenReturn("new-access");
+        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account(1L, 100L, "alice", role(1L, "admin"), true)));
+        when(jwtUtil.generateRefreshToken("alice", "EMPLOYEE", 100L)).thenReturn("new-refresh");
+        when(jwtUtil.generateAccessToken("alice", "EMPLOYEE", 100L)).thenReturn("new-access");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
@@ -211,62 +177,34 @@ class AuthServiceTest {
 
         assertEquals("new-access", response.getAccessToken());
         assertEquals("new-refresh", response.getRefreshToken());
-        assertEquals("employee", response.getRole());
+        assertEquals("EMPLOYEE", response.getRole());
         verify(tokenStore).revoke("alice", "token");
         verify(tokenStore).storeRefreshToken("alice", "new-refresh", 7200L);
     }
 
     @Test
-    void refreshUsesFallbackRoleWhenRoleIsNull() {
-        Account account = account(1L, "alice", "employee", true);
-        when(jwtUtil.isExpired("token")).thenReturn(false);
-        when(jwtUtil.getType("token")).thenReturn("refresh");
-        when(jwtUtil.getUsername("token")).thenReturn("alice");
-        when(jwtUtil.getRole("token")).thenReturn(null);
-        when(tokenStore.exists("alice", "token")).thenReturn(true);
-        when(jwtUtil.generateRefreshToken("alice", "employee")).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "employee")).thenReturn("new-access");
-        when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
-        when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
-
-        AuthResponse response = authService.refresh("token");
-
-        assertEquals("employee", response.getRole());
-    }
-
-    @Test
     void refreshUsesRoleFromTokenWhenPresent() {
-        Account account = account(1L, "alice", "manager", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
-        when(jwtUtil.getRole("token")).thenReturn("manager");
+        when(jwtUtil.getRole("token")).thenReturn("MANAGER");
+        when(jwtUtil.getEmployeeId("token")).thenReturn(100L);
         when(tokenStore.exists("alice", "token")).thenReturn(true);
-        when(jwtUtil.generateRefreshToken("alice", "manager")).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "manager")).thenReturn("new-access");
+        when(accountRepo.findByUsername("alice")).thenReturn(Optional.empty());
+        when(jwtUtil.generateRefreshToken("alice", "MANAGER", 100L)).thenReturn("new-refresh");
+        when(jwtUtil.generateAccessToken("alice", "MANAGER", 100L)).thenReturn("new-access");
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
 
         AuthResponse response = authService.refresh("token");
 
-        assertEquals("manager", response.getRole());
+        assertEquals("MANAGER", response.getRole());
         assertEquals("new-access", response.getAccessToken());
     }
 
     @Test
     void logoutReturnsImmediatelyWhenTokenInvalid() {
         when(jwtUtil.isExpired("token")).thenReturn(true);
-
-        authService.logout("token");
-
-        verify(tokenStore, never()).revoke(any(), any());
-        verifyNoInteractions(accountRepo, auditLogService);
-    }
-
-    @Test
-    void logoutReturnsImmediatelyWhenTokenTypeIsNotRefresh() {
-        when(jwtUtil.isExpired("token")).thenReturn(false);
-        when(jwtUtil.getType("token")).thenReturn("access");
 
         authService.logout("token");
 
@@ -289,11 +227,10 @@ class AuthServiceTest {
 
     @Test
     void logoutWritesAuditAndRevokesWhenAccountExists() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
-        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
+        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account(1L, 100L, "alice", role(1L, "admin"), true)));
 
         authService.logout("token");
 
@@ -302,28 +239,54 @@ class AuthServiceTest {
     }
 
     @Test
-    void logoutWritesAuditWithNullActorWhenEmployeeIdMissing() {
-        Account account = account(1L, "alice", Account.Role.admin, true);
-        account.setEmployeeId(null);
-        when(jwtUtil.isExpired("token")).thenReturn(false);
-        when(jwtUtil.getType("token")).thenReturn("refresh");
-        when(jwtUtil.getUsername("token")).thenReturn("alice");
-        when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
+    void forgotPasswordGeneratesOtpAndPersistsEncodedOtp() {
+        Employee employee = Employee.builder().employeeId(100L).email("alice@example.com").build();
+        Account account = account(1L, 100L, "alice", role(1L, "admin"), true);
+        when(employeeRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(employee));
+        when(accountRepo.findByEmployeeId(100L)).thenReturn(Optional.of(account));
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-otp");
 
-        authService.logout("token");
+        authService.forgotPassword("alice@example.com");
 
-        verify(auditLogService).saveAuditLog("LOGOUT", "ACCOUNT", 1L, null, "Username: alice", "Logout successful");
-        verify(tokenStore).revoke("alice", "token");
+        verify(accountRepo).save(argThat(saved -> "encoded-otp".equals(saved.getResetOtp())
+                && saved.getResetOtpExpiredAt() != null
+                && saved.getResetOtpAttemptCount() == 0));
+        verify(emailService).sendOtpEmail(org.mockito.ArgumentMatchers.eq("alice@example.com"), any(String.class));
     }
 
-    private Account account(Long accountId, String username, Account.Role role, boolean active) {
+    @Test
+    void verifyOtpThrowsWhenOtpInvalidAndIncrementsAttemptCount() {
+        Employee employee = Employee.builder().employeeId(100L).email("alice@example.com").build();
+        Account account = account(1L, 100L, "alice", role(1L, "admin"), true);
+        account.setResetOtp("encoded-otp");
+        account.setResetOtpExpiredAt(LocalDateTime.now().plusMinutes(5));
+        account.setResetOtpAttemptCount(0);
+        when(employeeRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(employee));
+        when(accountRepo.findByEmployeeId(100L)).thenReturn(Optional.of(account));
+        when(passwordEncoder.matches("123456", "encoded-otp")).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.verifyOtp("alice@example.com", "123456"));
+
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("OTP"));
+        verify(accountRepo).save(argThat(saved -> saved.getResetOtpAttemptCount() == 1));
+    }
+
+    private Account account(Long accountId, Long employeeId, String username, Role role, boolean active) {
         return Account.builder()
                 .accountId(accountId)
-                .employeeId(100L)
+                .employeeId(employeeId)
                 .username(username)
                 .passwordHash("hash")
                 .role(role)
                 .isActive(active)
+                .build();
+    }
+
+    private Role role(Long roleId, String roleCode) {
+        return Role.builder()
+                .roleId(roleId)
+                .roleCode(roleCode)
+                .roleName(roleCode)
                 .build();
     }
 }

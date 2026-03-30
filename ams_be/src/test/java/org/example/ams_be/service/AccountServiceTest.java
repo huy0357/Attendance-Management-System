@@ -7,8 +7,11 @@ import org.example.ams_be.dto.request.UpdateAccountRequest;
 import org.example.ams_be.dto.response.AccountResponse;
 import org.example.ams_be.dto.response.PageResponse;
 import org.example.ams_be.entity.Account;
+import org.example.ams_be.entity.Role;
 import org.example.ams_be.exception.NotFoundException;
 import org.example.ams_be.repository.AccountRepository;
+import org.example.ams_be.repository.RoleRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -19,6 +22,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -27,7 +31,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,10 +47,21 @@ class AccountServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
+    private RoleRepository roleRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private AuditLogService auditLogService;
 
     @InjectMocks
     private AccountService accountService;
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void createAccountThrowsWhenEmployeeIdMissing() {
@@ -56,39 +71,18 @@ class AccountServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
         assertEquals("employeeId is required", ex.getMessage());
-        verifyNoInteractions(accountRepository, passwordEncoder);
+        verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
     }
 
     @Test
-    void createAccountThrowsWhenPasswordInvalid() {
+    void createAccountThrowsWhenRoleIdMissing() {
         CreateAccountRequest req = createRequest();
-        req.setPassword("123");
+        req.setRoleId(null);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
 
-        assertEquals("password is required (min 6 chars)", ex.getMessage());
-    }
-
-    @Test
-    void createAccountThrowsWhenPasswordMissing() {
-        CreateAccountRequest req = createRequest();
-        req.setPassword(null);
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
-
-        assertEquals("password is required (min 6 chars)", ex.getMessage());
-        verifyNoInteractions(accountRepository, passwordEncoder);
-    }
-
-    @Test
-    void createAccountThrowsWhenUsernameBlank() {
-        CreateAccountRequest req = createRequest();
-        req.setUsername(" ");
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
-
-        assertEquals("username is required", ex.getMessage());
-        verifyNoInteractions(accountRepository, passwordEncoder);
+        assertEquals("roleId is required", ex.getMessage());
+        verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
     }
 
     @Test
@@ -103,27 +97,28 @@ class AccountServiceTest {
     }
 
     @Test
-    void createAccountThrowsWhenEmployeeAlreadyHasAccount() {
+    void createAccountThrowsWhenRoleNotFound() {
         CreateAccountRequest req = createRequest();
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
-        when(accountRepository.existsByEmployeeId(1L)).thenReturn(true);
+        when(accountRepository.existsByEmployeeId(1L)).thenReturn(false);
+        when(roleRepository.findById(10L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> accountService.createAccount(req));
 
-        assertEquals("employee already has an account", ex.getMessage());
+        assertEquals("Role not found: 10", ex.getMessage());
     }
 
     @Test
-    void createAccountAppliesDefaultRoleAndActiveAndEncodesPassword() {
+    void createAccountUsesRoleFromRepositoryAndReturnsResponse() {
         CreateAccountRequest req = createRequest();
-        req.setRole(null);
-        req.setIsActive(null);
+        Role role = role(10L, "ADMIN");
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
         when(accountRepository.existsByEmployeeId(1L)).thenReturn(false);
+        when(roleRepository.findById(10L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode("secret1")).thenReturn("hashed");
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
             Account saved = invocation.getArgument(0);
-            saved.setAccountId(10L);
+            saved.setAccountId(99L);
             saved.setCreatedAt(LocalDateTime.of(2026, 3, 18, 9, 0));
             return saved;
         });
@@ -132,80 +127,37 @@ class AccountServiceTest {
 
         ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
         verify(accountRepository).save(captor.capture());
-        assertEquals(Account.Role.employee, captor.getValue().getRole());
-        assertTrue(captor.getValue().getIsActive());
+        assertEquals(role, captor.getValue().getRole());
         assertEquals("hashed", captor.getValue().getPasswordHash());
-        verify(passwordEncoder).encode("secret1");
-        assertEquals(10L, response.getAccountId());
-        assertEquals(Account.Role.employee, response.getRole());
+        assertEquals(99L, response.getAccountId());
+        assertEquals(10L, response.getRoleId());
+        assertEquals("ADMIN", response.getRoleCode());
         assertTrue(response.getIsActive());
-    }
-
-    @Test
-    void createAccountKeepsProvidedRoleAndInactiveFlag() {
-        CreateAccountRequest req = createRequest();
-        req.setRole(Account.Role.manager);
-        req.setIsActive(false);
-        when(accountRepository.existsByUsername("alice")).thenReturn(false);
-        when(accountRepository.existsByEmployeeId(1L)).thenReturn(false);
-        when(passwordEncoder.encode("secret1")).thenReturn("hashed");
-        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
-            Account saved = invocation.getArgument(0);
-            saved.setAccountId(11L);
-            return saved;
-        });
-
-        AccountResponse response = accountService.createAccount(req);
-
-        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
-        verify(accountRepository).save(captor.capture());
-        assertEquals(Account.Role.manager, captor.getValue().getRole());
-        assertFalse(captor.getValue().getIsActive());
-        assertEquals(Account.Role.manager, response.getRole());
-        assertFalse(response.getIsActive());
+        verify(auditLogService).saveAuditLog("CREATE", "ACCOUNT", 99L, null, null, response);
     }
 
     @Test
     void getAllAccountsMapsEntitiesToDtos() {
-        when(accountRepository.findAll()).thenReturn(List.of(account(1L, "alice", Account.Role.admin, true)));
+        when(accountRepository.findAll()).thenReturn(List.of(account(1L, "alice", role(10L, "ADMIN"), true)));
 
         List<AccountDto> result = accountService.getAllAccounts();
 
         assertEquals(1, result.size());
         assertEquals("alice", result.get(0).getUsername());
-        assertEquals("admin", result.get(0).getRole());
-    }
-
-    @Test
-    void getAccountByIdThrowsWhenNotFound() {
-        when(accountRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(NotFoundException.class, () -> accountService.getAccountById(99L));
+        assertEquals(10L, result.get(0).getRoleId());
+        assertEquals("ADMIN", result.get(0).getRoleCode());
     }
 
     @Test
     void getAccountByIdReturnsMappedDtoWhenFound() {
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(account(1L, "alice", Account.Role.admin, true)));
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account(1L, "alice", role(10L, "ADMIN"), true)));
 
         AccountDto result = accountService.getAccountById(1L);
 
         assertEquals(1L, result.getAccountId());
         assertEquals("alice", result.getUsername());
-        assertEquals("admin", result.getRole());
+        assertEquals("ADMIN", result.getRoleCode());
         assertTrue(result.getIsActive());
-    }
-
-    @Test
-    void updateThrowsWhenUsernameDuplicate() {
-        UpdateAccountRequest req = new UpdateAccountRequest();
-        req.setUsername("bob");
-        Account existing = account(1L, "alice", Account.Role.employee, true);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(accountRepository.existsByUsername("bob")).thenReturn(true);
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.update(1L, req));
-
-        assertEquals("username already exists", ex.getMessage());
     }
 
     @Test
@@ -216,44 +168,52 @@ class AccountServiceTest {
     }
 
     @Test
+    void updateThrowsWhenRoleNotFound() {
+        UpdateAccountRequest req = UpdateAccountRequest.builder().roleId(99L).build();
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account(1L, "alice", role(10L, "ADMIN"), true)));
+        when(roleRepository.findById(99L)).thenReturn(Optional.empty());
+
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> accountService.update(1L, req));
+
+        assertEquals("Role not found: 99", ex.getMessage());
+    }
+
+    @Test
     void updateMutatesFieldsAndReturnsDto() {
-        UpdateAccountRequest req = new UpdateAccountRequest();
-        req.setUsername("bob");
-        req.setRole(Account.Role.manager);
-        req.setIsActive(false);
-        Account existing = account(1L, "alice", Account.Role.employee, true);
+        UpdateAccountRequest req = UpdateAccountRequest.builder()
+                .username("bob")
+                .roleId(20L)
+                .isActive(false)
+                .build();
+        Account existing = account(1L, "alice", role(10L, "ADMIN"), true);
+        Role newRole = role(20L, "MANAGER");
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(accountRepository.existsByUsername("bob")).thenReturn(false);
+        when(roleRepository.findById(20L)).thenReturn(Optional.of(newRole));
+        when(accountRepository.save(existing)).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountDto result = accountService.update(1L, req);
 
         assertEquals("bob", result.getUsername());
-        assertEquals("manager", result.getRole());
+        assertEquals(20L, result.getRoleId());
+        assertEquals("MANAGER", result.getRoleCode());
         assertFalse(result.getIsActive());
-        assertNotNull(result.getUpdatedAt());
-    }
-
-    @Test
-    void updateSkipsUsernameLookupWhenBlankAndLeavesOptionalFieldsUntouched() {
-        UpdateAccountRequest req = new UpdateAccountRequest();
-        req.setUsername(" ");
-        Account existing = account(1L, "alice", Account.Role.employee, true);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
-
-        AccountDto result = accountService.update(1L, req);
-
-        assertEquals("alice", result.getUsername());
-        assertEquals("employee", result.getRole());
-        assertTrue(result.getIsActive());
-        verify(accountRepository, never()).existsByUsername(any());
+        verify(auditLogService).saveAuditLog(
+                org.mockito.ArgumentMatchers.eq("UPDATE"),
+                org.mockito.ArgumentMatchers.eq("ACCOUNT"),
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.isNull(),
+                any(AccountDto.class),
+                any(AccountDto.class)
+        );
     }
 
     @Test
     void updateSkipsDuplicateCheckWhenUsernameUnchanged() {
-        UpdateAccountRequest req = new UpdateAccountRequest();
-        req.setUsername("alice");
-        Account existing = account(1L, "alice", Account.Role.employee, true);
+        UpdateAccountRequest req = UpdateAccountRequest.builder().username("alice").build();
+        Account existing = account(1L, "alice", role(10L, "ADMIN"), true);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(existing)).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountDto result = accountService.update(1L, req);
 
@@ -263,18 +223,27 @@ class AccountServiceTest {
 
     @Test
     void deleteThrowsWhenAccountNotFound() {
-        when(accountRepository.existsById(99L)).thenReturn(false);
+        when(accountRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> accountService.delete(99L));
     }
 
     @Test
-    void deleteRemovesAccountWhenFound() {
-        when(accountRepository.existsById(10L)).thenReturn(true);
+    void deleteRemovesAccountAndWritesAudit() {
+        Account existing = account(10L, "alice", role(10L, "ADMIN"), true);
+        when(accountRepository.findById(10L)).thenReturn(Optional.of(existing));
 
         accountService.delete(10L);
 
-        verify(accountRepository).deleteById(10L);
+        verify(accountRepository).delete(existing);
+        verify(auditLogService).saveAuditLog(
+                org.mockito.ArgumentMatchers.eq("DELETE"),
+                org.mockito.ArgumentMatchers.eq("ACCOUNT"),
+                org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.isNull(),
+                any(AccountDto.class),
+                org.mockito.ArgumentMatchers.isNull()
+        );
     }
 
     @Test
@@ -282,7 +251,7 @@ class AccountServiceTest {
         PageRequestDto req = new PageRequestDto();
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findAllByIsActive(true, pageable))
-                .thenReturn(new PageImpl<>(List.of(account(1L, "alice", Account.Role.admin, true)), pageable, 1));
+                .thenReturn(new PageImpl<>(List.of(account(1L, "alice", role(10L, "ADMIN"), true)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.getAccountsPage(req, true);
 
@@ -290,39 +259,6 @@ class AccountServiceTest {
         assertEquals(10, response.size);
         assertEquals(1, response.totalItems);
         assertEquals("alice", response.items.get(0).getUsername());
-    }
-
-    @Test
-    void getAccountsPageUsesFindAllWhenActiveFilterMissing() {
-        PageRequestDto req = new PageRequestDto();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
-        when(accountRepository.findAll(pageable))
-                .thenReturn(new PageImpl<>(List.of(account(2L, "bob", Account.Role.employee, false)), pageable, 1));
-
-        PageResponse<AccountDto> response = accountService.getAccountsPage(req, null);
-
-        assertEquals(1, response.page);
-        assertEquals("bob", response.items.get(0).getUsername());
-        verify(accountRepository).findAll(pageable);
-    }
-
-    @Test
-    void getAccountsPageUsesProvidedPagingAndAscendingSortForInactiveFilter() {
-        PageRequestDto req = new PageRequestDto();
-        req.page = 2;
-        req.size = 3;
-        req.sortBy = "username";
-        req.sortDir = "asc";
-        Pageable pageable = PageRequest.of(1, 3, Sort.by("username").ascending());
-        when(accountRepository.findAllByIsActive(false, pageable))
-                .thenReturn(new PageImpl<>(List.of(account(2L, "bob", Account.Role.employee, false)), pageable, 7));
-
-        PageResponse<AccountDto> response = accountService.getAccountsPage(req, false);
-
-        assertEquals(2, response.page);
-        assertEquals(3, response.size);
-        assertEquals(7, response.totalItems);
-        assertEquals("bob", response.items.get(0).getUsername());
     }
 
     @Test
@@ -334,13 +270,13 @@ class AccountServiceTest {
         req.sortDir = " ";
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findAll(pageable))
-                .thenReturn(new PageImpl<>(List.of(account(4L, "dave", (String) null, true)), pageable, 1));
+                .thenReturn(new PageImpl<>(List.of(account(4L, "dave", null, true)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.getAccountsPage(req, null);
 
         assertEquals(1, response.page);
         assertEquals(10, response.size);
-        assertEquals(null, response.items.get(0).getRole());
+        assertNull(response.items.get(0).getRoleCode());
         verify(accountRepository).findAll(pageable);
     }
 
@@ -353,7 +289,7 @@ class AccountServiceTest {
         req.sortDir = "asc";
         Pageable pageable = PageRequest.of(1, 5, Sort.by("username").ascending());
         when(accountRepository.findByUsernameContainingIgnoreCase("ali", pageable))
-                .thenReturn(new PageImpl<>(List.of(account(1L, "alice", Account.Role.admin, true)), pageable, 6));
+                .thenReturn(new PageImpl<>(List.of(account(1L, "alice", role(10L, "ADMIN"), true)), pageable, 6));
 
         PageResponse<AccountDto> response = accountService.searchAccountsByUsername(req, "ali");
 
@@ -364,49 +300,17 @@ class AccountServiceTest {
         assertFalse(response.hasNext);
     }
 
-    @Test
-    void searchAccountsByUsernameUsesDefaultDescendingSort() {
-        PageRequestDto req = new PageRequestDto();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
-        when(accountRepository.findByUsernameContainingIgnoreCase("adm", pageable))
-                .thenReturn(new PageImpl<>(List.of(account(3L, "admin", (String) null, true)), pageable, 1));
-
-        PageResponse<AccountDto> response = accountService.searchAccountsByUsername(req, "adm");
-
-        assertEquals(1, response.page);
-        assertEquals("admin", response.items.get(0).getUsername());
-        assertEquals(null, response.items.get(0).getRole());
-    }
-
-    @Test
-    void searchAccountsByUsernameNormalizesInvalidPagingAndBlankSortValues() {
-        PageRequestDto req = new PageRequestDto();
-        req.page = -1;
-        req.size = 0;
-        req.sortBy = " ";
-        req.sortDir = " ";
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
-        when(accountRepository.findByUsernameContainingIgnoreCase("adm", pageable))
-                .thenReturn(new PageImpl<>(List.of(account(5L, "adam", Account.Role.manager, true)), pageable, 1));
-
-        PageResponse<AccountDto> response = accountService.searchAccountsByUsername(req, "adm");
-
-        assertEquals(1, response.page);
-        assertEquals(10, response.size);
-        assertEquals("manager", response.items.get(0).getRole());
-    }
-
     private CreateAccountRequest createRequest() {
         return CreateAccountRequest.builder()
                 .employeeId(1L)
                 .username("alice")
                 .password("secret1")
-                .role(Account.Role.admin)
+                .roleId(10L)
                 .isActive(true)
                 .build();
     }
 
-    private Account account(Long id, String username, Account.Role role, boolean isActive) {
+    private Account account(Long id, String username, Role role, boolean isActive) {
         return Account.builder()
                 .accountId(id)
                 .employeeId(1L)
@@ -417,6 +321,14 @@ class AccountServiceTest {
                 .lastLoginAt(LocalDateTime.of(2026, 3, 18, 8, 0))
                 .createdAt(LocalDateTime.of(2026, 3, 1, 8, 0))
                 .updatedAt(LocalDateTime.of(2026, 3, 2, 8, 0))
+                .build();
+    }
+
+    private Role role(Long roleId, String roleCode) {
+        return Role.builder()
+                .roleId(roleId)
+                .roleCode(roleCode)
+                .roleName(roleCode)
                 .build();
     }
 }

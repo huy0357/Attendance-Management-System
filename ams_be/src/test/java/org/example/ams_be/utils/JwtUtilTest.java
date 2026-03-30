@@ -21,25 +21,27 @@ class JwtUtilTest {
 
     @Test
     void generateAccessTokenContainsExpectedClaims() {
-        String token = jwtUtil.generateAccessToken("alice", "ADMIN");
+        String token = jwtUtil.generateAccessToken("alice", "ADMIN", 42L);
 
         Claims claims = jwtUtil.parseClaims(token);
 
         assertEquals("alice", claims.getSubject());
         assertEquals("ADMIN", jwtUtil.getRole(token));
         assertEquals("access", jwtUtil.getType(token));
+        assertEquals(42L, jwtUtil.getEmployeeId(token));
         assertFalse(jwtUtil.isExpired(token));
     }
 
     @Test
     void generateRefreshTokenContainsRefreshTypeAndConfiguredTtl() {
-        String token = jwtUtil.generateRefreshToken("bob", "EMPLOYEE");
+        String token = jwtUtil.generateRefreshToken("bob", "EMPLOYEE", 88L);
 
         Claims claims = jwtUtil.parseClaims(token);
         long ttlSeconds = (claims.getExpiration().getTime() - claims.getIssuedAt().getTime()) / 1000;
 
         assertEquals("bob", jwtUtil.getUsername(token));
         assertEquals("EMPLOYEE", jwtUtil.getRole(token));
+        assertEquals(88L, jwtUtil.getEmployeeId(token));
         assertEquals("refresh", jwtUtil.getType(token));
         assertEquals(7200L, ttlSeconds);
     }
@@ -53,7 +55,7 @@ class JwtUtilTest {
 
     @Test
     void getEmployeeIdReturnsNullWhenClaimMissing() {
-        String token = jwtUtil.generateAccessToken("charlie", "ADMIN");
+        String token = jwtUtil.generateAccessToken("charlie", "ADMIN", null);
 
         assertNull(jwtUtil.getEmployeeId(token));
     }
@@ -61,7 +63,7 @@ class JwtUtilTest {
     @Test
     void isExpiredReturnsTrueForExpiredToken() {
         JwtUtil expiredJwtUtil = new JwtUtil(SECRET, -1, 7200);
-        String token = expiredJwtUtil.generateAccessToken("david", "ADMIN");
+        String token = expiredJwtUtil.generateAccessToken("david", "ADMIN", 1L);
 
         assertTrue(expiredJwtUtil.isExpired(token));
     }
@@ -98,18 +100,4 @@ class JwtUtilTest {
                 .compact();
     }
 
-    private String buildTokenWithoutEmployeeId() {
-        Key key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
-        Date now = new Date();
-        Date exp = new Date(now.getTime() + 3600_000L);
-
-        return Jwts.builder()
-                .setSubject("charlie")
-                .setIssuedAt(now)
-                .setExpiration(exp)
-                .claim("role", "ADMIN")
-                .claim("type", "access")
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
-    }
 }

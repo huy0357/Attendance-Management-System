@@ -14,7 +14,7 @@ class EmployeeTest {
     void equalsAndHashCodeCoverGeneratedBranches() {
         LombokPojoBranchAssertions.assertEqualsAndHashCodeBranches(
                 this::populated,
-                () -> new Employee(null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+                Employee::new,
                 populatedMismatchMutators(),
                 emptyMismatchMutators(),
                 employee -> new NonEqualEmployee(employee)
@@ -75,6 +75,7 @@ class EmployeeTest {
                 .hireDate(LocalDate.of(2025, 1, 1))
                 .terminatedDate(LocalDate.of(2026, 3, 19))
                 .createdAt(LocalDateTime.of(2025, 1, 1, 8, 0))
+                .avatarUrl("/avatars/alice.png")
                 .build();
     }
 
@@ -109,7 +110,8 @@ class EmployeeTest {
                     base.getManagerId(),
                     base.getHireDate(),
                     base.getTerminatedDate(),
-                    base.getCreatedAt()
+                    base.getCreatedAt(),
+                    base.getAvatarUrl()
             );
         }
 

@@ -51,7 +51,14 @@ class DepartmentServiceTest {
         Assertions.assertEquals(1L, result.departmentId);
         Assertions.assertEquals("Phong IT", result.departmentName);
         verify(departmentRepository, times(1)).save(any(Department.class));
-        verifyNoInteractions(auditLogService);
+        verify(auditLogService).saveAuditLog(
+                org.mockito.ArgumentMatchers.eq("CREATE"),
+                org.mockito.ArgumentMatchers.eq("DEPARTMENT"),
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq(8L),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.any(DepartmentDto.class)
+        );
     }
 
     @Test
