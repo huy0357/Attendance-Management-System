@@ -6,21 +6,15 @@ import { HrmRoutingModule } from './hrm-routing.module';
 import { EmployeesComponent } from './employees/employees.component';
 import { EmployeePortalComponent } from './employee-portal/employee-portal.component';
 import { SharedModule } from '../../shared/shared.module';
-import { ContractsComponent } from './contracts/contracts.component';
-import { OrgChartComponent } from './org-chart/org-chart.component';
-import { PerformanceReviewComponent } from './performance-review/performance-review.component';
-import { OnboardingComponent } from './onboarding/onboarding.component';
 import { DepartmentListComponent } from './departments/department-list/department-list.component';
+import { HrmLandingComponent } from './hrm-landing.component';
 
 @NgModule({
   declarations: [
     EmployeesComponent,
     EmployeePortalComponent,
-    ContractsComponent,
-    OrgChartComponent,
-    PerformanceReviewComponent,
-    OnboardingComponent,
-    DepartmentListComponent
+    DepartmentListComponent,
+    HrmLandingComponent,
   ],
   imports: [
     CommonModule,

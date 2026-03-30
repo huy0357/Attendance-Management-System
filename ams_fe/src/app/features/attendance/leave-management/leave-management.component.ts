@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { AttendanceService, LeaveRequest } from '../attendance.service';
+import { AuthService } from '../../../core/auth/auth.service';
+import { LeaveRequest, RequestsService } from '../../../core/services/requests.service';
 
 @Component({
   standalone: false,
@@ -20,7 +21,8 @@ export class LeaveManagementComponent implements OnInit {
   filterForm: FormGroup;
 
   constructor(
-    private attendanceService: AttendanceService,
+    private readonly requestsService: RequestsService,
+    private authService: AuthService,
     private fb: FormBuilder,
   ) {
     this.filterForm = this.fb.group({
@@ -30,6 +32,10 @@ export class LeaveManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadLeaveRequests();
+  }
+
+  get canOpenReviewerFlow(): boolean {
+    return this.authService.hasRole('MANAGER');
   }
 
   get filteredRequests(): LeaveRequest[] {
@@ -196,11 +202,19 @@ export class LeaveManagementComponent implements OnInit {
     }).length;
   }
 
+  trackByRequestId(_: number, request: LeaveRequest): number {
+    return request.requestId;
+  }
+
+  trackByStatLabel(_: number, stat: { label: string }): string {
+    return stat.label;
+  }
+
   private loadLeaveRequests(): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.attendanceService.getLeaveRequests().subscribe({
+    this.requestsService.getLeaveRequestsForCurrentEmployee().subscribe({
       next: (data) => {
         this.leaveRequests = data;
         this.isLoading = false;

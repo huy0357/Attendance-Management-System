@@ -14,7 +14,7 @@ export class RoleGuard implements CanActivate {
             return true;
         }
 
-        const userRole = this.authService.getRole();
+        const userRole = this.authService.getNormalizedRole();
 
         // If user has no role, deny access
         if (!userRole) {
@@ -23,10 +23,7 @@ export class RoleGuard implements CanActivate {
         }
 
         // Normalize role comparison (case-insensitive)
-        const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
-        const hasRequiredRole = requiredRoles.some(role =>
-            role.toUpperCase().replace('ROLE_', '') === normalizedUserRole
-        );
+        const hasRequiredRole = this.authService.hasAnyRole(requiredRoles);
 
         if (hasRequiredRole) {
             return true;

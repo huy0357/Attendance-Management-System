@@ -1,21 +1,8 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import {
-  AttendanceRecord,
-  EmployeeProfile,
-  HrmService,
-  OTRequest,
-  PayrollRecord,
-  ShiftChangeRequest,
-} from '../hrm.service';
-
-type EmployeePortalTab = 'profile' | 'attendance' | 'payroll' | 'requests';
-
-type StatusBadge =
-  | AttendanceRecord['status']
-  | PayrollRecord['status']
-  | OTRequest['status']
-  | ShiftChangeRequest['status'];
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { finalize } from 'rxjs/operators';
+import { ProfileService } from '../../../core/services/profile.service';
+import { ProfileRecord } from '../../../shared/models/profile.model';
 
 @Component({
   standalone: false,
@@ -24,231 +11,70 @@ type StatusBadge =
   styleUrls: ['./employee-portal.component.scss'],
 })
 export class EmployeePortalComponent implements OnInit {
-  activeTab: EmployeePortalTab = 'profile';
-  showOTModal = false;
-  showShiftModal = false;
-  showPayrollDetailsModal = false;
-
-  employee: EmployeeProfile | null = null;
-  attendanceRecords: AttendanceRecord[] = [];
-  payrollRecords: PayrollRecord[] = [];
-  otRequests: OTRequest[] = [];
-  shiftRequests: ShiftChangeRequest[] = [];
-
-  attendanceTotalHours = 0;
-  attendanceOvertimeHours = 0;
-  attendanceRate = 0;
-
-  otRequestForm: FormGroup;
-  shiftRequestForm: FormGroup;
-
-  selectedPayroll: PayrollRecord | null = null;
-
-  readonly tabs: Array<{ id: EmployeePortalTab; label: string; icon: string }> = [
-    { id: 'profile', label: 'My Profile', icon: 'user' },
-    { id: 'attendance', label: 'Attendance', icon: 'clock' },
-    { id: 'payroll', label: 'Payroll', icon: 'dollar-sign' },
-    { id: 'requests', label: 'Requests', icon: 'file-text' },
-  ];
-
-  constructor(private hrmService: HrmService, private fb: FormBuilder) {
-    this.otRequestForm = this.fb.group({
-      date: ['', Validators.required],
-      hours: ['', Validators.required],
-      reason: ['', Validators.required],
-    });
-
-    this.shiftRequestForm = this.fb.group({
-      currentDate: ['', Validators.required],
-      requestedDate: ['', Validators.required],
-      reason: ['', Validators.required],
-    });
-  }
+  employee: ProfileRecord | null = null;
+  isLoadingProfile = true;
+  profileErrorMessage = '';
+  constructor(
+    private readonly profileService: ProfileService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
-    this.hrmService.getEmployeeProfile().subscribe((employee) => {
-      this.employee = employee;
-    });
-
-    this.hrmService.getAttendanceRecords().subscribe((records) => {
-      this.attendanceRecords = records;
-      this.calculateAttendanceSummary();
-    });
-
-    this.hrmService.getPayrollRecords().subscribe((records) => {
-      this.payrollRecords = records;
-    });
-
-    this.hrmService.getOtRequests().subscribe((requests) => {
-      this.otRequests = requests;
-    });
-
-    this.hrmService.getShiftChangeRequests().subscribe((requests) => {
-      this.shiftRequests = requests;
-    });
-  }
-
-  get currentPayroll(): PayrollRecord | null {
-    return this.payrollRecords.length > 0 ? this.payrollRecords[0] : null;
-  }
-
-  get selectedPayrollGrossPay(): number {
-    if (!this.selectedPayroll) {
-      return 0;
-    }
-    return this.selectedPayroll.baseSalary + this.selectedPayroll.overtime + this.selectedPayroll.bonus;
-  }
-
-  get selectedPayrollTotalDeductions(): number {
-    if (!this.selectedPayroll) {
-      return 0;
-    }
-    return this.selectedPayroll.tax + this.selectedPayroll.deductions;
-  }
-
-  setTab(tab: EmployeePortalTab): void {
-    this.activeTab = tab;
-  }
-
-  openOTModal(): void {
-    this.otRequestForm.reset({
-      date: '',
-      hours: '',
-      reason: '',
-    });
-    this.showOTModal = true;
-  }
-
-  closeOTModal(): void {
-    this.showOTModal = false;
-  }
-
-  openShiftModal(): void {
-    this.shiftRequestForm.reset({
-      currentDate: '',
-      requestedDate: '',
-      reason: '',
-    });
-    this.showShiftModal = true;
-  }
-
-  closeShiftModal(): void {
-    this.showShiftModal = false;
-  }
-
-  openPayrollDetails(record: PayrollRecord): void {
-    this.selectedPayroll = record;
-    this.showPayrollDetailsModal = true;
-  }
-
-  closePayrollDetails(): void {
-    this.showPayrollDetailsModal = false;
-    this.selectedPayroll = null;
-  }
-
-  submitOTRequest(): void {
-    if (this.otRequestForm.invalid) {
-      return;
-    }
-
-    const value = this.otRequestForm.value as {
-      date: string;
-      hours: string;
-      reason: string;
-    };
-
-    this.hrmService.createOtRequest({
-      date: value.date,
-      hours: parseFloat(value.hours),
-      reason: value.reason,
-    }).subscribe({
-      next: () => {
-        this.hrmService.getOtRequests().subscribe((requests) => {
-          this.otRequests = requests;
-          this.showOTModal = false;
-        });
-      },
-      error: () => {
-        alert('Unable to submit OT request. Please try again.');
-      },
-    });
-  }
-
-  submitShiftRequest(): void {
-    if (this.shiftRequestForm.invalid) {
-      return;
-    }
-
-    const value = this.shiftRequestForm.value as {
-      currentDate: string;
-      requestedDate: string;
-      reason: string;
-    };
-
-    this.hrmService.createShiftChangeRequest({
-      currentDate: value.currentDate,
-      requestedDate: value.requestedDate,
-      reason: value.reason,
-    }).subscribe({
-      next: () => {
-        this.hrmService.getShiftChangeRequests().subscribe((requests) => {
-          this.shiftRequests = requests;
-          this.showShiftModal = false;
-        });
-      },
-      error: () => {
-        alert('Unable to submit shift request. Please try again.');
-      },
-    });
-  }
-
-  getStatusBadgeClasses(status: StatusBadge): string {
-    const styles: Record<StatusBadge, string> = {
-      present: 'bg-green-100 text-green-700 border-green-300',
-      late: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-      absent: 'bg-red-100 text-red-700 border-red-300',
-      paid: 'bg-green-100 text-green-700 border-green-300',
-      pending: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-      processing: 'bg-blue-100 text-blue-700 border-blue-300',
-      approved: 'bg-green-100 text-green-700 border-green-300',
-      rejected: 'bg-red-100 text-red-700 border-red-300',
-    };
-
-    return styles[status];
-  }
-
-  getStatusIcon(status: StatusBadge): string {
-    const icons: Record<StatusBadge, string> = {
-      present: 'check-circle',
-      late: 'clock',
-      absent: 'x-circle',
-      paid: 'check-circle',
-      pending: 'clock',
-      processing: 'clock',
-      approved: 'check-circle',
-      rejected: 'x-circle',
-    };
-
-    return icons[status];
-  }
-
-  getStatusLabel(status: StatusBadge): string {
-    return status.charAt(0).toUpperCase() + status.slice(1);
+    this.loadProfile();
   }
 
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString();
   }
 
-  private calculateAttendanceSummary(): void {
-    const totalHours = this.attendanceRecords.reduce((sum, record) => sum + record.regularHours, 0);
-    const overtimeHours = this.attendanceRecords.reduce((sum, record) => sum + record.overtimeHours, 0);
-    const presentCount = this.attendanceRecords.filter((record) => record.status !== 'absent').length;
+  formatDateTime(value: string | null): string {
+    if (!value) {
+      return '-';
+    }
+    return new Date(value).toLocaleString();
+  }
 
-    this.attendanceTotalHours = totalHours;
-    this.attendanceOvertimeHours = overtimeHours;
-    this.attendanceRate = this.attendanceRecords.length
-      ? Math.round((presentCount / this.attendanceRecords.length) * 100)
-      : 0;
+  formatText(value: string | number | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+      return '-';
+    }
+    return String(value);
+  }
+
+  private loadProfile(): void {
+    this.isLoadingProfile = true;
+    this.profileErrorMessage = '';
+
+    this.profileService.getMyProfile()
+      .pipe(finalize(() => {
+        this.isLoadingProfile = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+      next: (employee) => {
+        this.employee = employee;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.employee = null;
+        this.profileErrorMessage = this.resolveProfileError(error);
+      },
+    });
+  }
+
+  private resolveProfileError(error: HttpErrorResponse): string {
+    if (error.status === 401) {
+      return 'Your session is no longer valid. Please sign in again to load your profile.';
+    }
+
+    if (error.status === 403) {
+      return 'You do not have permission to view this self-service profile.';
+    }
+
+    const backendMessage = error.error?.message || error.error?.error;
+    if (typeof backendMessage === 'string' && backendMessage.trim()) {
+      return backendMessage;
+    }
+
+    return 'Unable to load your profile from GET /api/v1/profile/me.';
   }
 }

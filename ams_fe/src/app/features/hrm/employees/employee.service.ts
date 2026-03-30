@@ -2,23 +2,25 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { RoleResponse } from '../../../shared/models/account.model';
 
 export interface EmployeeDto {
   employeeId: number;
-  employeeCode: string;
-  fullName: string;
-  dob: string;
-  gender: string;
-  phone: string;
-  email: string;
-  status: string;
-  departmentId: number;
-  positionId: number;
-  managerId: number;
-  hireDate: string;
-  terminatedDate: string;
-  createdAt: string;
-  updatedAt: string;
+  employeeCode: string | null;
+  fullName: string | null;
+  dob: string | null;
+  gender: string | null;
+  phone: string | null;
+  email: string | null;
+  status: string | null;
+  departmentId: number | null;
+  positionId: number | null;
+  managerId: number | null;
+  hireDate: string | null;
+  terminatedDate: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  avatarUrl: string | null;
 }
 
 export interface EmployeeRequest {
@@ -55,24 +57,51 @@ export interface DepartmentDto {
   isActive?: boolean;
 }
 
+export interface PositionDto {
+  positionId: number;
+  positionName: string;
+}
+
+interface CollectionResponse<T> {
+  items?: T[];
+  content?: T[];
+  data?: T[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
+  private readonly positionsUrl = `/positions`;
   private readonly baseUrl = `${environment.apiBaseUrl}/employees`;
   private readonly departmentsUrl = `${environment.apiBaseUrl}/departments`;
   private readonly exportsUrl = `${environment.apiBaseUrl}/exports`;
+  private readonly rolesUrl = `${environment.apiBaseUrl}/roles`;
 
   constructor(private http: HttpClient) { }
 
   getAll(): Observable<EmployeeDto[]> {
     return this.http
-      .get<EmployeeDto[] | { items?: EmployeeDto[]; content?: EmployeeDto[]; data?: EmployeeDto[] }>(this.baseUrl)
+      .get<EmployeeDto[] | CollectionResponse<EmployeeDto>>(this.baseUrl)
       .pipe(
         map(response => {
           if (Array.isArray(response)) return response;
           if (response?.items && Array.isArray(response.items)) return response.items;
           if (response?.content && Array.isArray(response.content)) return response.content;
           if (response?.data && Array.isArray(response.data)) return response.data;
-          console.error('[Employees] Unexpected response shape from /employees', response);
+          return [];
+        }),
+      );
+  }
+
+  getPositions(): Observable<PositionDto[]> {
+    const params = new HttpParams().set('page', '0').set('size', '1000').set('sort', 'positionId,asc');
+    return this.http
+      .get<PositionDto[] | CollectionResponse<PositionDto>>(this.positionsUrl, { params })
+      .pipe(
+        map(response => {
+          if (Array.isArray(response)) return response;
+          if (response?.items && Array.isArray(response.items)) return response.items;
+          if (response?.content && Array.isArray(response.content)) return response.content;
+          if (response?.data && Array.isArray(response.data)) return response.data;
           return [];
         }),
       );
@@ -85,16 +114,13 @@ export class EmployeeService {
       .set('sort', 'departmentId,asc');
 
     return this.http
-      .get<PageResponse<DepartmentDto> | DepartmentDto[] | { content?: DepartmentDto[]; items?: DepartmentDto[]; data?: DepartmentDto[] }>(
+      .get<PageResponse<DepartmentDto> | DepartmentDto[] | CollectionResponse<DepartmentDto>>(
         this.departmentsUrl,
         { params }
       )
       .pipe(
         map(response => {
           if (Array.isArray(response)) return response;
-          if ((response as PageResponse<DepartmentDto>).items && Array.isArray((response as PageResponse<DepartmentDto>).items)) {
-            return (response as PageResponse<DepartmentDto>).items;
-          }
           if (response?.content && Array.isArray(response.content)) return response.content;
           if (response?.items && Array.isArray(response.items)) return response.items;
           if (response?.data && Array.isArray(response.data)) return response.data;
@@ -145,5 +171,21 @@ export class EmployeeService {
       observe: 'response',
       responseType: 'blob',
     });
+  }
+
+  getAllRoles(): Observable<RoleResponse[]> {
+    return this.http.get<RoleResponse[]>(this.rolesUrl);
+  }
+
+  getEmployeeRoles(employeeId: number): Observable<RoleResponse[]> {
+    return this.http.get<RoleResponse[]>(`${this.baseUrl}/${employeeId}/roles`);
+  }
+
+  assignRoleToEmployee(employeeId: number, roleId: number): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/${employeeId}/roles`, { roleId });
+  }
+
+  removeRoleFromEmployee(employeeId: number, roleId: number): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.baseUrl}/${employeeId}/roles/${roleId}`);
   }
 }

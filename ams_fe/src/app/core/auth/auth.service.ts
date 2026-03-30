@@ -8,6 +8,10 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ApiMessageResponse {
+  message: string;
+}
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -19,6 +23,7 @@ export interface AuthResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private static readonly rolePrefix = 'ROLE_';
   private readonly accessTokenKey = 'ams.accessToken';
   private readonly refreshTokenKey = 'ams.refreshToken';
   private readonly usernameKey = 'ams.username';
@@ -36,6 +41,22 @@ export class AuthService {
     return this.http
       .post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, request)
       .pipe(tap(response => this.storeTokens(response)));
+  }
+
+  forgotPassword(email: string): Observable<ApiMessageResponse> {
+    return this.http.post<ApiMessageResponse>(`${environment.apiBaseUrl}/auth/forgot-password`, { email });
+  }
+
+  verifyOtp(email: string, otp: string): Observable<ApiMessageResponse> {
+    return this.http.post<ApiMessageResponse>(`${environment.apiBaseUrl}/auth/verify-otp`, { email, otp });
+  }
+
+  resetPassword(email: string, otp: string, newPassword: string): Observable<ApiMessageResponse> {
+    return this.http.post<ApiMessageResponse>(`${environment.apiBaseUrl}/auth/reset-password`, {
+      email,
+      otp,
+      newPassword,
+    });
   }
 
   refreshTokens(): Observable<AuthResponse> {
@@ -95,6 +116,32 @@ export class AuthService {
 
   getRole(): string | null {
     return localStorage.getItem(this.roleKey);
+  }
+
+  getNormalizedRole(): string | null {
+    const role = this.getRole();
+    return role ? AuthService.normalizeRole(role) : null;
+  }
+
+  hasRole(role: string): boolean {
+    return this.getNormalizedRole() === AuthService.normalizeRole(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    const normalizedRole = this.getNormalizedRole();
+    if (!normalizedRole || roles.length === 0) {
+      return false;
+    }
+
+    return roles.some(role => AuthService.normalizeRole(role) === normalizedRole);
+  }
+
+  getEmployeeId(): number | null {
+    const accessPayload = this.decodeJwtPayload(this.getAccessToken() ?? '');
+    const refreshPayload = this.decodeJwtPayload(this.getRefreshToken() ?? '');
+    const employeeId = accessPayload?.employeeId ?? refreshPayload?.employeeId;
+    const parsed = Number(employeeId);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
   }
 
   getExpiresAt(): number | null {
@@ -193,7 +240,7 @@ export class AuthService {
     return payload.exp * 1000;
   }
 
-  private decodeJwtPayload(token: string): { exp?: number } | null {
+  private decodeJwtPayload(token: string): { exp?: number; employeeId?: number | string } | null {
     const parts = token.split('.');
     if (parts.length < 2) {
       return null;
@@ -208,5 +255,9 @@ export class AuthService {
     } catch {
       return null;
     }
+  }
+
+  private static normalizeRole(role: string): string {
+    return role.toUpperCase().replace(AuthService.rolePrefix, '');
   }
 }

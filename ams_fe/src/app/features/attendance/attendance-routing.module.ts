@@ -2,19 +2,21 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SchedulingComponent } from './scheduling/scheduling.component';
 import { LeaveManagementComponent } from './leave-management/leave-management.component';
-import { OtRequestsComponent } from './ot-requests/ot-requests.component';
 import { ShiftTemplatesComponent } from './shift-templates/shift-templates.component';
 import { RequestsManagementComponent } from './requests-management/requests-management.component';
 import { AttendanceDailyComponent } from './attendance-daily/attendance-daily.component';
 import { AttendanceEmailComponent } from './attendance-email/attendance-email.component';
+import { AttendanceMonthlySummaryComponent } from './attendance-monthly-summary/attendance-monthly-summary.component';
+import { OtRequestsComponent } from './ot-requests/ot-requests.component';
 import { RoleGuard } from '../../core/auth/role.guard';
+import { AttendanceLandingComponent } from './attendance-landing.component';
 
 const routes: Routes = [
   {
     path: 'attendance-daily',
     component: AttendanceDailyComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN'], mode: 'admin' },
+    data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'], mode: 'self' },
   },
   {
     path: 'attendance-daily/admin',
@@ -23,17 +25,34 @@ const routes: Routes = [
     data: { roles: ['ADMIN'], mode: 'admin' },
   },
   {
+    path: 'attendance-daily/employee/:employeeId',
+    component: AttendanceDailyComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'HR', 'MANAGER'], mode: 'employee' },
+  },
+  {
     path: 'scheduling',
     component: SchedulingComponent,
     canActivate: [RoleGuard],
     data: { roles: ['ADMIN'] },
   },
-  { path: 'shift-templates', component: ShiftTemplatesComponent },
+  {
+    path: 'shift-templates',
+    component: ShiftTemplatesComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+  },
   {
     path: 'leave-management',
     component: LeaveManagementComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'EMPLOYEE'] },
+    data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+  },
+  {
+    path: 'requests-management',
+    component: RequestsManagementComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
   },
   {
     path: 'ot-requests',
@@ -42,18 +61,18 @@ const routes: Routes = [
     data: { roles: ['MANAGER'] },
   },
   {
-    path: 'requests-management',
-    component: RequestsManagementComponent,
+    path: 'monthly-summary',
+    component: AttendanceMonthlySummaryComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'EMPLOYEE'] },
+    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
   },
   {
     path: 'attendance-email',
     component: AttendanceEmailComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'EMPLOYEE'] },
+    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
   },
-  { path: '', redirectTo: 'scheduling', pathMatch: 'full' },
+  { path: '', component: AttendanceLandingComponent },
 ];
 
 @NgModule({

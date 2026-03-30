@@ -1,29 +1,24 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { RequestsService } from '../../../core/services/requests.service';
 import { AuthService } from '../../../core/auth/auth.service';
-import { AccountService } from '../../../core/services/account.service';
 import { RequestsApprovalRequest, RequestsResponse } from '../../../shared/models/requests.model';
-import { map, switchMap } from 'rxjs/operators';
-import { Observable, throwError } from 'rxjs';
 
 interface OtRequest {
   id: string;
   employeeId: string;
   employeeName: string;
   employeeAvatar: string;
-  department: string;
-  position: string;
   date: string;
   hours: number;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedDate: string;
   reviewedBy?: string;
-  reviewedDate?: string;
   reviewNotes?: string;
-  estimatedPay?: number;
   canReview: boolean;
 }
 
@@ -34,12 +29,14 @@ interface OtRequest {
   styleUrls: ['./ot-requests.component.scss'],
 })
 export class OtRequestsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   requests: OtRequest[] = [];
   filteredRequests: OtRequest[] = [];
   errorMessage: string | null = null;
-  private listEmployeeId: number | null = null;
-  private approverContextSettled = false;
-  private hasSyncedListAfterApproverContext = false;
+  helperMessage = '';
+  selectedEmployeeId: number | null = null;
+  isLoading = false;
+  isReviewSaving = false;
 
   filterForm: FormGroup;
   reviewForm: FormGroup;
@@ -53,10 +50,10 @@ export class OtRequestsComponent implements OnInit {
   readonly statuses = ['All Status', 'Pending', 'Approved', 'Rejected'];
 
   constructor(
-    private requestsService: RequestsService,
-    private authService: AuthService,
-    private accountService: AccountService,
-    private fb: FormBuilder,
+    private readonly requestsService: RequestsService,
+    private readonly authService: AuthService,
+    private readonly route: ActivatedRoute,
+    private readonly fb: FormBuilder,
   ) {
     this.filterForm = this.fb.group({
       searchQuery: [''],
@@ -69,16 +66,45 @@ export class OtRequestsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadRequests();
-    this.preloadApproverContext();
+    this.canApproveRequests = this.getNormalizedRole() === 'MANAGER';
 
-    this.filterForm.valueChanges.subscribe(() => this.applyFilters());
+    this.helperMessage = 'This page only renders OT fields backed by /api/requests. Employee lookup is intentionally hidden because backend does not expose a manager-safe /api/employees lookup flow.';
+
+    this.filterForm.get('searchQuery')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyFilters());
+    this.filterForm.get('status')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyFilters());
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((queryParams) => {
+        const routeEmployeeId = Number(queryParams.get('employeeId'));
+        const nextEmployeeId = Number.isInteger(routeEmployeeId) && routeEmployeeId > 0
+          ? routeEmployeeId
+          : null;
+
+        if (nextEmployeeId === this.selectedEmployeeId) {
+          return;
+        }
+
+        this.selectedEmployeeId = nextEmployeeId;
+
+        if (!this.selectedEmployeeId) {
+          this.requests = [];
+          this.filteredRequests = [];
+          this.errorMessage = null;
+          return;
+        }
+
+        this.loadRequests(this.selectedEmployeeId);
+      });
   }
 
   get stats(): Array<{ label: string; value: string | number; color: string; bg: string; icon: string }> {
-    const approvedTotal = this.requests
+    const approvedHours = this.requests
       .filter((r) => r.status === 'approved')
-      .reduce((sum, r) => sum + (r.estimatedPay || 0), 0);
+      .reduce((sum, r) => sum + r.hours, 0);
 
     return [
       {
@@ -103,17 +129,21 @@ export class OtRequestsComponent implements OnInit {
         icon: 'check-circle',
       },
       {
-        label: 'Est. Cost',
-        value: `$${approvedTotal.toFixed(2)}`,
+        label: 'Approved Hours',
+        value: approvedHours.toFixed(2),
         color: 'text-purple-600',
         bg: 'bg-purple-50',
-        icon: 'dollar-sign',
+        icon: 'timer',
       },
     ];
   }
 
   get pendingCount(): number {
     return this.requests.filter((r) => r.status === 'pending').length;
+  }
+
+  get currentEmployeeId(): number | null {
+    return this.authService.getEmployeeId();
   }
 
   applyFilters(): void {
@@ -124,7 +154,7 @@ export class OtRequestsComponent implements OnInit {
       const matchesSearch =
         request.employeeName.toLowerCase().includes(query) ||
         request.id.toLowerCase().includes(query) ||
-        request.department.toLowerCase().includes(query);
+        request.employeeId.toLowerCase().includes(query);
       const matchesStatus =
         status === 'All Status' || request.status.toLowerCase() === status.toLowerCase();
       return matchesSearch && matchesStatus;
@@ -155,28 +185,35 @@ export class OtRequestsComponent implements OnInit {
   }
 
   handleReview(): void {
-    if (!this.selectedRequest) return;
+    if (!this.selectedRequest || !this.currentEmployeeId) {
+      return;
+    }
+
     const notes = (this.reviewForm.value as { notes: string }).notes || '';
     const requestId = Number(this.selectedRequest.id);
     if (!Number.isFinite(requestId)) {
       alert('Invalid request ID.');
       return;
     }
-    const status = this.reviewAction === 'approve' ? 'APPROVED' : 'REJECTED';
-    this.resolveApproverEmployeeId().pipe(
-      switchMap((approverId) => {
-        const payload: RequestsApprovalRequest = {
-          approverId,
-          status,
-          decisionNote: notes,
-        };
-        return this.requestsService.approveOrReject(requestId, payload);
-      }),
-    ).subscribe({
+
+    const payload: RequestsApprovalRequest = {
+      approverId: this.currentEmployeeId,
+      status: this.reviewAction === 'approve' ? 'APPROVED' : 'REJECTED',
+      decisionNote: notes,
+    };
+
+    this.isReviewSaving = true;
+    this.requestsService.approveOrReject(requestId, payload).subscribe({
       next: () => {
-        this.loadRequests(() => this.closeReviewModal());
+        this.isReviewSaving = false;
+        if (this.selectedEmployeeId) {
+          this.loadRequests(this.selectedEmployeeId, () => this.closeReviewModal());
+        } else {
+          this.closeReviewModal();
+        }
       },
       error: (error: HttpErrorResponse) => {
+        this.isReviewSaving = false;
         alert(this.resolveErrorMessage(error, 'Unable to update request. Please try again.'));
       },
     });
@@ -210,172 +247,56 @@ export class OtRequestsComponent implements OnInit {
   }
 
   formatDate(dateValue: string): string {
-    return new Date(dateValue).toLocaleDateString();
+    const parsed = new Date(dateValue);
+    return Number.isNaN(parsed.getTime()) ? dateValue : parsed.toLocaleString();
   }
 
-  private loadRequests(afterLoad?: () => void): void {
+  trackByRequestId(_: number, request: OtRequest): string {
+    return request.id;
+  }
+
+  trackByStatLabel(_: number, stat: { label: string }): string {
+    return stat.label;
+  }
+
+  private loadRequests(employeeId: number, afterLoad?: () => void): void {
     this.requests = [];
     this.filteredRequests = [];
     this.errorMessage = null;
+    this.isLoading = true;
 
-    this.resolveListEmployeeId().pipe(
-      switchMap((employeeId) => {
-        this.listEmployeeId = employeeId;
-        return this.requestsService.getOvertimeRequests(employeeId);
-      }),
-    ).subscribe({
+    this.requestsService.getRequestsByEmployee(employeeId).subscribe({
       next: (data) => {
-        this.applyLoadedRequests(data, afterLoad);
+        this.isLoading = false;
+        this.requests = data
+          .filter((request) => request.requestType === 'OVERTIME')
+          .map((request) => this.mapRequestToOt(request));
+        this.applyFilters();
+        if (afterLoad) {
+          afterLoad();
+        }
       },
       error: (error: HttpErrorResponse) => {
+        this.isLoading = false;
         this.requests = [];
         this.filteredRequests = [];
-        const message = this.resolveErrorMessage(error, 'Unable to load OT requests.');
-        this.errorMessage = message;
-        alert(message);
+        this.errorMessage = this.resolveErrorMessage(error, 'Unable to load OT requests.');
       },
     });
   }
 
-  private preloadApproverContext(): void {
-    if (!this.hasManagerApprovalPermission()) {
-      this.canApproveRequests = false;
-      this.approverContextSettled = true;
-      return;
-    }
-
-    this.resolveApproverEmployeeId().subscribe({
-      next: () => {
-        this.canApproveRequests = true;
-        this.approverContextSettled = true;
-        this.syncListAfterApproverContext();
-      },
-      error: () => {
-        this.canApproveRequests = false;
-        this.approverContextSettled = true;
-        this.syncListAfterApproverContext();
-      },
-    });
-  }
-
-  private syncListAfterApproverContext(): void {
-    if (!this.approverContextSettled || this.hasSyncedListAfterApproverContext || this.listEmployeeId === null) {
-      return;
-    }
-
-    this.hasSyncedListAfterApproverContext = true;
-    this.requestsService.getOvertimeRequests(this.listEmployeeId).subscribe({
-      next: (data) => {
-        this.applyLoadedRequests(data);
-      },
-      error: () => {
-        // Keep the initial list state when the follow-up sync fails.
-      },
-    });
-  }
-
-  private applyLoadedRequests(data: RequestsResponse[], afterLoad?: () => void): void {
-    this.requests = data.map((request) => this.mapRequestToOt(request));
-    this.applyFilters();
-    this.syncListAfterApproverContext();
-    if (afterLoad) {
-      afterLoad();
-    }
-  }
-
-  private resolveListEmployeeId(): Observable<number> {
-    const username = this.getEffectiveUsername();
-    if (!username) {
-      this.errorMessage = 'Kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c employeeId \u0111\u1ec3 t\u1ea3i y\u00eau c\u1ea7u.';
-      return throwError(() => new Error('Missing username in auth context.'));
-    }
-
-    return this.accountService.findByUsername(username).pipe(
-      map((account) => this.normalizeEmployeeId(account?.employeeId) ?? this.extractEmployeeIdFromToken() ?? 0),
-    );
-  }
-
-  private resolveApproverEmployeeId(): Observable<number> {
-    const username = this.getEffectiveUsername();
-    if (!username) {
-      this.errorMessage = 'Kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c employeeId \u0111\u1ec3 t\u1ea3i y\u00eau c\u1ea7u.';
-      return throwError(() => new Error('Missing username in auth context.'));
-    }
-
-    return this.accountService.findByUsername(username).pipe(
-      map((account) => {
-        const employeeId = this.normalizeEmployeeId(account?.employeeId) ?? this.extractEmployeeIdFromToken();
-        if (!employeeId) {
-          throw new Error('Employee not found for username.');
-        }
-        return employeeId;
-      }),
-    );
-  }
-
-  private getEffectiveUsername(): string | null {
-    const stored = (this.authService.getUsername() || '').trim();
-    if (stored) {
-      return stored;
-    }
-    const token = this.authService.getAccessToken();
-    if (!token) {
-      return null;
-    }
-    const parts = token.split('.');
-    if (parts.length < 2) {
-      return null;
-    }
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
-    try {
-      const json = atob(padded);
-      const payload = JSON.parse(json) as { sub?: string; username?: string; email?: string };
-      return (payload.username || payload.email || payload.sub || '').trim() || null;
-    } catch {
-      return null;
-    }
-  }
-
-  private extractEmployeeIdFromToken(): number | null {
-    const token = this.authService.getAccessToken();
-    if (!token) {
-      return null;
-    }
-    const parts = token.split('.');
-    if (parts.length < 2) {
-      return null;
-    }
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
-    try {
-      const json = atob(padded);
-      const payload = JSON.parse(json) as { employeeId?: unknown };
-      return this.normalizeEmployeeId(payload.employeeId);
-    } catch {
-      return null;
-    }
-  }
-
-  private normalizeEmployeeId(employeeId: unknown): number | null {
-    const parsed = Number(employeeId);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-  }
-
-  private hasManagerApprovalPermission(): boolean {
+  private getNormalizedRole(): string | null {
     const role = this.authService.getRole();
-    return role?.toUpperCase().replace('ROLE_', '') === 'MANAGER';
+    return role ? role.toUpperCase().replace('ROLE_', '') : null;
   }
 
   private mapRequestToOt(request: RequestsResponse): OtRequest {
-    const employeeName = request.employeeName ?? '';
+    const employeeName = request.employeeName ?? `Employee #${request.employeeId ?? ''}`;
     return {
       id: String(request.requestId),
       employeeId: String(request.employeeId ?? ''),
       employeeName,
       employeeAvatar: this.toInitials(employeeName),
-      department: '',
-      position: '',
       date: request.startDatetime ?? request.endDatetime ?? request.submittedAt ?? '',
       hours: this.calculateHours(request.startDatetime, request.endDatetime),
       reason: request.reason ?? '',
@@ -383,8 +304,7 @@ export class OtRequestsComponent implements OnInit {
       submittedDate: request.submittedAt ?? request.startDatetime ?? '',
       reviewedBy: request.approverName ?? undefined,
       reviewNotes: request.decisionNote ?? undefined,
-      estimatedPay: undefined,
-      canReview: request.status === 'SUBMITTED',
+      canReview: request.status === 'SUBMITTED' && this.canApproveRequests,
     };
   }
 
@@ -398,7 +318,7 @@ export class OtRequestsComponent implements OnInit {
     return 'pending';
   }
 
-  private calculateHours(start?: string, end?: string): number {
+  private calculateHours(start?: string | null, end?: string | null): number {
     if (!start || !end) {
       return 0;
     }
@@ -425,13 +345,13 @@ export class OtRequestsComponent implements OnInit {
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
     if (error.status === 403) {
-      return 'Kh\u00f4ng c\u00f3 quy\u1ec1n';
+      return 'You do not have permission for this action.';
     }
     if (error.status === 400 || error.status === 422) {
       return error.error?.message || error.error?.error || fallback;
     }
     if (error.status >= 500) {
-      return 'C\u00f3 l\u1ed7i x\u1ea3y ra. Vui l\u00f2ng th\u1eed l\u1ea1i.';
+      return error.error?.message || error.error?.error || fallback;
     }
     return fallback;
   }

@@ -1,9 +1,11 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AttendanceService, ShiftTemplateResponse } from '../attendance.service';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { AttendanceService, ShiftTemplateResponse, ShiftTemplateUpsertPayload } from '../attendance.service';
 import { BehaviorSubject, combineLatest, of } from 'rxjs';
 import { Subject } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, startWith, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { AuthService } from '../../../core/auth/auth.service';
 
 type EditMode = 'create' | 'edit';
 
@@ -17,7 +19,6 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
   templates: ShiftTemplateResponse[] = [];
   isLoading = false;
   errorMessage: string | null = null;
-  createButtonLabel = 'Add Shift Template';
 
   // BehaviorSubject emits immediately on subscribe — no startWith needed
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
@@ -32,6 +33,7 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
 
   constructor(
     private attendanceService: AttendanceService,
+    private authService: AuthService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
   ) {
@@ -41,8 +43,8 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
     });
 
     this.form = this.fb.group({
-      shiftCode: ['', [Validators.required, Validators.maxLength(50)]],
-      shiftName: ['', [Validators.required, Validators.maxLength(255)]],
+      shiftCode: ['', [Validators.required, Validators.maxLength(50), this.trimmedRequiredValidator()]],
+      shiftName: ['', [Validators.required, Validators.maxLength(255), this.trimmedRequiredValidator()]],
       startTime: ['', Validators.required],
       endTime: ['', Validators.required],
       breakMinutes: [0, [Validators.required, Validators.min(0)]],
@@ -51,7 +53,7 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
       isNightShift: [false, Validators.required],
       minWorkMinutes: [1, [Validators.required, Validators.min(1)]],
       isActive: [true, Validators.required],
-    });
+    }, { validators: this.shiftTimeRulesValidator() });
   }
 
   get totalTemplates(): number {
@@ -64,6 +66,10 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
 
   get inactiveCount(): number {
     return this.templates.filter(template => !template.isActive).length;
+  }
+
+  get canManageShiftTemplates(): boolean {
+    return this.authService.hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   }
 
   ngOnInit(): void {
@@ -175,22 +181,23 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
 
   cancelForm(): void {
     this.showForm = false;
-    this.createButtonLabel = 'Add Template';
   }
 
   submitForm(): void {
-    if (this.form.invalid) return;
-    const payload = this.form.value;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    const payload = this.buildPayload();
     if (this.mode === 'create') {
       this.attendanceService.createShiftTemplate(payload).subscribe({
         next: () => {
           this.showForm = false;
-          this.createButtonLabel = 'Add Template';
           this.errorMessage = null;
           this.loadTemplates();
         },
-        error: () => {
-          this.errorMessage = 'Unable to create shift template.';
+        error: (error: HttpErrorResponse) => {
+          this.errorMessage = this.extractErrorMessage(error, 'Unable to create shift template.');
           this.cdr.markForCheck();
         },
       });
@@ -201,12 +208,11 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
     this.attendanceService.updateShiftTemplate(this.selectedId, payload).subscribe({
       next: () => {
         this.showForm = false;
-        this.createButtonLabel = 'Add Template';
         this.errorMessage = null;
         this.loadTemplates();
       },
-      error: () => {
-        this.errorMessage = 'Unable to update shift template.';
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.extractErrorMessage(error, 'Unable to update shift template.');
         this.cdr.markForCheck();
       },
     });
@@ -218,30 +224,141 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
         this.errorMessage = null;
         this.loadTemplates();
       },
-      error: () => {
-        this.errorMessage = 'Unable to update active status.';
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.extractErrorMessage(error, 'Unable to update active status.');
         this.cdr.markForCheck();
       },
     });
   }
 
   deleteTemplate(template: ShiftTemplateResponse): void {
-    const confirmed = window.confirm(`Delete shift template ${template.shiftCode}?`);
+    const confirmed = window.confirm(
+      `Delete shift template ${template.shiftCode}? Backend delete marks the template inactive.`,
+    );
     if (!confirmed) return;
     this.attendanceService.deleteShiftTemplate(template.shiftId).subscribe({
       next: () => {
         this.errorMessage = null;
         this.loadTemplates();
       },
-      error: () => {
-        this.errorMessage = 'Unable to delete shift template.';
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.extractErrorMessage(error, 'Unable to delete shift template.');
         this.cdr.markForCheck();
       },
     });
   }
 
+  formatDateTime(value?: string): string {
+    if (!value) {
+      return '-';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleString();
+  }
+
   private toTimeInput(value: string): string {
     if (!value) return '';
     return value.substring(0, 5);
+  }
+
+  private buildPayload(): ShiftTemplateUpsertPayload {
+    const raw = this.form.getRawValue();
+    return {
+      shiftCode: String(raw.shiftCode ?? '').trim(),
+      shiftName: String(raw.shiftName ?? '').trim(),
+      startTime: String(raw.startTime ?? ''),
+      endTime: String(raw.endTime ?? ''),
+      breakMinutes: Number(raw.breakMinutes ?? 0),
+      graceInMinutes: Number(raw.graceInMinutes ?? 0),
+      graceOutMinutes: Number(raw.graceOutMinutes ?? 0),
+      isNightShift: !!raw.isNightShift,
+      minWorkMinutes: Number(raw.minWorkMinutes ?? 0),
+      isActive: !!raw.isActive,
+    };
+  }
+
+  private trimmedRequiredValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = typeof control.value === 'string' ? control.value.trim() : '';
+      return value ? null : { trimmedRequired: true };
+    };
+  }
+
+  private shiftTimeRulesValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const startTime = String(control.get('startTime')?.value ?? '');
+      const endTime = String(control.get('endTime')?.value ?? '');
+      const isNightShift = Boolean(control.get('isNightShift')?.value);
+      const breakMinutes = Number(control.get('breakMinutes')?.value ?? 0);
+      const minWorkMinutes = Number(control.get('minWorkMinutes')?.value ?? 0);
+
+      if (!startTime || !endTime) {
+        return null;
+      }
+
+      const durationMinutes = this.calculateDurationMinutes(startTime, endTime, isNightShift);
+      if (durationMinutes === null) {
+        return { invalidTimeRange: true };
+      }
+
+      if (breakMinutes > durationMinutes) {
+        return { breakExceedsDuration: true };
+      }
+
+      if (minWorkMinutes > durationMinutes - breakMinutes) {
+        return { minWorkExceedsNetDuration: true };
+      }
+
+      return null;
+    };
+  }
+
+  private calculateDurationMinutes(startTime: string, endTime: string, isNightShift: boolean): number | null {
+    const start = this.toMinutes(startTime);
+    const end = this.toMinutes(endTime);
+    if (start === null || end === null) {
+      return null;
+    }
+
+    if (!isNightShift) {
+      return end > start ? end - start : null;
+    }
+
+    if (end > start) {
+      return end - start;
+    }
+
+    return (24 * 60 - start) + end;
+  }
+
+  private toMinutes(value: string): number | null {
+    const parts = value.split(':');
+    if (parts.length < 2) {
+      return null;
+    }
+
+    const hour = Number(parts[0]);
+    const minute = Number(parts[1]);
+    if (!Number.isInteger(hour) || !Number.isInteger(minute)) {
+      return null;
+    }
+
+    return hour * 60 + minute;
+  }
+
+  private extractErrorMessage(error: HttpErrorResponse, fallback: string): string {
+    const backendMessage = error.error?.message || error.error?.error;
+    if (typeof backendMessage === 'string' && backendMessage.trim()) {
+      return backendMessage;
+    }
+    if (typeof error.message === 'string' && error.message.trim()) {
+      return error.message;
+    }
+    return fallback;
   }
 }

@@ -4,14 +4,25 @@
       <h1 #pageHeading class="text-3xl font-bold text-gray-900">Employees</h1>
       <p class="mt-1 text-gray-600">Manage employee records backed by the employee API.</p>
     </div>
-    <button
-      *ngIf="!showAddModal"
-      (click)="openAddModal()"
-      class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-    >
-      <span>+</span>
-      Add Employee
-    </button>
+    <div class="flex items-center gap-3">
+      <button
+        *ngIf="!showAddModal && canExportEmployees"
+        type="button"
+        (click)="exportEmployees()"
+        [disabled]="isExporting"
+        class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span>{{ isExporting ? '...' : 'Export' }}</span>
+      </button>
+      <button
+        *ngIf="!showAddModal && canAddEmployee"
+        (click)="openAddModal()"
+        class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+      >
+        <span>+</span>
+        Add Employee
+      </button>
+    </div>
   </div>
 
   <div *ngIf="apiError" class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-700">
@@ -34,6 +45,33 @@
       <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-600">
         Total items: <span class="font-semibold text-gray-900">{{ totalEmployees }}</span>
       </div>
+
+      <select
+        [(ngModel)]="sortBy"
+        (ngModelChange)="onSortChange()"
+        class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+      >
+        <option *ngFor="let option of sortOptions" [ngValue]="option.value">
+          Sort by {{ option.label }}
+        </option>
+      </select>
+
+      <select
+        [(ngModel)]="sortDir"
+        (ngModelChange)="onSortChange()"
+        class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+      >
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+      </select>
+
+      <select
+        [(ngModel)]="pageSize"
+        (ngModelChange)="onPageSizeChange()"
+        class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+      >
+        <option *ngFor="let option of pageSizeOptions" [ngValue]="option">{{ option }} / page</option>
+      </select>
 
       <div class="flex items-center gap-2 rounded-lg border border-gray-200 p-1">
         <button
@@ -62,15 +100,15 @@
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Employee</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Employee Code</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Email</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Department ID</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Position ID</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Department</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Position</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Status</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Hire Date</th>
             <th class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-600">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          <tr *ngFor="let employee of filteredEmployees" class="hover:bg-gray-50">
+          <tr *ngFor="let employee of filteredEmployees; trackBy: trackByEmployeeId" class="hover:bg-gray-50">
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
@@ -84,8 +122,8 @@
             </td>
             <td class="px-6 py-4 text-gray-900">{{ employee.employeeCode || '-' }}</td>
             <td class="px-6 py-4 text-gray-900">{{ employee.email || '-' }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ formatOptionalNumber(employee.departmentId) }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ formatOptionalNumber(employee.positionId) }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ getDepartmentName(employee.departmentId) }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ getPositionName(employee.positionId) }}</td>
             <td class="px-6 py-4">
               <span class="rounded-full px-2 py-1 text-xs font-medium" [ngClass]="getStatusColor(employee.status)">
                 {{ getStatusLabel(employee.status) }}
@@ -95,6 +133,23 @@
             <td class="px-6 py-4">
               <div class="flex items-center justify-end gap-2">
                 <button
+                  *ngIf="canOpenOtherEmployeeAttendance"
+                  (click)="navigateToAttendance(employee)"
+                  class="rounded-lg px-2 py-1 text-sm text-emerald-700 transition-colors hover:bg-emerald-50"
+                  title="Attendance Daily"
+                >
+                  Attendance
+                </button>
+                <button
+                  *ngIf="canManageEmployeeRoles"
+                  (click)="openRoleModal(employee)"
+                  class="rounded-lg px-2 py-1 text-sm text-violet-700 transition-colors hover:bg-violet-50"
+                  title="Assign or remove role"
+                >
+                  Role
+                </button>
+                <button
+                  *ngIf="canManageEmployees"
                   (click)="openEditModal(employee)"
                   class="rounded-lg p-2 transition-colors hover:bg-gray-100"
                   title="Edit"
@@ -102,6 +157,7 @@
                   &#9999;&#65039;
                 </button>
                 <button
+                  *ngIf="canManageEmployees"
                   (click)="openDeleteModal(employee)"
                   class="rounded-lg p-2 transition-colors hover:bg-red-50"
                   title="Delete"
@@ -140,7 +196,7 @@
   </div>
 
   <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-    <div *ngFor="let employee of filteredEmployees" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div *ngFor="let employee of filteredEmployees; trackBy: trackByEmployeeId" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div class="mb-4 flex items-start justify-between gap-4">
         <div class="flex items-center gap-3">
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-lg font-bold text-white">
@@ -159,20 +215,36 @@
       <div class="space-y-2 text-sm text-gray-600">
         <div>Email: <span class="text-gray-900">{{ employee.email || '-' }}</span></div>
         <div>Phone: <span class="text-gray-900">{{ employee.phone || '-' }}</span></div>
-        <div>Department ID: <span class="text-gray-900">{{ formatOptionalNumber(employee.departmentId) }}</span></div>
-        <div>Position ID: <span class="text-gray-900">{{ formatOptionalNumber(employee.positionId) }}</span></div>
+        <div>Department: <span class="text-gray-900">{{ getDepartmentName(employee.departmentId) }}</span></div>
+        <div>Position: <span class="text-gray-900">{{ getPositionName(employee.positionId) }}</span></div>
         <div>Manager ID: <span class="text-gray-900">{{ formatOptionalNumber(employee.managerId) }}</span></div>
         <div>Hire Date: <span class="text-gray-900">{{ formatDate(employee.hireDate) }}</span></div>
       </div>
 
       <div class="mt-4 flex items-center gap-2 border-t border-gray-200 pt-4">
         <button
+          *ngIf="canOpenOtherEmployeeAttendance"
+          (click)="navigateToAttendance(employee)"
+          class="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700 transition-colors hover:bg-emerald-100"
+        >
+          Attendance
+        </button>
+        <button
+          *ngIf="canManageEmployeeRoles"
+          (click)="openRoleModal(employee)"
+          class="rounded-lg bg-violet-50 px-3 py-2 text-violet-700 transition-colors hover:bg-violet-100"
+        >
+          Role
+        </button>
+        <button
+          *ngIf="canManageEmployees"
           (click)="openEditModal(employee)"
           class="flex-1 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
         >
           Edit
         </button>
         <button
+          *ngIf="canManageEmployees"
           (click)="openDeleteModal(employee)"
           class="rounded-lg bg-red-50 px-3 py-2 text-red-600 transition-colors hover:bg-red-100"
         >
@@ -280,20 +352,28 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Department ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Department</label>
+            <select
               formControlName="departmentId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select department</option>
+              <option *ngFor="let department of departments" [ngValue]="department.departmentId">
+                {{ department.departmentName }}
+              </option>
+            </select>
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Position ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Position</label>
+            <select
               formControlName="positionId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select position</option>
+              <option *ngFor="let position of positions" [ngValue]="position.positionId">
+                {{ position.positionName }}
+              </option>
+            </select>
           </div>
         </div>
 
@@ -429,20 +509,28 @@
 
         <div class="grid grid-cols-3 gap-4">
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Department ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Department</label>
+            <select
               formControlName="departmentId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select department</option>
+              <option *ngFor="let department of departments" [ngValue]="department.departmentId">
+                {{ department.departmentName }}
+              </option>
+            </select>
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Position ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Position</label>
+            <select
               formControlName="positionId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select position</option>
+              <option *ngFor="let position of positions" [ngValue]="position.positionId">
+                {{ position.positionName }}
+              </option>
+            </select>
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700">Manager ID</label>
@@ -503,6 +591,77 @@
         >
           Delete Employee
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    *ngIf="showRoleModal && selectedEmployee"
+    class="employee-modal-backdrop z-50 flex items-center justify-center bg-gray-900/50 p-8"
+  >
+    <div class="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900">Employee Role Assignment</h2>
+          <p class="text-sm text-gray-600">{{ selectedEmployee.fullName }} (Employee ID {{ selectedEmployee.id }})</p>
+        </div>
+        <button (click)="closeRoleModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100">&#10006;&#65039;</button>
+      </div>
+
+      <div *ngIf="roleModalMessage" class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-green-700">
+        {{ roleModalMessage }}
+      </div>
+      <div *ngIf="roleModalError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+        {{ roleModalError }}
+      </div>
+
+      <div *ngIf="isRoleLoading" class="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-gray-500">
+        Loading roles...
+      </div>
+
+      <div *ngIf="!isRoleLoading" class="space-y-6">
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <p class="text-sm font-medium text-gray-700">Current role from backend</p>
+          <div *ngIf="currentEmployeeRoles.length; else noCurrentRole" class="mt-3 flex flex-wrap gap-3">
+            <div *ngFor="let role of currentEmployeeRoles; trackBy: trackByRoleId" class="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3">
+              <p class="font-semibold text-violet-800">{{ role.roleCode }}</p>
+              <p class="text-sm text-gray-600">{{ role.roleName }}</p>
+              <button
+                (click)="removeRole(role)"
+                [disabled]="isRoleSaving"
+                class="mt-3 rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              >
+                Remove Role
+              </button>
+            </div>
+          </div>
+          <ng-template #noCurrentRole>
+            <p class="mt-2 text-sm text-gray-500">This employee currently has no role assigned or no linked account was found.</p>
+          </ng-template>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+          <label class="mb-2 block text-sm font-medium text-gray-700">Assign role</label>
+          <div class="flex flex-col gap-3 md:flex-row">
+            <select
+              [(ngModel)]="selectedRoleId"
+              class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              <option [ngValue]="null">Select role</option>
+              <option *ngFor="let role of availableRoles" [ngValue]="role.roleId">
+                {{ role.roleCode }} - {{ role.roleName }}
+              </option>
+            </select>
+            <button
+              (click)="assignSelectedRole()"
+              [disabled]="!selectedRoleId || isRoleSaving"
+              class="rounded-lg bg-violet-600 px-4 py-2 text-white disabled:opacity-50"
+            >
+              {{ isRoleSaving ? 'Saving...' : 'Assign Role' }}
+            </button>
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Uses backend endpoints `GET/POST/DELETE /api/employees/{{ '{' }}employeeId{{ '}' }}/roles`.</p>
+        </div>
       </div>
     </div>
   </div>
