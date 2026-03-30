@@ -5,7 +5,6 @@ import org.example.ams_be.dto.request.EmployeeRequest;
 import org.example.ams_be.dto.response.PageResponse;
 import org.example.ams_be.exception.BadRequestException;
 import org.example.ams_be.exception.NotFoundException;
-import org.example.ams_be.repository.AccountRepository;
 import org.example.ams_be.repository.EmployeeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +28,6 @@ class EmployeeServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
-
-    @Mock
-    private AuditLogService auditLogService;
-
-    @Mock
-    private AccountRepository accountRepository;
 
     @InjectMocks
     private EmployeeService employeeService;
@@ -164,7 +157,7 @@ class EmployeeServiceTest {
         updated.employeeId = employeeId;
         updated.email = "new@company.com";
 
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current), Optional.of(updated));
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current)).thenReturn(Optional.of(updated));
         when(employeeRepository.existsByEmail("new@company.com")).thenReturn(false);
         when(employeeRepository.update(eq(employeeId), any(), any())).thenReturn(1);
 
@@ -204,7 +197,7 @@ class EmployeeServiceTest {
         current.employeeId = employeeId;
         current.email = "same@company.com";
 
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current), Optional.of(current));
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current)).thenReturn(Optional.of(current));
         when(employeeRepository.update(eq(employeeId), any(), any())).thenReturn(1);
 
         EmployeeDto result = employeeService.update(employeeId, new EmployeeRequest());

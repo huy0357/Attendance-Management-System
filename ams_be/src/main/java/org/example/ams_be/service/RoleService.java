@@ -5,6 +5,7 @@ import org.example.ams_be.dto.response.RoleResponse;
 import org.example.ams_be.entity.Account;
 import org.example.ams_be.entity.Role;
 import org.example.ams_be.repository.AccountRepository;
+import org.example.ams_be.repository.AuditLogRepository;
 import org.example.ams_be.repository.RoleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ public class RoleService {
 
     private final RoleRepository roleRepository;
     private final AccountRepository accountRepository;
+    private final AuditLogService auditLogService;
 
     public List<RoleResponse> getAllRoles() {
         return roleRepository.findAll().stream()
@@ -44,12 +46,21 @@ public class RoleService {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
 
+        String oldRoleCode = (account.getRole() != null) ? account.getRole().getRoleCode() : "NONE";
         if (account.getRole() != null && roleId.equals(account.getRole().getRoleId())) {
             throw new RuntimeException("Employee đã có role này");
         }
 
         account.setRole(role);
         accountRepository.save(account);
+
+        auditLogService.saveAuditLog(
+                "ASSIGN_ROLE",
+                "ACCOUNT",
+                account.getAccountId(),
+                employeeId,
+                "Old Role: " + oldRoleCode,
+                "New Role: " + role.getRoleCode());
     }
 
     @Transactional
@@ -65,8 +76,21 @@ public class RoleService {
             throw new RuntimeException("Role cần xóa không khớp với role hiện tại của employee");
         }
 
+        Role currentRole = account.getRole();
+        if (!currentRole.getRoleId().equals(roleId)) {
+            throw new RuntimeException("Role cần xóa không khớp với role hiện tại của employee");
+        }
+        
         account.setRole(null);
         accountRepository.save(account);
+
+        auditLogService.saveAuditLog(
+                "REMOVE_ROLE",
+                "ACCOUNT",
+                account.getAccountId(),
+                employeeId,
+                "Old Role: " + currentRole.getRoleCode(),
+                "New Role: NONE");
     }
 
     private RoleResponse mapToResponse(Role r) {

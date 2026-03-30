@@ -197,7 +197,7 @@ public class ProfileServiceImpl implements ProfileService {
         response.put("avatarUrl", employee.avatarUrl);
         response.put("lastLoginAt", account.getLastLoginAt());
         response.put("createdAt", employee.createdAt);
-        response.put("updatedAt", employee.updatedAt);
+        // response.put("updatedAt", employee.updatedAt);
         return response;
     }
 }

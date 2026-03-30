@@ -53,8 +53,22 @@ class AccountControllerTest {
 
     @Test
     void createReturnsCreated() {
-        CreateAccountRequest request = CreateAccountRequest.builder().employeeId(1L).username("alice").roleId(2L).build();
-        AccountResponse created = AccountResponse.builder().accountId(3L).roleId(2L).roleCode("manager").build();
+        CreateAccountRequest request = CreateAccountRequest.builder()
+                .employeeId(1L)
+                .username("alice")
+                .build();
+
+        // FIX: Thay đổi Account.Role.admin thành roleId và roleCode cho khớp với
+        // AccountResponse mới
+        AccountResponse created = AccountResponse.builder()
+                .accountId(3L)
+                .username("alice")
+                .employeeId(1L)
+                .roleId(1L)
+                .roleCode("ADMIN")
+                .isActive(true)
+                .build();
+
         when(accountService.createAccount(request)).thenReturn(created);
 
         ResponseEntity<AccountResponse> response = controller.create(request);
@@ -111,8 +125,6 @@ class AccountControllerTest {
         AccountDto dto = new AccountDto();
         dto.setAccountId(id);
         dto.setUsername("user-" + id);
-        dto.setRoleId(2L);
-        dto.setRoleCode("manager");
         return dto;
     }
 }

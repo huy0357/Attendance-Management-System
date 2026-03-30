@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.ams_be.dto.response.AuthResponse;
 import org.example.ams_be.entity.Account;
 import org.example.ams_be.entity.Employee;
-import org.example.ams_be.entity.Role;
 import org.example.ams_be.repository.AccountRepository;
 import org.example.ams_be.repository.EmployeeRepository;
-import org.example.ams_be.repository.RoleRepository;
 import org.example.ams_be.utils.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,7 +24,6 @@ public class AuthService {
     private final AuditLogService auditLogService;
     private final EmailService emailService;
     private final EmployeeRepository employeeRepository;
-    private final RoleRepository roleRepository;
 
     private String resolveRoleCode(Account acc) {
         if (acc.getRole() == null) {
@@ -35,7 +32,6 @@ public class AuthService {
 
         return acc.getRole().getRoleCode().toUpperCase();
     }
-
 
     public AuthResponse login(String username, String password) {
         Account acc = accountRepo.findByUsername(username)
@@ -54,20 +50,17 @@ public class AuthService {
         String accessToken = jwtUtil.generateAccessToken(
                 acc.getUsername(),
                 roleCode,
-                acc.getEmployeeId()
-        );
+                acc.getEmployeeId());
 
         String refreshToken = jwtUtil.generateRefreshToken(
                 acc.getUsername(),
                 roleCode,
-                acc.getEmployeeId()
-        );
+                acc.getEmployeeId());
 
         tokenStore.storeRefreshToken(
                 acc.getUsername(),
                 refreshToken,
-                jwtUtil.getRefreshTtlSeconds()
-        );
+                jwtUtil.getRefreshTtlSeconds());
 
         auditLogService.saveAuditLog(
                 "LOGIN",
@@ -75,16 +68,14 @@ public class AuthService {
                 acc.getAccountId(),
                 acc.getEmployeeId(),
                 null,
-                "Login successful"
-        );
+                "{\"status\":\"SUCCESS\", \"username\":\"" + acc.getUsername() + "\", \"message\":\"Đăng nhập thành công\"}");
 
         return new AuthResponse(
                 accessToken,
                 refreshToken,
                 jwtUtil.getAccessTtlSeconds(),
                 acc.getUsername(),
-                roleCode
-        );
+                roleCode);
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -123,9 +114,8 @@ public class AuthService {
                     "ACCOUNT",
                     acc.getAccountId(),
                     acc.getEmployeeId(),
-                    "Old token rotated",
-                    "New token issued"
-            );
+                    "{\"tokenStatus\":\"EXPIRED_OR_ROTATED\"}",
+                    "{\"tokenStatus\":\"NEW_ISSUED\", \"at\":\"" + LocalDateTime.now() + "\"}");
         }
 
         tokenStore.revoke(username, refreshToken);
@@ -133,28 +123,24 @@ public class AuthService {
         String newRefreshToken = jwtUtil.generateRefreshToken(
                 username,
                 roleCode,
-                employeeId
-        );
+                employeeId);
 
         tokenStore.storeRefreshToken(
                 username,
                 newRefreshToken,
-                jwtUtil.getRefreshTtlSeconds()
-        );
+                jwtUtil.getRefreshTtlSeconds());
 
         String newAccessToken = jwtUtil.generateAccessToken(
                 username,
                 roleCode,
-                employeeId
-        );
+                employeeId);
 
         return new AuthResponse(
                 newAccessToken,
                 newRefreshToken,
                 jwtUtil.getAccessTtlSeconds(),
                 username,
-                roleCode
-        );
+                roleCode);
     }
 
     public void logout(String refreshToken) {
@@ -176,8 +162,7 @@ public class AuthService {
                     acc.getAccountId(),
                     acc.getEmployeeId(),
                     "Username: " + username,
-                    "Logout successful"
-            );
+                    "Logout successful");
         }
 
         tokenStore.revoke(username, refreshToken);
@@ -203,6 +188,14 @@ public class AuthService {
 
         accountRepo.save(account);
 
+        auditLogService.saveAuditLog(
+                "FORGOT_PASSWORD_REQ",
+                "ACCOUNT",
+                account.getAccountId(),
+                employee.getEmployeeId(),
+                null,
+                "{\"action\":\"REQUEST_OTP\", \"targetEmail\":\"" + email + "\", \"expiryMinutes\":5}");
+        
         emailService.sendOtpEmail(email, rawOtp);
     }
 
@@ -212,6 +205,27 @@ public class AuthService {
 
         Account account = accountRepo.findByEmployeeId(employee.getEmployeeId())
                 .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
+
+        try {
+            validateOtp(account, otp);
+
+            auditLogService.saveAuditLog(
+                    "VERIFY_OTP_SUCCESS",
+                    "ACCOUNT",
+                    account.getAccountId(),
+                    employee.getEmployeeId(),
+                    "OTP Verification",
+                    "OTP verified successfully");
+        } catch (RuntimeException e) {
+            auditLogService.saveAuditLog(
+                    "VERIFY_OTP_FAILED",
+                    "ACCOUNT",
+                    account.getAccountId(),
+                    employee.getEmployeeId(),
+                    "OTP Attempt",
+                    e.getMessage());
+            throw e;
+        }
 
         validateOtp(account, otp);
     }
@@ -233,6 +247,14 @@ public class AuthService {
         account.setResetOtp(null);
         account.setResetOtpExpiredAt(null);
         account.setResetOtpAttemptCount(0);
+
+        auditLogService.saveAuditLog(
+                "RESET_PASSWORD_SUCCESS",
+                "ACCOUNT",
+                account.getAccountId(),
+                employee.getEmployeeId(),
+                "{\"method\":\"OTP_VERIFIED\"}",
+                "{\"status\":\"CHANGED\", \"updateAt\":\"" + LocalDateTime.now() + "\"}");
 
         accountRepo.save(account);
     }

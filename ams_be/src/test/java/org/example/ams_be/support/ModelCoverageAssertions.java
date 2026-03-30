@@ -139,14 +139,6 @@ public final class ModelCoverageAssertions {
         assertTrue(text.contains(type.getSimpleName()));
     }
 
-    private static <T> T instantiateNoArgs(Class<T> type) {
-        Constructor<T> constructor = getNoArgsConstructor(type);
-        if (constructor == null) {
-            throw new IllegalStateException("No no-args constructor for " + type.getName());
-        }
-        return instantiate(constructor);
-    }
-
     private static <T> Constructor<T> getNoArgsConstructor(Class<T> type) {
         try {
             Constructor<T> constructor = type.getDeclaredConstructor();
@@ -184,7 +176,8 @@ public final class ModelCoverageAssertions {
 
             Field field = fieldMap.get(descriptor.getName());
             Type genericType = field != null ? field.getGenericType() : descriptor.getPropertyType();
-            Object value = sampleValue(genericType, descriptor.getPropertyType(), descriptor.getName(), seed + values.size(), depth, instance.getClass());
+            Object value = sampleValue(genericType, descriptor.getPropertyType(), descriptor.getName(),
+                    seed + values.size(), depth, instance.getClass());
             invoke(writeMethod, instance, value);
             values.put(descriptor.getName(), value);
         }
@@ -197,7 +190,8 @@ public final class ModelCoverageAssertions {
                 continue;
             }
 
-            Object value = sampleValue(field.getGenericType(), field.getType(), field.getName(), seed + values.size(), depth, instance.getClass());
+            Object value = sampleValue(field.getGenericType(), field.getType(), field.getName(), seed + values.size(),
+                    depth, instance.getClass());
             setField(field, instance, value);
             values.put(field.getName(), value);
         }
@@ -219,7 +213,8 @@ public final class ModelCoverageAssertions {
         }
     }
 
-    private static Object sampleValue(Type genericType, Class<?> rawType, String name, int seed, int depth, Class<?> ownerType) {
+    private static Object sampleValue(Type genericType, Class<?> rawType, String name, int seed, int depth,
+            Class<?> ownerType) {
         if (rawType == String.class) {
             return name + "-" + seed;
         }
@@ -304,7 +299,8 @@ public final class ModelCoverageAssertions {
         for (Field field : getInstanceFields(type)) {
             try {
                 Method setter = builder.getClass().getMethod(field.getName(), field.getType());
-                Object value = sampleValue(field.getGenericType(), field.getType(), field.getName(), seed + getInstanceFields(type).indexOf(field), 0, type);
+                Object value = sampleValue(field.getGenericType(), field.getType(), field.getName(),
+                        seed + getInstanceFields(type).indexOf(field), 0, type);
                 invoke(setter, builder, value);
                 expected.put(field.getName(), value);
             } catch (NoSuchMethodException ignored) {
@@ -318,7 +314,8 @@ public final class ModelCoverageAssertions {
     private static List<Field> getInstanceFields(Class<?> type) {
         List<Field> fields = new ArrayList<>();
         for (Field field : type.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic() || "serialVersionUID".equals(field.getName())) {
+            if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()
+                    || "serialVersionUID".equals(field.getName())) {
                 continue;
             }
             field.setAccessible(true);

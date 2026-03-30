@@ -21,6 +21,6 @@ public class EmployeeDto {
     public LocalDate hireDate;
     public LocalDate terminatedDate;
     public LocalDateTime createdAt;
-    public LocalDateTime updatedAt;
+    // public LocalDateTime updatedAt;
     public String avatarUrl;
 }

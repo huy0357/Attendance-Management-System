@@ -2,7 +2,6 @@ package org.example.ams_be.service;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
-import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -51,8 +50,7 @@ class EmailServiceTest {
 
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
-                () -> emailService.sendHtmlEmail("alice@company.com", "Subject", "<b>Hello</b>")
-        );
+                () -> emailService.sendHtmlEmail("alice@company.com", "Subject", "<b>Hello</b>"));
 
         assertEquals("boom", ex.getMessage());
     }
@@ -64,8 +62,7 @@ class EmailServiceTest {
 
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
-                () -> emailService.sendHtmlEmail("bad\nmail", "Subject", "<b>Hello</b>")
-        );
+                () -> emailService.sendHtmlEmail("bad\nmail", "Subject", "<b>Hello</b>"));
 
         assertEquals("Cannot send email to: bad\nmail", ex.getMessage());
     }

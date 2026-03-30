@@ -1,6 +1,8 @@
 package org.example.ams_be.controller;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.example.ams_be.dto.response.AttendanceDailyResponse;
 import org.example.ams_be.security.UserPrincipal;
@@ -19,9 +21,10 @@ public class AttendanceDailyController {
 
     private final AttendanceDailyService attendanceDailyService;
 
-    // ADMIN: xem bảng công tổng
+    // ADMIN/HR: xem bảng công tổng
     // GET /api/attendance-daily/admin?from=2026-02-01&to=2026-02-29&page=0&size=20
     @GetMapping("/admin")
+    // @PreAuthorize("hasRole('ADMIN') or hasRole('HR')")
     public Page<AttendanceDailyResponse> adminGetAttendance(
             @RequestParam LocalDate from,
             @RequestParam LocalDate to,

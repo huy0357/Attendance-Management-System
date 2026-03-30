@@ -20,42 +20,44 @@ public class AuthController {
 
     // AMS-132
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
-        return ResponseEntity.ok(authService.login(req.getUsername(), req.getPassword()));
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest req) {
+        AuthResponse response = authService.login(req.getUsername(), req.getPassword());
+        return ResponseEntity.ok(ApiResponse.success(response, "Đăng nhập thành công"));
     }
 
     // AMS-134
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest req) {
-        return ResponseEntity.ok(authService.refresh(req.getRefreshToken()));
+    public ResponseEntity<ApiResponse<AuthResponse>> refresh(@Valid @RequestBody RefreshRequest req) {
+        AuthResponse response = authService.refresh(req.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.success(response, "Refresh token thành công"));
     }
 
     // AMS-135
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest req) {
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody LogoutRequest req) {
         authService.logout(req.getRefreshToken());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
-        return ResponseEntity.ok(new ApiResponse("OTP đã được gửi về email"));
+        return ResponseEntity.ok(ApiResponse.success(null, "OTP đã được gửi về email"));
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<ApiResponse> verifyOtp(@RequestBody VerifyOtpRequest request) {
+    public ResponseEntity<ApiResponse<Void>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         authService.verifyOtp(request.getEmail(), request.getOtp());
-        return ResponseEntity.ok(new ApiResponse("OTP hợp lệ"));
+        return ResponseEntity.ok(ApiResponse.success(null, "OTP hợp lệ"));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(
                 request.getEmail(),
                 request.getOtp(),
                 request.getNewPassword()
         );
-        return ResponseEntity.ok(new ApiResponse("Đổi mật khẩu thành công"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Đổi mật khẩu thành công"));
     }
 }
