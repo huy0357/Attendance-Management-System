@@ -11,6 +11,7 @@
         <input
           type="date"
           [(ngModel)]="from"
+          [max]="to"
           class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
       </div>
@@ -19,6 +20,7 @@
         <input
           type="date"
           [(ngModel)]="to"
+          [min]="from"
           class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
       </div>

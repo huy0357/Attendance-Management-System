@@ -202,6 +202,14 @@ export class LeaveManagementComponent implements OnInit {
     }).length;
   }
 
+  trackByRequestId(_: number, request: LeaveRequest): number {
+    return request.requestId;
+  }
+
+  trackByStatLabel(_: number, stat: { label: string }): string {
+    return stat.label;
+  }
+
   private loadLeaveRequests(): void {
     this.isLoading = true;
     this.errorMessage = '';

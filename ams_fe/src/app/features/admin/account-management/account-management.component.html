@@ -43,7 +43,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
       <div class="flex items-center gap-4 flex-wrap sm:flex-nowrap">
         <div class="relative flex-1 min-w-0">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">Search</span>
+          <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></lucide-icon>
           <input type="text" placeholder="Search by username..." [(ngModel)]="searchQuery" (input)="onSearchChange()"
             class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
         </div>
@@ -92,7 +92,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr *ngFor="let user of filteredUsers" class="hover:bg-gray-50 group">
+            <tr *ngFor="let user of filteredUsers; trackBy: trackByUserId" class="hover:bg-gray-50 group">
               <td class="px-4 lg:px-6 py-4">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">

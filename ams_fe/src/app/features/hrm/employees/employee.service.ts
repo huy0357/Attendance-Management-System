@@ -62,6 +62,12 @@ export interface PositionDto {
   positionName: string;
 }
 
+interface CollectionResponse<T> {
+  items?: T[];
+  content?: T[];
+  data?: T[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
   private readonly positionsUrl = `/positions`;
@@ -74,14 +80,13 @@ export class EmployeeService {
 
   getAll(): Observable<EmployeeDto[]> {
     return this.http
-      .get<EmployeeDto[] | { items?: EmployeeDto[]; content?: EmployeeDto[]; data?: EmployeeDto[] }>(this.baseUrl)
+      .get<EmployeeDto[] | CollectionResponse<EmployeeDto>>(this.baseUrl)
       .pipe(
         map(response => {
           if (Array.isArray(response)) return response;
           if (response?.items && Array.isArray(response.items)) return response.items;
           if (response?.content && Array.isArray(response.content)) return response.content;
           if (response?.data && Array.isArray(response.data)) return response.data;
-          console.error('[Employees] Unexpected response shape from /employees', response);
           return [];
         }),
       );
@@ -89,7 +94,17 @@ export class EmployeeService {
 
   getPositions(): Observable<PositionDto[]> {
     const params = new HttpParams().set('page', '0').set('size', '1000').set('sort', 'positionId,asc');
-    return this.http.get<any>(this.positionsUrl, { params }).pipe(map(response => { if (Array.isArray(response)) return response; if (response?.items && Array.isArray(response.items)) return response.items; if (response?.content && Array.isArray(response.content)) return response.content; if (response?.data && Array.isArray(response.data)) return response.data; return []; }));
+    return this.http
+      .get<PositionDto[] | CollectionResponse<PositionDto>>(this.positionsUrl, { params })
+      .pipe(
+        map(response => {
+          if (Array.isArray(response)) return response;
+          if (response?.items && Array.isArray(response.items)) return response.items;
+          if (response?.content && Array.isArray(response.content)) return response.content;
+          if (response?.data && Array.isArray(response.data)) return response.data;
+          return [];
+        }),
+      );
   }
 
   getDepartments(): Observable<DepartmentDto[]> {
@@ -99,16 +114,13 @@ export class EmployeeService {
       .set('sort', 'departmentId,asc');
 
     return this.http
-      .get<PageResponse<DepartmentDto> | DepartmentDto[] | { content?: DepartmentDto[]; items?: DepartmentDto[]; data?: DepartmentDto[] }>(
+      .get<PageResponse<DepartmentDto> | DepartmentDto[] | CollectionResponse<DepartmentDto>>(
         this.departmentsUrl,
         { params }
       )
       .pipe(
         map(response => {
           if (Array.isArray(response)) return response;
-          if ((response as PageResponse<DepartmentDto>).items && Array.isArray((response as PageResponse<DepartmentDto>).items)) {
-            return (response as PageResponse<DepartmentDto>).items;
-          }
           if (response?.content && Array.isArray(response.content)) return response.content;
           if (response?.items && Array.isArray(response.items)) return response.items;
           if (response?.data && Array.isArray(response.data)) return response.data;

@@ -486,6 +486,14 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     return 'Manage role';
   }
 
+  trackByEmployeeId(_: number, employee: UiEmployee): string {
+    return employee.id;
+  }
+
+  trackByRoleId(_: number, role: RoleResponse): number {
+    return role.roleId;
+  }
+
   private setupSearchDebounce(): void {
     this.searchSubscription = this.searchSubject.pipe(
       debounceTime(400),

@@ -56,6 +56,9 @@ export class LoginComponent {
   }
 
   submit(): void {
+    if (this._isLoading) {
+      return;
+    }
     if (this.authMode !== 'login') {
       return;
     }

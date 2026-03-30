@@ -6,6 +6,7 @@ import {
   UserAccountRecord,
 } from '../admin.service';
 import {
+  AccountDto,
   CreateAccountRequest,
   UpdateAccountRequest,
 } from '../../../shared/models/account.model';
@@ -151,8 +152,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.cdr.markForCheck();
       },
-      error: (err) => {
-        console.error('Failed to load accounts', err);
+      error: () => {
         this.userAccounts = [];
         this.totalItems = 0;
         this.isLoading = false;
@@ -178,7 +178,11 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     this.goToPage(this.currentPage - 1);
   }
 
-  private mapAccountDtoToRecord(a: any): UserAccountRecord {
+  trackByUserId(_: number, user: UserAccountRecord): string {
+    return user.id;
+  }
+
+  private mapAccountDtoToRecord(a: AccountDto): UserAccountRecord {
     const roleCode = (a.roleCode ?? '').toUpperCase();
     return {
       id: String(a.accountId),
@@ -327,7 +331,6 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
     // Parse to number for API
     const userIdNum = Number(this.selectedUser.id);
     if (isNaN(userIdNum)) {
-      console.error('UserId is not a number:', this.selectedUser.id);
       return;
     }
 
@@ -339,8 +342,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         }
         this.loadData();
       },
-      error: (err) => {
-        console.error('Delete failed', err);
+      error: () => {
         alert('Failed to delete user');
       }
     });
@@ -372,9 +374,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.closeAddUserModal();
         this.loadData();
       },
-      error: (err) => {
-        console.error('Failed to create account', err);
-      },
+      error: () => {},
     });
   }
 
@@ -402,8 +402,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.closeEditUserModal();
         this.loadData();
       },
-      error: (err) => {
-        console.error('Failed to update account', err);
+      error: () => {
         this.closeEditUserModal();
       },
     });
@@ -425,8 +424,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         this.syncDefaultEmployeeForCreateForm();
         this.cdr.markForCheck();
       },
-      error: (err) => {
-        console.error('Failed to load available employees for account creation', err);
+      error: () => {
         this.availableEmployees = [];
         this.cdr.markForCheck();
       },
@@ -467,8 +465,7 @@ export class AccountManagementComponent implements OnInit, OnDestroy {
         }
         this.cdr.markForCheck();
       },
-      error: (err) => {
-        console.error('Failed to load roles', err);
+      error: () => {
         this.accountRoles = [];
         this.cdr.markForCheck();
       },

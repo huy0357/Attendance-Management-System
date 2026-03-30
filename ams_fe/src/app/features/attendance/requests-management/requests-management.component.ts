@@ -282,7 +282,7 @@ export class RequestsManagementComponent implements OnInit {
   }
 
   canEdit(request: RequestsResponse): boolean {
-    return request.status === 'DRAFT' || request.status === 'SUBMITTED';
+    return request.status === 'DRAFT';
   }
 
   canDelete(request: RequestsResponse): boolean {

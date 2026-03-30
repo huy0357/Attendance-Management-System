@@ -100,15 +100,15 @@
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Employee</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Employee Code</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Email</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Department ID</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Position ID</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Department</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Position</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Status</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Hire Date</th>
             <th class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-600">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          <tr *ngFor="let employee of filteredEmployees" class="hover:bg-gray-50">
+          <tr *ngFor="let employee of filteredEmployees; trackBy: trackByEmployeeId" class="hover:bg-gray-50">
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
@@ -122,8 +122,8 @@
             </td>
             <td class="px-6 py-4 text-gray-900">{{ employee.employeeCode || '-' }}</td>
             <td class="px-6 py-4 text-gray-900">{{ employee.email || '-' }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ formatOptionalNumber(employee.departmentId) }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ formatOptionalNumber(employee.positionId) }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ getDepartmentName(employee.departmentId) }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ getPositionName(employee.positionId) }}</td>
             <td class="px-6 py-4">
               <span class="rounded-full px-2 py-1 text-xs font-medium" [ngClass]="getStatusColor(employee.status)">
                 {{ getStatusLabel(employee.status) }}
@@ -196,7 +196,7 @@
   </div>
 
   <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-    <div *ngFor="let employee of filteredEmployees" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div *ngFor="let employee of filteredEmployees; trackBy: trackByEmployeeId" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div class="mb-4 flex items-start justify-between gap-4">
         <div class="flex items-center gap-3">
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-lg font-bold text-white">
@@ -215,8 +215,8 @@
       <div class="space-y-2 text-sm text-gray-600">
         <div>Email: <span class="text-gray-900">{{ employee.email || '-' }}</span></div>
         <div>Phone: <span class="text-gray-900">{{ employee.phone || '-' }}</span></div>
-        <div>Department ID: <span class="text-gray-900">{{ formatOptionalNumber(employee.departmentId) }}</span></div>
-        <div>Position ID: <span class="text-gray-900">{{ formatOptionalNumber(employee.positionId) }}</span></div>
+        <div>Department: <span class="text-gray-900">{{ getDepartmentName(employee.departmentId) }}</span></div>
+        <div>Position: <span class="text-gray-900">{{ getPositionName(employee.positionId) }}</span></div>
         <div>Manager ID: <span class="text-gray-900">{{ formatOptionalNumber(employee.managerId) }}</span></div>
         <div>Hire Date: <span class="text-gray-900">{{ formatDate(employee.hireDate) }}</span></div>
       </div>
@@ -352,20 +352,28 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Department ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Department</label>
+            <select
               formControlName="departmentId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select department</option>
+              <option *ngFor="let department of departments" [ngValue]="department.departmentId">
+                {{ department.departmentName }}
+              </option>
+            </select>
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Position ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Position</label>
+            <select
               formControlName="positionId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select position</option>
+              <option *ngFor="let position of positions" [ngValue]="position.positionId">
+                {{ position.positionName }}
+              </option>
+            </select>
           </div>
         </div>
 
@@ -501,20 +509,28 @@
 
         <div class="grid grid-cols-3 gap-4">
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Department ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Department</label>
+            <select
               formControlName="departmentId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select department</option>
+              <option *ngFor="let department of departments" [ngValue]="department.departmentId">
+                {{ department.departmentName }}
+              </option>
+            </select>
           </div>
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700">Position ID</label>
-            <input
-              type="number"
+            <label class="mb-2 block text-sm font-medium text-gray-700">Position</label>
+            <select
               formControlName="positionId"
               class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+            >
+              <option [ngValue]="null">Select position</option>
+              <option *ngFor="let position of positions" [ngValue]="position.positionId">
+                {{ position.positionName }}
+              </option>
+            </select>
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700">Manager ID</label>
@@ -607,7 +623,7 @@
         <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
           <p class="text-sm font-medium text-gray-700">Current role from backend</p>
           <div *ngIf="currentEmployeeRoles.length; else noCurrentRole" class="mt-3 flex flex-wrap gap-3">
-            <div *ngFor="let role of currentEmployeeRoles" class="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3">
+            <div *ngFor="let role of currentEmployeeRoles; trackBy: trackByRoleId" class="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3">
               <p class="font-semibold text-violet-800">{{ role.roleCode }}</p>
               <p class="text-sm text-gray-600">{{ role.roleName }}</p>
               <button

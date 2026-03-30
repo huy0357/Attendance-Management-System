@@ -89,7 +89,7 @@
                     </tr>
 
                     <ng-container *ngIf="!isLoading">
-                        <tr *ngFor="let dept of departments" class="hover:bg-gray-50">
+                        <tr *ngFor="let dept of departments; trackBy: trackByDepartmentId" class="hover:bg-gray-50">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div

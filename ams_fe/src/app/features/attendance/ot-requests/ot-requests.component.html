@@ -24,7 +24,7 @@
   </div>
 
   <div *ngIf="requests.length > 0" class="grid grid-cols-1 md:grid-cols-4 gap-6">
-    <div *ngFor="let stat of stats" class="{{ stat.bg }} rounded-xl p-6 border border-gray-200">
+    <div *ngFor="let stat of stats; trackBy: trackByStatLabel" class="{{ stat.bg }} rounded-xl p-6 border border-gray-200">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
@@ -85,7 +85,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          <tr *ngFor="let request of filteredRequests" class="hover:bg-gray-50 transition-colors">
+          <tr *ngFor="let request of filteredRequests; trackBy: trackByRequestId" class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4">
               <p class="font-semibold text-gray-900">{{ request.id }}</p>
             </td>

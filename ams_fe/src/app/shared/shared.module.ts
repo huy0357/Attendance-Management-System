@@ -83,6 +83,11 @@ import {
   UserX,
   Crown,
   Key,
+  Loader,
+  LoaderCircle,
+  Loader2,
+  Ban,
+  ArrowRight,
 } from 'lucide-angular';
 
 @NgModule({
@@ -171,6 +176,11 @@ import {
       UserX,
       Crown,
       Key,
+      Loader,
+      LoaderCircle,
+      Loader2,
+      Ban,
+      ArrowRight,
     }),
   ],
   exports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, LucideAngularModule],

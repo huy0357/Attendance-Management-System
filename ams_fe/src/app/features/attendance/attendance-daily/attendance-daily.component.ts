@@ -16,7 +16,7 @@ export class AttendanceDailyComponent implements OnInit {
   mode: 'self' | 'employee' | 'admin' = 'self';
   employeeId: number | null = null;
 
-  from = this.formatDate(this.addDays(new Date(), -7));
+  from = '';
   to = this.formatDate(new Date());
   batchDate = this.formatDate(new Date());
 

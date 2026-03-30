@@ -113,10 +113,7 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
                 this.allDepartments = this.flattenTree(tree);
                 this.calculateStats();
             },
-            error: () => {
-                // Handle error siliently or show notification
-                console.error('Failed to load department tree');
-            }
+            error: () => {}
         });
     }
 
@@ -135,6 +132,10 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
         this.activeCount = this.allDepartments.filter(d => d.isActive).length;
         this.inactiveCount = this.allDepartments.length - this.activeCount;
         this.rootCount = this.allDepartments.filter(d => !d.parentDepartmentId).length;
+    }
+
+    trackByDepartmentId(_: number, department: DepartmentDto): number {
+        return department.departmentId;
     }
 
     // Pagination
