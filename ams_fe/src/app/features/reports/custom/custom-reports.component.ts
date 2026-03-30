@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
   ReportField,
-  ReportFilter,
   ReportOperator,
   SavedReport,
   ReportsService,

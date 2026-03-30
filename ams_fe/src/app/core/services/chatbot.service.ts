@@ -13,7 +13,7 @@ export interface ChatbotRequest {
 export interface ChatbotResponse {
   success: boolean;
   message: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   trace_id: string;
   latency_ms: number;
   suggestions: string[];

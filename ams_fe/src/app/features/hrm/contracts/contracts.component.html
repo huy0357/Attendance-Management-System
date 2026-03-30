@@ -537,10 +537,10 @@
           <p class="text-gray-700">{{ selectedContract.notes }}</p>
         </div>
 
-        <div *ngIf="selectedContract.renewalHistory && selectedContract.renewalHistory.length > 0" class="bg-purple-50 rounded-lg p-4">
+        <div *ngIf="(selectedContract.renewalHistory?.length || 0) > 0" class="bg-purple-50 rounded-lg p-4">
           <h3 class="text-sm font-bold text-gray-900 mb-3">Renewal History</h3>
           <div class="space-y-2">
-            <div *ngFor="let renewal of selectedContract.renewalHistory" class="bg-white rounded p-3">
+            <div *ngFor="let renewal of selectedContract.renewalHistory || []" class="bg-white rounded p-3">
               <p class="text-sm font-semibold text-gray-900">{{ renewal.date }}</p>
               <p class="text-sm text-gray-600">{{ renewal.reason }}</p>
               <p class="text-xs text-gray-500 mt-1">

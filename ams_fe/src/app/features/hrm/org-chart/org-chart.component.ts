@@ -116,11 +116,12 @@ export class OrgChartComponent implements OnInit {
 
   confirmMove(): void {
     if (!this.draggedEmployeeId || !this.moveDetails) return;
+    const moveDetails = this.moveDetails;
 
     const payload: TransferEmployeePayload = {
-      employeeId: this.moveDetails.employeeId,
-      fromDepartmentId: this.moveDetails.fromDeptId,
-      toDepartmentId: this.moveDetails.toDeptId,
+      employeeId: moveDetails.employeeId,
+      fromDepartmentId: moveDetails.fromDeptId,
+      toDepartmentId: moveDetails.toDeptId,
       effectiveDate: new Date().toISOString().split('T')[0],
     };
 
@@ -129,8 +130,8 @@ export class OrgChartComponent implements OnInit {
         emp.id === this.draggedEmployeeId
           ? {
               ...emp,
-              departmentId: this.moveDetails?.toDeptId || emp.departmentId,
-              departmentName: this.moveDetails?.toDeptName || emp.departmentName,
+              departmentId: moveDetails.toDeptId,
+              departmentName: moveDetails.toDeptName,
             }
           : emp,
       );

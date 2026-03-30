@@ -8,6 +8,10 @@ import { EmployeePortalComponent } from './employee-portal/employee-portal.compo
 import { SharedModule } from '../../shared/shared.module';
 import { DepartmentListComponent } from './departments/department-list/department-list.component';
 import { HrmLandingComponent } from './hrm-landing.component';
+import { ContractsComponent } from './contracts/contracts.component';
+import { OnboardingComponent } from './onboarding/onboarding.component';
+import { OrgChartComponent } from './org-chart/org-chart.component';
+import { PerformanceReviewComponent } from './performance-review/performance-review.component';
 
 @NgModule({
   declarations: [
@@ -15,6 +19,10 @@ import { HrmLandingComponent } from './hrm-landing.component';
     EmployeePortalComponent,
     DepartmentListComponent,
     HrmLandingComponent,
+    ContractsComponent,
+    OnboardingComponent,
+    OrgChartComponent,
+    PerformanceReviewComponent,
   ],
   imports: [
     CommonModule,

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, finalize, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, finalize, map, shareReplay, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface LoginRequest {
@@ -10,6 +10,15 @@ export interface LoginRequest {
 
 export interface ApiMessageResponse {
   message: string;
+}
+
+/** Matches the backend ApiResponse<T> wrapper used by all endpoints. */
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+  errorCode?: string;
+  timestamp: string;
 }
 
 export interface AuthResponse {
@@ -39,24 +48,33 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, request)
-      .pipe(tap(response => this.storeTokens(response)));
+      .post<ApiResponse<AuthResponse>>(`${environment.apiBaseUrl}/auth/login`, request)
+      .pipe(
+        map(res => res.data),
+        tap(response => this.storeTokens(response)),
+      );
   }
 
   forgotPassword(email: string): Observable<ApiMessageResponse> {
-    return this.http.post<ApiMessageResponse>(`${environment.apiBaseUrl}/auth/forgot-password`, { email });
+    return this.http
+      .post<ApiResponse<null>>(`${environment.apiBaseUrl}/auth/forgot-password`, { email })
+      .pipe(map(res => ({ message: res.message })));
   }
 
   verifyOtp(email: string, otp: string): Observable<ApiMessageResponse> {
-    return this.http.post<ApiMessageResponse>(`${environment.apiBaseUrl}/auth/verify-otp`, { email, otp });
+    return this.http
+      .post<ApiResponse<null>>(`${environment.apiBaseUrl}/auth/verify-otp`, { email, otp })
+      .pipe(map(res => ({ message: res.message })));
   }
 
   resetPassword(email: string, otp: string, newPassword: string): Observable<ApiMessageResponse> {
-    return this.http.post<ApiMessageResponse>(`${environment.apiBaseUrl}/auth/reset-password`, {
-      email,
-      otp,
-      newPassword,
-    });
+    return this.http
+      .post<ApiResponse<null>>(`${environment.apiBaseUrl}/auth/reset-password`, {
+        email,
+        otp,
+        newPassword,
+      })
+      .pipe(map(res => ({ message: res.message })));
   }
 
   refreshTokens(): Observable<AuthResponse> {
@@ -67,8 +85,9 @@ export class AuthService {
 
     if (!this.refreshInFlight$) {
       this.refreshInFlight$ = this.http
-        .post<AuthResponse>(`${environment.apiBaseUrl}/auth/refresh`, { refreshToken })
+        .post<ApiResponse<AuthResponse>>(`${environment.apiBaseUrl}/auth/refresh`, { refreshToken })
         .pipe(
+          map(res => res.data),
           tap(response => this.storeTokens(response)),
           shareReplay(1),
           finalize(() => {
@@ -90,7 +109,9 @@ export class AuthService {
       });
     }
 
-    return this.http.post<void>(`${environment.apiBaseUrl}/auth/logout`, { refreshToken });
+    return this.http
+      .post<ApiResponse<void>>(`${environment.apiBaseUrl}/auth/logout`, { refreshToken })
+      .pipe(map(() => void 0));
   }
 
   isAuthenticated(): boolean {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
@@ -31,6 +31,83 @@ export interface AccountRoleDefinition {
   name: string;
   code: string;
   description: string;
+}
+
+export type AuditLogAction =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'login'
+  | 'logout'
+  | 'approve'
+  | 'reject'
+  | 'lock'
+  | 'unlock';
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  action: AuditLogAction;
+  module: string;
+  recordId: string;
+  ipAddress: string;
+  userAgent: string;
+  beforeValue?: unknown;
+  afterValue?: unknown;
+  notes?: string;
+}
+
+export interface BackupRecord {
+  name: string;
+  date: string;
+  time: string;
+  size: string;
+  type: 'full' | 'incremental' | 'manual' | 'differential' | 'partial';
+  recordCount: number;
+  status: 'completed' | 'in-progress' | 'failed';
+  duration: string;
+}
+
+export interface BackupScheduleConfig {
+  enabled: boolean;
+  frequency: 'hourly' | 'daily' | 'weekly' | 'monthly';
+  time: string;
+  retention: number;
+  type: 'full' | 'incremental' | 'differential';
+  compression: boolean;
+  encryption: boolean;
+}
+
+export type DeviceType = 'face-recognition' | 'fingerprint' | 'card-reader' | 'mobile-app';
+export type DeviceStatus = 'online' | 'offline' | 'maintenance';
+
+export interface LocationRecord {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  timezone: string;
+  enabled: boolean;
+  devices: number;
+}
+
+export interface DeviceRecord {
+  id: string;
+  name: string;
+  deviceType: DeviceType;
+  locationId: string;
+  locationName: string;
+  ipAddress: string;
+  macAddress: string;
+  status: DeviceStatus;
+  lastSeen: string;
+  firmware: string;
+  enabled: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -114,6 +191,170 @@ export class AdminService {
         })),
       ),
     );
+  }
+
+  getAuditLogs(): Observable<AuditLog[]> {
+    return of([
+      {
+        id: 'LOG-001',
+        timestamp: '2026-01-22 09:15:23',
+        userId: 'U001',
+        userName: 'Admin User',
+        userRole: 'ADMIN',
+        action: 'create',
+        module: 'Employees',
+        recordId: 'EMP-105',
+        ipAddress: '192.168.1.10',
+        userAgent: 'Chrome on Windows',
+        afterValue: { employeeName: 'Alex Johnson' },
+        notes: 'Employee record created successfully.',
+      },
+      {
+        id: 'LOG-002',
+        timestamp: '2026-01-22 11:45:10',
+        userId: 'U002',
+        userName: 'Emma Wilson',
+        userRole: 'HR',
+        action: 'update',
+        module: 'Contracts',
+        recordId: 'CT-004',
+        ipAddress: '192.168.1.22',
+        userAgent: 'Edge on Windows',
+        beforeValue: { status: 'pending' },
+        afterValue: { status: 'active' },
+      },
+      {
+        id: 'LOG-003',
+        timestamp: '2026-01-21 16:03:02',
+        userId: 'U003',
+        userName: 'Sarah Chen',
+        userRole: 'MANAGER',
+        action: 'approve',
+        module: 'OT Requests',
+        recordId: 'REQ-033',
+        ipAddress: '192.168.1.35',
+        userAgent: 'Chrome on macOS',
+        notes: 'Approved 3 hours OT request.',
+      },
+    ]);
+  }
+
+  getBackupList(): Observable<BackupRecord[]> {
+    return of([
+      {
+        name: 'Full_Backup_2026_01_22',
+        date: '2026-01-22',
+        time: '02:00 AM',
+        size: '2.4 GB',
+        type: 'full',
+        recordCount: 152340,
+        status: 'completed',
+        duration: '14 min',
+      },
+      {
+        name: 'Incremental_2026_01_21',
+        date: '2026-01-21',
+        time: '02:00 AM',
+        size: '420 MB',
+        type: 'incremental',
+        recordCount: 12840,
+        status: 'completed',
+        duration: '4 min',
+      },
+      {
+        name: 'Manual_PreRelease',
+        date: '2026-01-20',
+        time: '05:30 PM',
+        size: '2.5 GB',
+        type: 'manual',
+        recordCount: 151200,
+        status: 'completed',
+        duration: '15 min',
+      },
+    ]);
+  }
+
+  getBackupSchedule(): Observable<BackupScheduleConfig> {
+    return of({
+      enabled: true,
+      frequency: 'daily',
+      time: '02:00',
+      retention: 30,
+      type: 'full',
+      compression: true,
+      encryption: true,
+    });
+  }
+
+  getLocations(): Observable<LocationRecord[]> {
+    return of([
+      {
+        id: 'LOC-001',
+        name: 'Headquarters',
+        address: '123 Market Street, San Francisco, CA',
+        latitude: 37.7749,
+        longitude: -122.4194,
+        radius: 100,
+        timezone: 'America/Los_Angeles',
+        enabled: true,
+        devices: 2,
+      },
+      {
+        id: 'LOC-002',
+        name: 'Branch Office',
+        address: '500 Main Street, Austin, TX',
+        latitude: 30.2672,
+        longitude: -97.7431,
+        radius: 75,
+        timezone: 'America/Chicago',
+        enabled: true,
+        devices: 1,
+      },
+    ]);
+  }
+
+  getDevices(): Observable<DeviceRecord[]> {
+    return of([
+      {
+        id: 'DEV-001',
+        name: 'Main Entrance Face ID',
+        deviceType: 'face-recognition',
+        locationId: 'LOC-001',
+        locationName: 'Headquarters',
+        ipAddress: '192.168.10.21',
+        macAddress: '00:1B:44:11:3A:B7',
+        status: 'online',
+        lastSeen: '2026-01-22 09:10:00',
+        firmware: 'v2.4.1',
+        enabled: true,
+      },
+      {
+        id: 'DEV-002',
+        name: 'Side Door Fingerprint',
+        deviceType: 'fingerprint',
+        locationId: 'LOC-001',
+        locationName: 'Headquarters',
+        ipAddress: '192.168.10.22',
+        macAddress: '00:1B:44:11:3A:B8',
+        status: 'maintenance',
+        lastSeen: '2026-01-22 08:55:00',
+        firmware: 'v1.9.0',
+        enabled: true,
+      },
+      {
+        id: 'DEV-003',
+        name: 'Austin Mobile Check-in',
+        deviceType: 'mobile-app',
+        locationId: 'LOC-002',
+        locationName: 'Branch Office',
+        ipAddress: 'N/A',
+        macAddress: 'N/A',
+        status: 'offline',
+        lastSeen: '2026-01-21 06:30:00',
+        firmware: 'v3.1.0',
+        enabled: false,
+      },
+    ]);
   }
 
   private mapAccountDtoToRecord(account: AccountDto): UserAccountRecord {

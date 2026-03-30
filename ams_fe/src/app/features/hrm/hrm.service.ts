@@ -506,7 +506,7 @@ export class HrmService {
     return 'pending';
   }
 
-  private calculateHours(start?: string, end?: string): number {
+  private calculateHours(start?: string | null, end?: string | null): number {
     if (!start || !end) {
       return 0;
     }

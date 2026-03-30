@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
@@ -78,7 +78,7 @@ export class DepartmentListComponent implements OnInit, OnDestroy {
         this.searchSubscription = this.searchSubject.pipe(
             debounceTime(400),
             distinctUntilChanged()
-        ).subscribe(query => {
+        ).subscribe(() => {
             this.currentPage = 1;
             this.loadDepartments();
         });
