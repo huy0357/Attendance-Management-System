@@ -164,7 +164,7 @@ class EmployeeServiceTest {
         updated.employeeId = employeeId;
         updated.email = "new@company.com";
 
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current), Optional.of(updated));
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current)).thenReturn(Optional.of(updated));
         when(employeeRepository.existsByEmail("new@company.com")).thenReturn(false);
         when(employeeRepository.update(eq(employeeId), any(), any())).thenReturn(1);
 
@@ -204,7 +204,7 @@ class EmployeeServiceTest {
         current.employeeId = employeeId;
         current.email = "same@company.com";
 
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current), Optional.of(current));
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(current)).thenReturn(Optional.of(current));
         when(employeeRepository.update(eq(employeeId), any(), any())).thenReturn(1);
 
         EmployeeDto result = employeeService.update(employeeId, new EmployeeRequest());

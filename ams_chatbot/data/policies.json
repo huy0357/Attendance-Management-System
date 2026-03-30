@@ -1,0 +1,26 @@
+[
+  {
+    "id": "policy_leave_01",
+    "title": "Quy định Nghỉ Phép Năm",
+    "content": "Mỗi nhân viên chính thức có 12 ngày phép có lương mỗi năm. Nếu nghỉ quá số ngày này, những ngày nghỉ tiếp theo sẽ không hưởng lương. Xin nghỉ phải báo trước ít nhất 1 ngày qua hệ thống AMS.",
+    "role_visibility": ["Employee", "Manager"]
+  },
+  {
+    "id": "policy_late_01",
+    "title": "Quy định Đi Muộn",
+    "content": "Nhân viên đi muộn dưới 15 phút sẽ bị nhắc nhở. Đi muộn trên 15 phút mà không có lý do chính đáng sẽ bị trừ 1/2 ngày công. Cần vào AMS tạo yêu cầu giải trình lý do đi muộn ngay trong ngày.",
+    "role_visibility": ["Employee", "Manager"]
+  },
+  {
+    "id": "policy_ot_01",
+    "title": "Quy định Làm Thêm Giờ (OT)",
+    "content": "Yêu cầu OT chỉ được duyệt nếu nhân viên tạo request trên hệ thống trước 16:00 cùng ngày. OT ngày thường được nhân hệ số 1.5, ngày nghỉ cuối tuần hệ số 2.0, ngày lễ hệ số 3.0.",
+    "role_visibility": ["Employee", "Manager"]
+  },
+  {
+    "id": "policy_manager_view",
+    "title": "Quyền Hạn Quản Lý Nhóm",
+    "content": "Chỉ Quản Lý (Manager) mới có quyền duyệt đơn xin nghỉ phép, đơn đi muộn và đơn OT của nhân viên cấp dưới trong nhóm của mình. Quản lý có thời hạn 3 ngày để duyệt đơn, quá thời hạn hệ thống tự động từ chối.",
+    "role_visibility": ["Manager"]
+  }
+]

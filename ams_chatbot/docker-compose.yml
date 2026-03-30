@@ -1,0 +1,46 @@
+version: '3.9'
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  rasa:
+    image: rasa/rasa:3.6.21
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "rasa train --fixed-model-name current && rasa run --enable-api --cors \"*\" --endpoints endpoints.yml --debug"
+    working_dir: /app
+    volumes:
+      - ./rasa:/app
+    ports:
+      - "5005:5005"
+
+  rasa-actions:
+    build:
+      context: ./rasa/actions
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - ./rasa/actions:/app/actions
+    ports:
+      - "5055:5055"
+
+  chatbot-service:
+    build:
+      context: ./chatbot_service
+    env_file:
+      - .env
+    environment:
+      - OMP_NUM_THREADS=1
+      - TOKENIZERS_PARALLELISM=false
+    ports:
+      - "8088:8088"
+    depends_on:
+      - qdrant
+      - rasa
+
+volumes:
+  qdrant_data:

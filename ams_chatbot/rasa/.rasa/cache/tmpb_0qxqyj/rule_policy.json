@@ -1,0 +1,42 @@
+{
+  "lookup": {
+    "rules": {
+      "[{\"active_loop\": {\"name\": \"leave_request_form\"}, \"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"stop\"}}]": "action_cancel_flow",
+      "[{\"active_loop\": {\"name\": \"leave_request_form\"}, \"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"stop\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"action_cancel_flow\"}, \"user\": {\"intent\": \"stop\"}}]": "utter_cancelled",
+      "[{\"active_loop\": {\"name\": \"leave_request_form\"}, \"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"stop\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"action_cancel_flow\"}, \"user\": {\"intent\": \"stop\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"utter_cancelled\"}, \"user\": {\"intent\": \"stop\"}}]": "action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"nlu_fallback\"}}]": "action_default_fallback",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"nlu_fallback\"}}, {\"prev_action\": {\"action_name\": \"action_default_fallback\"}, \"user\": {\"intent\": \"nlu_fallback\"}}]": "action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"handoff_human\"}}]": "utter_handoff_human",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"handoff_human\"}}, {\"prev_action\": {\"action_name\": \"utter_handoff_human\"}, \"user\": {\"intent\": \"handoff_human\"}}]": "action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"fallback_search_policy\"}}]": "action_search_policy_fallback",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"fallback_search_policy\"}}, {\"prev_action\": {\"action_name\": \"action_search_policy_fallback\"}, \"user\": {\"intent\": \"fallback_search_policy\"}}]": "action_listen"
+    },
+    "rule_only_slots": [],
+    "rule_only_loops": [
+      "leave_request_form"
+    ],
+    "rules_for_loop_unhappy_path": {},
+    "rules_not_in_stories": [
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"fallback_search_policy\"}}, {\"prev_action\": {\"action_name\": \"action_search_policy_fallback\"}, \"user\": {\"intent\": \"fallback_search_policy\"}}]",
+      "predicting default action with intent back",
+      "handling active loops and forms - leave_request_form - action_listen",
+      "handling active loops and forms - attendance_filter_form",
+      "handling active loops and forms - explanation_request_form - action_listen",
+      "handling active loops and forms - ot_request_form",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"handoff_human\"}}]",
+      "predicting default action with intent session_start",
+      "predicting default action with intent restart",
+      "[{\"active_loop\": {\"name\": \"leave_request_form\"}, \"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"stop\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"nlu_fallback\"}}, {\"prev_action\": {\"action_name\": \"action_default_fallback\"}, \"user\": {\"intent\": \"nlu_fallback\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"handoff_human\"}}, {\"prev_action\": {\"action_name\": \"utter_handoff_human\"}, \"user\": {\"intent\": \"handoff_human\"}}]",
+      "handling active loops and forms - ot_request_form - action_listen",
+      "[{\"active_loop\": {\"name\": \"leave_request_form\"}, \"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"stop\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"action_cancel_flow\"}, \"user\": {\"intent\": \"stop\"}}]",
+      "handling active loops and forms - leave_request_form",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"nlu_fallback\"}}]",
+      "[{\"active_loop\": {\"name\": \"leave_request_form\"}, \"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"stop\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"action_cancel_flow\"}, \"user\": {\"intent\": \"stop\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"utter_cancelled\"}, \"user\": {\"intent\": \"stop\"}}]",
+      "handling active loops and forms - attendance_filter_form - action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"fallback_search_policy\"}}]",
+      "handling active loops and forms - explanation_request_form"
+    ]
+  }
+}

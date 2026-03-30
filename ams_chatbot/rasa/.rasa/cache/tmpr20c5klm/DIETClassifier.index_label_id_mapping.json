@@ -1,0 +1,17 @@
+{
+  "0": "affirm",
+  "1": "ask_attendance_history",
+  "2": "ask_my_attendance_today",
+  "3": "ask_report_summary",
+  "4": "ask_request_status",
+  "5": "ask_team_attendance",
+  "6": "ask_today_shift",
+  "7": "create_explanation_request",
+  "8": "create_leave_request",
+  "9": "create_ot_request",
+  "10": "deny",
+  "11": "fallback_search_policy",
+  "12": "greet",
+  "13": "handoff_human",
+  "14": "stop"
+}

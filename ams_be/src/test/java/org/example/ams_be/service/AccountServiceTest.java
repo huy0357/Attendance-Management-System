@@ -62,7 +62,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setEmployeeId(null);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("employeeId is required", ex.getMessage());
         verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
@@ -73,7 +74,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setPassword("123");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("password is required (min 6 chars)", ex.getMessage());
     }
@@ -83,7 +85,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setPassword(null);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("password is required (min 6 chars)", ex.getMessage());
         verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
@@ -94,7 +97,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         req.setUsername(" ");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("username is required", ex.getMessage());
         verifyNoInteractions(accountRepository, roleRepository, passwordEncoder);
@@ -105,7 +109,8 @@ class AccountServiceTest {
         CreateAccountRequest req = createRequest();
         when(accountRepository.existsByUsername("alice")).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("username already exists", ex.getMessage());
         verify(accountRepository, never()).save(any());
@@ -117,7 +122,8 @@ class AccountServiceTest {
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
         when(accountRepository.existsByEmployeeId(1L)).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(req));
 
         assertEquals("employee already has an account", ex.getMessage());
     }
@@ -203,7 +209,8 @@ class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(accountRepository.existsByUsername("bob")).thenReturn(true);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> accountService.update(1L, req));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> accountService.update(1L, req));
 
         assertEquals("username already exists", ex.getMessage());
     }

@@ -17,8 +17,7 @@ class EmployeeTest {
                 () -> new Employee(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
                 populatedMismatchMutators(),
                 emptyMismatchMutators(),
-                employee -> new NonEqualEmployee(employee)
-        );
+                employee -> new NonEqualEmployee(employee));
     }
 
     private List<UnaryOperator<Employee>> populatedMismatchMutators() {
@@ -119,6 +118,7 @@ class EmployeeTest {
         }
 
         @Override
+        @SuppressWarnings("squid:S00120") // Lombok canEqual pattern
         protected boolean canEqual(Object other) {
             return false;
         }

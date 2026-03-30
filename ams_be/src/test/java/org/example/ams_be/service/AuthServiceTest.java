@@ -37,6 +37,9 @@ class AuthServiceTest {
     private JwtUtil jwtUtil;
 
     @Mock
+    private RoleRepository roleRepository;
+
+    @Mock
     private TokenStore tokenStore;
 
     @Mock
@@ -194,6 +197,7 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesFallbackRoleWhenMissingAndRotatesTokens() {
+        Account account = account(1L, "alice", "employee", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
@@ -216,6 +220,7 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesFallbackRoleWhenRoleIsNull() {
+        Account account = account(1L, "alice", "employee", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
@@ -234,6 +239,7 @@ class AuthServiceTest {
 
     @Test
     void refreshUsesRoleFromTokenWhenPresent() {
+        Account account = account(1L, "alice", "manager", true);
         when(jwtUtil.isExpired("token")).thenReturn(false);
         when(jwtUtil.getType("token")).thenReturn("refresh");
         when(jwtUtil.getUsername("token")).thenReturn("alice");
