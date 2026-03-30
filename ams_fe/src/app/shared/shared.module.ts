@@ -88,6 +88,7 @@ import {
   Loader2,
   Ban,
   ArrowRight,
+  Minus,
 } from 'lucide-angular';
 
 @NgModule({
@@ -181,6 +182,7 @@ import {
       Loader2,
       Ban,
       ArrowRight,
+      Minus,
     }),
   ],
   exports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, LucideAngularModule],

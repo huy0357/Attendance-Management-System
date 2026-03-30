@@ -1,8 +1,9 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import { AttendanceBatchResponse, AttendanceDailyResponse, AttendanceService } from '../attendance.service';
-import { AuthService } from '../../../core/auth/auth.service';
+import { AttendanceService, ScheduleEmployee } from '../attendance.service';
+import { AttendanceDailyService } from './attendance-daily.service';
+import { AttendanceDailyResponse } from '../models/attendance-daily.model';
 
 @Component({
   standalone: false,
@@ -11,14 +12,13 @@ import { AuthService } from '../../../core/auth/auth.service';
   styleUrls: ['./attendance-daily.component.scss'],
 })
 export class AttendanceDailyComponent implements OnInit {
-  title = 'Attendance Daily';
-  description = 'Review calculated attendance records for the selected date range.';
+  title = 'Time & Attendance Logs';
   mode: 'self' | 'employee' | 'admin' = 'self';
-  employeeId: number | null = null;
+  isAdmin = false;
+  activeTab: 'all' | 'me' = 'all';
 
   from = '';
-  to = this.formatDate(new Date());
-  batchDate = this.formatDate(new Date());
+  to = '';
 
   page = 0;
   size = 10;
@@ -26,17 +26,17 @@ export class AttendanceDailyComponent implements OnInit {
   totalElements = 0;
 
   isLoading = false;
-  isBatchRunning = false;
   errorMessage = '';
-  batchErrorMessage = '';
-  batchSuccessMessage = '';
 
-  readonly pageSizeOptions = [10, 20, 50, 100];
+  readonly pageSizeOptions = [10, 20, 50];
+
+  records: AttendanceDailyResponse[] = [];
+  employeesMap = new Map<number, ScheduleEmployee>();
 
   constructor(
     private readonly attendanceService: AttendanceService,
+    private readonly attendanceDailyService: AttendanceDailyService,
     private readonly route: ActivatedRoute,
-    private readonly authService: AuthService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
@@ -47,13 +47,13 @@ export class AttendanceDailyComponent implements OnInit {
 
     this.route.data.subscribe((data) => {
       this.mode = (data['mode'] as 'self' | 'employee' | 'admin' | undefined) ?? 'self';
-      this.employeeId = this.resolveEmployeeId();
-      this.applyModeMetadata();
+      this.isAdmin = this.mode === 'admin';
+      this.activeTab = this.isAdmin ? 'all' : 'me';
+      
+      this.loadEmployees();
       this.loadRecords();
     });
   }
-
-  records: AttendanceDailyResponse[] = [];
 
   get currentPage(): number {
     return this.page + 1;
@@ -63,11 +63,14 @@ export class AttendanceDailyComponent implements OnInit {
     return this.totalPages > 0 && this.page >= this.totalPages - 1;
   }
 
-  get canRunBatch(): boolean {
-    return this.mode === 'admin' && !this.isBatchRunning && !!this.batchDate;
+  onTabChange(tab: 'all' | 'me'): void {
+    if (this.activeTab === tab) return;
+    this.activeTab = tab;
+    this.page = 0;
+    this.loadRecords();
   }
 
-  onApplyFilters(): void {
+  onDateChange(): void {
     this.page = 0;
     this.loadRecords();
   }
@@ -78,44 +81,24 @@ export class AttendanceDailyComponent implements OnInit {
   }
 
   prevPage(): void {
-    if (this.page <= 0 || this.isLoading) {
-      return;
-    }
-
+    if (this.page <= 0 || this.isLoading) return;
     this.page -= 1;
     this.loadRecords();
   }
 
   nextPage(): void {
-    if (this.isLastPage || this.isLoading) {
-      return;
-    }
-
+    if (this.isLastPage || this.isLoading) return;
     this.page += 1;
     this.loadRecords();
   }
 
-  onRunBatch(): void {
-    if (!this.canRunBatch) {
-      return;
-    }
-
-    this.isBatchRunning = true;
-    this.batchErrorMessage = '';
-    this.batchSuccessMessage = '';
-
-    this.attendanceService
-      .runAttendanceBatch(this.batchDate)
-      .pipe(finalize(() => (this.isBatchRunning = false)))
-      .subscribe({
-        next: (response: AttendanceBatchResponse) => {
-          this.batchSuccessMessage = response.message || 'Attendance batch completed.';
-          this.loadRecords();
-        },
-        error: (error) => {
-          this.batchErrorMessage = this.extractErrorMessage(error, 'Failed to run attendance batch.');
-        },
-      });
+  getEmployeeName(employeeId: number): string {
+    return this.employeesMap.get(employeeId)?.name || `Employee #${employeeId}`;
+  }
+  
+  getEmployeeInitial(employeeId: number): string {
+    const name = this.getEmployeeName(employeeId);
+    return name ? name.charAt(0).toUpperCase() : 'E';
   }
 
   trackByAttendanceId(_: number, record: AttendanceDailyResponse): number {
@@ -123,55 +106,55 @@ export class AttendanceDailyComponent implements OnInit {
   }
 
   formatDateTime(value: string | null): string {
-    if (!value) {
-      return '-';
-    }
-
+    if (!value) return '-';
     const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-
-    return parsed.toLocaleString();
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   formatNumber(value: number | null): number {
     return value ?? 0;
   }
 
+  formatHours(minutes: number | null): string {
+    if (!minutes) return '0h 0m';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h}h ${m}m`;
+  }
+
+  private loadEmployees(): void {
+    this.attendanceService.getScheduleEmployees().subscribe({
+      next: (employees) => {
+        employees.forEach(emp => {
+          this.employeesMap.set(Number(emp.id), emp);
+        });
+        this.cdr.detectChanges();
+      },
+      error: () => {
+         // silently fail employee mapping if it errors
+      }
+    });
+  }
+
   private loadRecords(): void {
     this.errorMessage = '';
-    this.batchSuccessMessage = '';
 
     if (!this.from || !this.to) {
-      this.records = [];
-      this.totalElements = 0;
-      this.totalPages = 0;
-      this.errorMessage = 'From and To dates are required.';
+      this.resetState('From and To dates are required.');
       return;
     }
 
     if (this.to < this.from) {
-      this.records = [];
-      this.totalElements = 0;
-      this.totalPages = 0;
-      this.errorMessage = 'To date must be on or after From date.';
+      this.resetState('To date must be on or after From date.');
       return;
     }
 
     this.isLoading = true;
 
-    let request$;
-    try {
-      request$ = this.getAttendanceRequest();
-    } catch (error) {
-      this.isLoading = false;
-      this.records = [];
-      this.totalElements = 0;
-      this.totalPages = 0;
-      this.errorMessage = this.extractErrorMessage(error, 'Failed to load attendance records.');
-      return;
-    }
+    const request$ = this.activeTab === 'all' 
+      ? this.attendanceDailyService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size)
+      : this.attendanceDailyService.getMyAttendanceDaily(this.from, this.to, this.page, this.size);
 
     request$
       .pipe(finalize(() => {
@@ -187,53 +170,17 @@ export class AttendanceDailyComponent implements OnInit {
           this.size = response.size ?? this.size;
         },
         error: (error) => {
-          this.records = [];
-          this.totalElements = 0;
-          this.totalPages = 0;
-          this.errorMessage = this.extractErrorMessage(error, 'Failed to load attendance records.');
+          this.resetState(this.extractErrorMessage(error, 'Failed to load attendance records.'));
         },
       });
   }
 
-  private getAttendanceRequest() {
-    if (this.mode === 'admin') {
-      return this.attendanceService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size);
-    }
-
-    if (this.mode === 'employee') {
-      if (!this.employeeId) {
-        throw new Error('Employee ID is required for employee attendance view.');
-      }
-      return this.attendanceService.getAttendanceDailyByEmployee(this.employeeId, this.from, this.to, this.page, this.size);
-    }
-
-    return this.attendanceService.getMyAttendanceDaily(this.from, this.to, this.page, this.size);
-  }
-
-  private resolveEmployeeId(): number | null {
-    if (this.mode === 'employee') {
-      const routeEmployeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
-      return Number.isInteger(routeEmployeeId) && routeEmployeeId > 0 ? routeEmployeeId : null;
-    }
-
-    return this.authService.getEmployeeId();
-  }
-
-  private applyModeMetadata(): void {
-    if (this.mode === 'admin') {
-      this.title = 'Attendance Daily Admin';
-      this.description = 'Review calculated attendance records for all employees in the selected date range.';
-      return;
-    }
-
-    if (this.mode === 'employee') {
-      this.title = 'Attendance Daily By Employee';
-      this.description = 'Review calculated attendance records for the selected employee.';
-      return;
-    }
-
-    this.title = 'My Attendance Daily';
-    this.description = 'Review your calculated attendance records for the selected date range.';
+  private resetState(errorMsg: string): void {
+    this.records = [];
+    this.totalElements = 0;
+    this.totalPages = 0;
+    this.errorMessage = errorMsg;
+    this.isLoading = false;
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {
@@ -248,11 +195,5 @@ export class AttendanceDailyComponent implements OnInit {
     const month = `${date.getMonth() + 1}`.padStart(2, '0');
     const day = `${date.getDate()}`.padStart(2, '0');
     return `${year}-${month}-${day}`;
-  }
-
-  private addDays(date: Date, days: number): Date {
-    const next = new Date(date);
-    next.setDate(next.getDate() + days);
-    return next;
   }
 }

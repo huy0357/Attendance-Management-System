@@ -59,6 +59,7 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
     { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'clock', requiredRoles: ['MANAGER'] },
     { label: 'Requests', path: '/attendance/requests-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { label: 'Accounts', path: '/admin/account-management', icon: 'users', requiredRoles: ['ADMIN'] },
+    { label: 'Audit Logs', path: '/admin/audit-log', icon: 'clipboard-list', requiredRoles: ['ADMIN'] },
   ];
 
   get visibleNavItems(): NavItem[] {
@@ -166,6 +167,7 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
       { name: 'Attendance Monthly Summary', type: 'Page', path: '/attendance/monthly-summary', roles: ['ADMIN', 'HR', 'MANAGER'] },
       { name: 'Attendance Email', type: 'Page', path: '/attendance/attendance-email', roles: ['ADMIN', 'HR', 'MANAGER'] },
       { name: 'Accounts', type: 'Page', path: '/admin/account-management', roles: ['ADMIN'] },
+      { name: 'Audit Logs', type: 'Page', path: '/admin/audit-log', roles: ['ADMIN'] },
     ];
 
     return baseResults

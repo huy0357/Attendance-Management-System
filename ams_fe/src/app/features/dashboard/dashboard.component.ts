@@ -1,14 +1,23 @@
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
-import { catchError, finalize, switchMap } from 'rxjs/operators';
+import { catchError, finalize } from 'rxjs/operators';
 import { UiStateService, Density } from '../../core/layout/ui-state.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { EmployeeService } from '../hrm/employees/employee.service';
-import { DepartmentService } from '../hrm/departments/department.service';
-import { RequestsService } from '../../core/services/requests.service';
-import { ProfileService } from '../../core/services/profile.service';
+import { DashboardService } from './dashboard.service';
+import {
+  DashboardKpiResponse,
+  LivePulseResponse,
+  ExceptionsResponse,
+  ExceptionRecord,
+} from '../../shared/models/dashboard.model';
 
 @Component({
   standalone: false,
@@ -19,25 +28,47 @@ import { ProfileService } from '../../core/services/profile.service';
 export class DashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   density: Density = 'comfortable';
+
+  // ── Loading & error state ──────────────────────────────────────
+  isLoading = true;
+  kpiError = false;
+
+  // ── KPI data ───────────────────────────────────────────────────
+  kpi: DashboardKpiResponse | null = null;
+
+  // ── Live Pulse ─────────────────────────────────────────────────
+  livePulse: LivePulseResponse | null = null;
+  livePulseLoading = false;
+  livePulseError = false;
+
+  // ── Exceptions ─────────────────────────────────────────────────
+  exceptionsData: ExceptionsResponse | null = null;
+  exceptionsLoading = false;
+  exceptionsError = false;
+
+  // ── Resolve Modal ──────────────────────────────────────────────
+  showResolveModal = false;
+  resolvingException: ExceptionRecord | null = null;
+  resolveNotes = '';
+  resolveLoading = false;
+  resolveSuccess = false;
+  resolveError = '';
+
+  // ── Date filter for KPI ────────────────────────────────────────
+  selectedDate: string = new Date().toISOString().slice(0, 10);
   selectedTimeRange = 'Today';
 
-  // KPI state
-  isLoading = true;
-  totalEmployees: number | null = null;
-  totalDepartments: number | null = null;
-  totalRequests: number | null = null;
-  pendingRequests: number | null = null;
-  approvedRequests: number | null = null;
-  kpiError = false;
+  // ── Avatar color palette ───────────────────────────────────────
+  private readonly avatarColors = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b',
+    '#ef4444', '#06b6d4', '#ec4899', '#6366f1',
+  ];
 
   constructor(
     private uiState: UiStateService,
     private authService: AuthService,
     private router: Router,
-    private employeeService: EmployeeService,
-    private departmentService: DepartmentService,
-    private requestsService: RequestsService,
-    private profileService: ProfileService,
+    private dashboardService: DashboardService,
     private cdr: ChangeDetectorRef,
   ) {
     this.density = this.uiState.getDensity();
@@ -46,70 +77,99 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.uiState.density$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(density => {
-        this.density = density;
-      });
-    this.loadKpis();
+      .subscribe(d => (this.density = d));
+
+    this.loadAll();
   }
 
-  private loadKpis(): void {
+  // ── Load all dashboard data in parallel ────────────────────────
+  loadAll(): void {
     this.isLoading = true;
+    this.kpiError = false;
 
-    // Fetch employees & departments unconditionally; wrap requests behind employeeId lookup
-    const employees$ = this.employeeService.getAll().pipe(catchError(() => of([])));
-    const departments$ = this.departmentService.getAll(1, 1000).pipe(catchError(() => of({ items: [], totalItems: 0, totalPages: 0, page: 1, size: 1000, hasNext: false, hasPrev: false })));
-
-    // For requests we need an employeeId from profile context
-    const requests$ = this.profileService.resolveEmployeeIdFromAuthContext().pipe(
-      catchError(() => of(null))
-    );
-
-    forkJoin([employees$, departments$, requests$]).pipe(
-      switchMap(([employees, deptPage, employeeId]) => {
-        this.totalEmployees = Array.isArray(employees) ? employees.length : null;
-        this.totalDepartments = deptPage.totalItems ?? deptPage.items?.length ?? null;
-
-        if (employeeId == null) {
-          this.totalRequests = null;
-          this.pendingRequests = null;
-          this.approvedRequests = null;
+    const kpi$ = this.canSeeAdminDashboardActions
+      ? this.dashboardService.getKpi(this.selectedDate).pipe(catchError(() => {
+          this.kpiError = true;
           return of(null);
-        }
+        }))
+      : of(null);
 
-        return this.requestsService.getRequestsByEmployee(employeeId).pipe(
-          catchError(() => of([])),
-        );
-      }),
-      finalize(() => {
-        this.isLoading = false;
+    const pulse$ = this.canSeeAdminDashboardActions
+      ? this.dashboardService.getLivePulse(20, false).pipe(catchError(() => of(null)))
+      : of(null);
+
+    const exc$ = this.canSeeAdminDashboardActions
+      ? this.dashboardService.getExceptions(['PENDING', 'IN_PROGRESS'], undefined, undefined, 20).pipe(catchError(() => of(null)))
+      : of(null);
+
+    forkJoin([kpi$, pulse$, exc$])
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(([kpi, pulse, exc]) => {
+        this.kpi = kpi;
+        this.livePulse = pulse;
+        this.exceptionsData = exc;
         this.cdr.markForCheck();
-      }),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe({
-      next: (requests) => {
-        if (!requests) {
-          return;
-        }
-
-        this.totalRequests = requests.length;
-        this.pendingRequests = requests.filter(r => r.status === 'SUBMITTED').length;
-        this.approvedRequests = requests.filter(r => r.status === 'APPROVED').length;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.kpiError = true;
-      }
-    });
+      });
   }
 
-  get cardPadding(): string {
-    return this.density === 'compact' ? 'p-4' : this.density === 'spacious' ? 'p-8' : 'p-6';
+  refreshKpi(): void {
+    this.loadAll();
   }
 
-  get textSize(): string {
-    return this.density === 'compact' ? 'text-sm' : this.density === 'spacious' ? 'text-lg' : 'text-base';
+  // ── Exception Resolve Modal ────────────────────────────────────
+  openResolveModal(ex: ExceptionRecord): void {
+    this.resolvingException = ex;
+    this.resolveNotes = '';
+    this.resolveSuccess = false;
+    this.resolveError = '';
+    this.resolveLoading = false;
+    this.showResolveModal = true;
   }
 
+  closeResolveModal(): void {
+    this.showResolveModal = false;
+    this.resolvingException = null;
+  }
+
+  submitResolve(): void {
+    if (!this.resolvingException) return;
+    this.resolveLoading = true;
+    this.resolveError = '';
+    this.dashboardService
+      .resolveException(this.resolvingException.id, this.resolveNotes)
+      .pipe(
+        finalize(() => {
+          this.resolveLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.resolveSuccess = true;
+          // Optimistically remove from list
+          if (this.exceptionsData) {
+            this.exceptionsData = {
+              ...this.exceptionsData,
+              exceptions: this.exceptionsData.exceptions.filter(
+                e => e.id !== this.resolvingException?.id,
+              ),
+            };
+          }
+          setTimeout(() => this.closeResolveModal(), 1200);
+        },
+        error: () => {
+          this.resolveError = 'Failed to resolve. Please try again.';
+        },
+      });
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────
   get canSeeAdminDashboardActions(): boolean {
     return this.authService.hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   }
@@ -118,46 +178,117 @@ export class DashboardComponent implements OnInit {
     return this.authService.hasRole('EMPLOYEE');
   }
 
-  get dashboardTitle(): string {
-    return this.canSeeSelfServiceDashboardActions ? 'Employee Dashboard' : 'Dashboard';
+  get username(): string {
+    return this.authService.getUsername() ?? 'User';
   }
 
-  get dashboardDescription(): string {
-    return this.canSeeSelfServiceDashboardActions
-      ? 'Quick access to your self-service attendance and request flows'
-      : 'Live KPIs aggregated from the active backend APIs.';
+  get attendanceRate(): number {
+    if (!this.kpi?.presentToday) return 0;
+    return Math.round(this.kpi.presentToday.percentage ?? 0);
   }
 
-  get primaryDashboardActionLabel(): string {
-    return this.authService.hasRole('MANAGER') ? 'Open Requests' : 'Open Monthly Summary';
+  get absentCount(): number {
+    if (!this.kpi?.presentToday) return 0;
+    return (this.kpi.presentToday.total ?? 0) - (this.kpi.presentToday.count ?? 0);
   }
 
-  get primaryDashboardActionPath(): string {
-    return this.authService.hasRole('MANAGER')
-      ? '/attendance/requests-management'
-      : '/attendance/monthly-summary';
+  severityClass(severity: string): string {
+    switch (severity) {
+      case 'HIGH':   return 'badge-high';
+      case 'MEDIUM': return 'badge-medium';
+      default:       return 'badge-low';
+    }
   }
+
+  statusClass(status: string): string {
+    switch (status) {
+      case 'RESOLVED':    return 'badge-resolved';
+      case 'IN_PROGRESS': return 'badge-inprogress';
+      default:            return 'badge-pending';
+    }
+  }
+
+  formatTime(iso: string | null): string {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  formatDateTime(iso: string | null): string {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  trendIcon(trend: string | undefined): string {
+    if (trend === 'UP') return 'trending-up';
+    if (trend === 'DOWN') return 'trending-down';
+    return 'minus';
+  }
+
 
   goTo(path: string): void {
     this.router.navigate([path]);
   }
 
   goToAttendanceDaily(): void {
-    const path = this.authService.hasRole('ADMIN')
+    const path = this.authService.hasAnyRole(['ADMIN', 'HR'])
       ? '/attendance/attendance-daily/admin'
       : '/attendance/attendance-daily';
     this.goTo(path);
   }
 
-  goToLeaveRequests(): void {
-    this.goTo('/attendance/leave-management');
+  // ── Avatar helpers ─────────────────────────────────────────────
+  getInitials(name: string | undefined): string {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(w => w[0].toUpperCase())
+      .join('');
   }
 
-  goToMyRequests(): void {
-    this.goTo('/attendance/requests-management');
+  getAvatarColor(name: string | undefined): string {
+    if (!name) return this.avatarColors[0];
+    const idx = Math.abs(
+      name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
+    ) % this.avatarColors.length;
+    return this.avatarColors[idx];
   }
 
-  goToEmployeePortal(): void {
-    this.goTo('/hrm/employee-portal');
+  // ── Attendance pulse status helpers ───────────────────────────
+  attendanceStatusLabel(rec: import('../../shared/models/dashboard.model').LivePulseRecord): string {
+    return rec.lateMinutes > 0 ? 'Late' : 'On Time';
+  }
+
+  attendanceStatusIsLate(rec: import('../../shared/models/dashboard.model').LivePulseRecord): boolean {
+    return rec.lateMinutes > 0;
+  }
+
+  formatCheckInTime(iso: string | null): string {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleTimeString('en-GB', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+  }
+
+  get kpiAttendancePercent(): string {
+    return this.kpi?.presentToday?.percentage != null
+      ? (this.kpi.presentToday.percentage).toFixed(1) + '%'
+      : '—';
+  }
+
+  get kpiLateAvgMin(): string {
+    return this.kpi?.lateCheckins?.averageDelayMinutes != null
+      ? 'Avg ' + this.kpi.lateCheckins.averageDelayMinutes + ' min'
+      : '—';
+  }
+
+  get kpiNewThisMonth(): string {
+    const n = this.kpi?.totalEmployees?.newThisMonth;
+    if (n == null) return '';
+    return (n >= 0 ? '+' : '') + n + ' this month';
   }
 }

@@ -1,181 +1,333 @@
-<div class="space-y-6">
+<!-- ═══════════════════════ DASHBOARD CONTAINER ═══════════════════════ -->
+<div class="db-page">
 
-  <!-- Header -->
-  <div class="flex items-end justify-between">
+  <!-- ───────────── PAGE HEADER ───────────── -->
+  <div class="db-page-header">
     <div>
-      <h1 class="text-4xl font-bold text-gray-900">{{ dashboardTitle }}</h1>
-      <p class="text-gray-600 mt-2 text-lg">{{ dashboardDescription }}</p>
+      <h1 class="db-title">Dashboard</h1>
+      <p class="db-subtitle">Real-time attendance overview from all kiosk locations</p>
     </div>
-    <div *ngIf="canSeeAdminDashboardActions" class="flex items-center gap-3">
-      <select
-        class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        [(ngModel)]="selectedTimeRange"
-      >
+    <div class="db-header-actions">
+      <select class="db-select" [(ngModel)]="selectedTimeRange">
         <option>Today</option>
         <option>This Week</option>
         <option>This Month</option>
       </select>
-      <button
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-        (click)="goTo('/attendance/monthly-summary')"
-      >
-        Monthly Summary
+      <button class="db-btn-primary" (click)="goTo('/attendance/monthly-summary')">
+        Export Report
       </button>
     </div>
   </div>
 
-  <!-- Loading Spinner -->
-  <div *ngIf="isLoading" class="flex flex-col items-center justify-center py-16 gap-4">
-    <lucide-icon name="loader" class="w-10 h-10 text-blue-600 animate-spin"></lucide-icon>
-    <p class="text-gray-500 text-sm font-medium">Loading live KPIs…</p>
-  </div>
+  <!-- ───────────── KPI CARDS ───────────── -->
+  <div class="db-kpi-grid">
 
-  <!-- KPI Cards -->
-  <div *ngIf="!isLoading" class="grid grid-cols-2 gap-5 lg:grid-cols-4">
+    <!-- Skeleton while loading -->
+    <ng-container *ngIf="isLoading">
+      <div class="db-kpi-card db-skeleton" *ngFor="let i of [1,2,3,4]"></div>
+    </ng-container>
 
-    <!-- Total Employees -->
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Employees</span>
-        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-          <lucide-icon name="users" class="w-5 h-5 text-blue-600"></lucide-icon>
+    <!-- Actual KPI cards (admin/hr/manager) -->
+    <ng-container *ngIf="!isLoading && canSeeAdminDashboardActions">
+
+      <!-- Total Employees -->
+      <div class="db-kpi-card">
+        <div class="db-kpi-top">
+          <div class="db-kpi-icon db-kpi-icon--blue">
+            <lucide-icon name="users" class="db-icon-sm"></lucide-icon>
+          </div>
+          <span *ngIf="kpi?.totalEmployees" class="db-kpi-badge db-kpi-badge--blue">
+            {{ kpiNewThisMonth }}
+          </span>
         </div>
+        <p class="db-kpi-label">Total Employees</p>
+        <p class="db-kpi-value">{{ kpi?.totalEmployees?.count ?? '—' }}</p>
+        <p class="db-kpi-sub">+{{ kpi?.totalEmployees?.newThisMonth ?? 0 }} new this month</p>
       </div>
-      <div class="mt-1">
-        <span *ngIf="totalEmployees !== null" class="text-4xl font-black text-gray-900">{{ totalEmployees }}</span>
-        <span *ngIf="totalEmployees === null" class="text-lg font-medium text-gray-400">N/A</span>
-      </div>
-      <p class="text-xs text-gray-400">Total active employees</p>
-    </div>
 
-    <!-- Total Departments -->
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Departments</span>
-        <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-          <lucide-icon name="building" class="w-5 h-5 text-purple-600"></lucide-icon>
+      <!-- Present Today -->
+      <div class="db-kpi-card">
+        <div class="db-kpi-top">
+          <div class="db-kpi-icon db-kpi-icon--green">
+            <lucide-icon name="check-circle" class="db-icon-sm"></lucide-icon>
+          </div>
+          <span *ngIf="kpi?.presentToday" class="db-kpi-badge db-kpi-badge--green">
+            {{ kpiAttendancePercent }}
+          </span>
         </div>
+        <p class="db-kpi-label">Present Today</p>
+        <p class="db-kpi-value">{{ kpi?.presentToday?.count ?? '—' }}</p>
+        <p class="db-kpi-sub">of {{ kpi?.presentToday?.total ?? 0 }} employees</p>
       </div>
-      <div class="mt-1">
-        <span *ngIf="totalDepartments !== null" class="text-4xl font-black text-gray-900">{{ totalDepartments }}</span>
-        <span *ngIf="totalDepartments === null" class="text-lg font-medium text-gray-400">N/A</span>
-      </div>
-      <p class="text-xs text-gray-400">Organizational units</p>
-    </div>
 
-    <!-- Pending Requests -->
-    <div class="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-amber-700 uppercase tracking-wide">Pending</span>
-        <div class="w-10 h-10 bg-amber-200 rounded-xl flex items-center justify-center">
-          <lucide-icon name="clock" class="w-5 h-5 text-amber-700"></lucide-icon>
+      <!-- Late Check-ins -->
+      <div class="db-kpi-card">
+        <div class="db-kpi-top">
+          <div class="db-kpi-icon db-kpi-icon--amber">
+            <lucide-icon name="clock" class="db-icon-sm"></lucide-icon>
+          </div>
+          <span *ngIf="kpi?.lateCheckins" class="db-kpi-badge db-kpi-badge--amber">
+            {{ kpiLateAvgMin }}
+          </span>
         </div>
+        <p class="db-kpi-label">Late Check-ins</p>
+        <p class="db-kpi-value">{{ kpi?.lateCheckins?.count ?? '—' }}</p>
+        <p class="db-kpi-sub">
+          {{ (kpi?.lateCheckins?.changeFromYesterday ?? 0) >= 0 ? '+' : '' }}{{ kpi?.lateCheckins?.changeFromYesterday ?? 0 }} from yesterday
+        </p>
       </div>
-      <div class="mt-1">
-        <span *ngIf="pendingRequests !== null" class="text-4xl font-black text-amber-800">{{ pendingRequests }}</span>
-        <span *ngIf="pendingRequests === null" class="text-lg font-medium text-amber-400">N/A</span>
-      </div>
-      <p class="text-xs text-amber-600">Submitted requests awaiting review</p>
-    </div>
 
-    <!-- Approved Requests -->
-    <div class="rounded-2xl border border-green-200 bg-green-50 shadow-sm p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-semibold text-green-700 uppercase tracking-wide">Approved</span>
-        <div class="w-10 h-10 bg-green-200 rounded-xl flex items-center justify-center">
-          <lucide-icon name="check-circle" class="w-5 h-5 text-green-700"></lucide-icon>
+      <!-- Exceptions -->
+      <div class="db-kpi-card">
+        <div class="db-kpi-top">
+          <div class="db-kpi-icon db-kpi-icon--red">
+            <lucide-icon name="alert-triangle" class="db-icon-sm"></lucide-icon>
+          </div>
+          <span class="db-kpi-badge db-kpi-badge--red">Urgent</span>
         </div>
+        <p class="db-kpi-label">Exceptions</p>
+        <p class="db-kpi-value">{{ kpi?.exceptions?.count ?? '—' }}</p>
+        <p class="db-kpi-sub">Needs attention</p>
       </div>
-      <div class="mt-1">
-        <span *ngIf="approvedRequests !== null" class="text-4xl font-black text-green-800">{{ approvedRequests }}</span>
-        <span *ngIf="approvedRequests === null" class="text-lg font-medium text-green-400">N/A</span>
+
+    </ng-container>
+
+    <!-- Employee self-service KPI placeholder -->
+    <ng-container *ngIf="!isLoading && canSeeSelfServiceDashboardActions && !canSeeAdminDashboardActions">
+      <div class="db-kpi-card">
+        <div class="db-kpi-icon db-kpi-icon--blue">
+          <lucide-icon name="user" class="db-icon-sm"></lucide-icon>
+        </div>
+        <p class="db-kpi-label">My Dashboard</p>
+        <p class="db-kpi-value db-kpi-value--sm">Welcome back</p>
       </div>
-      <p class="text-xs text-green-600">Requests approved to date</p>
-    </div>
-
-  </div>
-
-  <!-- Action Cards -->
-  <div *ngIf="!isLoading" class="grid grid-cols-3 gap-6">
-
-    <!-- Employee Self-Service -->
-    <div *ngIf="canSeeSelfServiceDashboardActions" class="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-sm border border-blue-100 p-6">
-      <h3 class="font-bold text-gray-900 mb-6 text-lg">My Quick Actions</h3>
-      <div class="space-y-3">
-        <button
-          class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold"
-          (click)="goToMyRequests()"
-        >
-          My Requests
-        </button>
-        <button
-          class="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl hover:border-blue-600 hover:shadow-md transition-all text-sm font-semibold"
-          (click)="goToLeaveRequests()"
-        >
-          My Leave Requests
-        </button>
-        <button
-          class="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl hover:border-blue-600 hover:shadow-md transition-all text-sm font-semibold"
-          (click)="goToAttendanceDaily()"
-        >
-          My Attendance
-        </button>
-        <button
-          class="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl hover:border-blue-600 hover:shadow-md transition-all text-sm font-semibold"
-          (click)="goToEmployeePortal()"
-        >
-          My Profile
-        </button>
-      </div>
-    </div>
-
-    <!-- Summary Info -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-      <h3 class="font-bold text-gray-900 mb-3 text-lg flex items-center gap-2">
-        <lucide-icon name="bar-chart-2" class="w-5 h-5 text-blue-600"></lucide-icon>
-        Summary
-      </h3>
-      <ul class="space-y-3 text-sm text-gray-600">
-        <li class="flex justify-between items-center py-2 border-b border-gray-100">
-          <span>Total Requests</span>
-          <span class="font-bold text-gray-900">{{ totalRequests !== null ? totalRequests : '—' }}</span>
-        </li>
-        <li class="flex justify-between items-center py-2 border-b border-gray-100">
-          <span>Pending Review</span>
-          <span class="font-bold text-amber-600">{{ pendingRequests !== null ? pendingRequests : '—' }}</span>
-        </li>
-        <li class="flex justify-between items-center py-2">
-          <span>Approved</span>
-          <span class="font-bold text-green-600">{{ approvedRequests !== null ? approvedRequests : '—' }}</span>
-        </li>
-      </ul>
-    </div>
-
-    <!-- Admin Quick Actions -->
-    <div *ngIf="canSeeAdminDashboardActions" class="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-sm border border-blue-100 p-6">
-      <h3 class="font-bold text-gray-900 mb-6 text-lg">Quick Actions</h3>
-      <div class="space-y-3">
-        <button
-          class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold hover:scale-105"
-          (click)="goTo(primaryDashboardActionPath)"
-        >
-          {{ primaryDashboardActionLabel }}
-        </button>
-        <button
-          class="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl hover:border-blue-600 hover:shadow-md transition-all text-sm font-semibold"
-          (click)="goTo('/attendance/attendance-email')"
-        >
-          Attendance Email
-        </button>
-        <button
-          class="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl hover:border-blue-600 hover:shadow-md transition-all text-sm font-semibold"
-          (click)="goToAttendanceDaily()"
-        >
-          Attendance Daily
-        </button>
-      </div>
-    </div>
+    </ng-container>
 
   </div>
 
+  <!-- ───────────── MAIN CONTENT: Live Pulse + Exceptions ───────────── -->
+  <div *ngIf="!isLoading && canSeeAdminDashboardActions" class="db-main-grid">
+
+    <!-- ════ LEFT: LIVE PULSE TABLE (65%) ════ -->
+    <div class="db-card">
+      <!-- Blue header -->
+      <div class="db-card-header db-card-header--blue">
+        <div class="db-card-header-left">
+          <span class="db-live-dot"></span>
+          <div>
+            <h2 class="db-card-title">Live Pulse</h2>
+            <p class="db-card-subtitle">Real-time check-ins from kiosk machines</p>
+          </div>
+        </div>
+        <span class="db-live-badge">Live</span>
+      </div>
+
+      <!-- Table -->
+      <div class="db-table-wrapper">
+        <!-- Empty -->
+        <div *ngIf="!livePulse?.records?.length" class="db-empty-state">
+          <lucide-icon name="activity" class="db-empty-icon"></lucide-icon>
+          <p>No recent check-ins</p>
+        </div>
+
+        <!-- Data table -->
+        <table *ngIf="livePulse?.records?.length" class="db-table">
+          <thead>
+            <tr>
+              <th>EMPLOYEE</th>
+              <th>TIME</th>
+              <th>LOCATION</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rec of livePulse!.records">
+              <!-- Employee avatar + name -->
+              <td>
+                <div class="db-emp-cell">
+                  <div class="db-avatar"
+                    [style.background-color]="getAvatarColor(rec.employee?.name)">
+                    {{ getInitials(rec.employee?.name) }}
+                  </div>
+                  <div>
+                    <p class="db-emp-name">{{ rec.employee?.name ?? '—' }}</p>
+                    <p class="db-emp-dept">{{ rec.employee?.department ?? '' }}</p>
+                  </div>
+                </div>
+              </td>
+              <!-- Check-in time -->
+              <td class="db-time-cell">{{ formatCheckInTime(rec.checkInTime) }}</td>
+              <!-- Location -->
+              <td>
+                <div class="db-location-cell">
+                  <lucide-icon name="map-pin" class="db-icon-xs"></lucide-icon>
+                  <span>{{ rec.branchId || rec.location || 'HQ Main' }}</span>
+                </div>
+              </td>
+              <!-- Status badge -->
+              <td>
+                <span [class]="attendanceStatusIsLate(rec) ? 'db-status db-status--late' : 'db-status db-status--ontime'">
+                  <lucide-icon [name]="attendanceStatusIsLate(rec) ? 'clock' : 'check-circle'" class="db-icon-xs"></lucide-icon>
+                  {{ attendanceStatusLabel(rec) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div class="db-card-footer">
+        <span class="db-footer-count">{{ livePulse?.totalCount ?? 0 }} total check-ins today</span>
+        <button class="db-link-btn" (click)="goToAttendanceDaily()">View all →</button>
+      </div>
+    </div>
+
+    <!-- ════ RIGHT: EXCEPTIONS LIST (35%) ════ -->
+    <div class="db-card">
+      <!-- Red header -->
+      <div class="db-card-header db-card-header--red">
+        <div class="db-card-header-left">
+          <lucide-icon name="alert-triangle" class="db-icon-sm"></lucide-icon>
+          <div>
+            <h2 class="db-card-title">Exceptions</h2>
+            <p class="db-card-subtitle">Requires attention</p>
+          </div>
+        </div>
+        <span *ngIf="exceptionsData?.exceptions?.length" class="db-exc-count">
+          {{ exceptionsData!.exceptions.length }}
+        </span>
+      </div>
+
+      <!-- List -->
+      <div class="db-exc-list">
+        <!-- Empty -->
+        <div *ngIf="!exceptionsData?.exceptions?.length" class="db-empty-state">
+          <lucide-icon name="check-circle" class="db-empty-icon db-empty-icon--green"></lucide-icon>
+          <p>All clear — no exceptions</p>
+        </div>
+
+        <!-- Items -->
+        <div *ngFor="let ex of exceptionsData?.exceptions"
+          class="db-exc-item"
+          (click)="openResolveModal(ex)"
+          role="button"
+          tabindex="0"
+          (keyup.enter)="openResolveModal(ex)">
+
+          <div class="db-avatar db-avatar--sm"
+            [style.background-color]="getAvatarColor(ex.employee?.name)">
+            {{ getInitials(ex.employee?.name) }}
+          </div>
+
+          <div class="db-exc-info">
+            <p class="db-exc-name">{{ ex.employee?.name ?? '—' }}</p>
+            <p class="db-exc-desc">{{ ex.description || ex.exceptionType }}</p>
+          </div>
+
+          <!-- Severity dot -->
+          <span [class]="'db-severity-dot db-severity-dot--' + ex.severity.toLowerCase()"></span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="db-card-footer">
+        <span class="db-footer-count">Click an item to resolve</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ───────────── EMPLOYEE SELF-SERVICE QUICK ACTIONS ───────────── -->
+  <div *ngIf="!isLoading && canSeeSelfServiceDashboardActions && !canSeeAdminDashboardActions"
+    class="db-selfservice-grid">
+    <div class="db-ss-card db-ss-card--blue" (click)="goTo('/attendance/requests-management')">
+      <lucide-icon name="file-text" class="db-icon-lg"></lucide-icon>
+      <span>My Requests</span>
+    </div>
+    <div class="db-ss-card db-ss-card--purple" (click)="goToAttendanceDaily()">
+      <lucide-icon name="calendar" class="db-icon-lg"></lucide-icon>
+      <span>My Attendance</span>
+    </div>
+    <div class="db-ss-card db-ss-card--green" (click)="goTo('/attendance/leave-management')">
+      <lucide-icon name="clock" class="db-icon-lg"></lucide-icon>
+      <span>Leave Requests</span>
+    </div>
+    <div class="db-ss-card db-ss-card--rose" (click)="goTo('/hrm/employee-portal')">
+      <lucide-icon name="user" class="db-icon-lg"></lucide-icon>
+      <span>My Profile</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════ RESOLVE EXCEPTION MODAL ═══════════════════ -->
+<div *ngIf="showResolveModal" class="db-modal-overlay" (click)="closeResolveModal()">
+  <div class="db-modal" (click)="$event.stopPropagation()">
+
+    <!-- Modal header -->
+    <div class="db-modal-header">
+      <div>
+        <h3 class="db-modal-title">Resolve Exception</h3>
+        <p *ngIf="resolvingException?.employee" class="db-modal-sub">
+          {{ resolvingException!.employee.name }}
+          &mdash; {{ resolvingException!.exceptionType }}
+        </p>
+      </div>
+      <button class="db-modal-close" (click)="closeResolveModal()">
+        <lucide-icon name="x" class="db-icon-sm"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Exception details -->
+    <div *ngIf="resolvingException" class="db-modal-details">
+      <div class="db-modal-detail-row">
+        <span class="db-modal-detail-label">Severity</span>
+        <span [class]="'db-sev-badge db-sev-badge--' + resolvingException.severity.toLowerCase()">
+          {{ resolvingException.severity }}
+        </span>
+      </div>
+      <div class="db-modal-detail-row">
+        <span class="db-modal-detail-label">Occurred</span>
+        <span class="db-modal-detail-value">{{ formatDateTime(resolvingException.occurrenceTime) }}</span>
+      </div>
+      <div *ngIf="resolvingException.description" class="db-modal-detail-row db-modal-detail-row--full">
+        <span class="db-modal-detail-label">Description</span>
+        <span class="db-modal-detail-value">{{ resolvingException.description }}</span>
+      </div>
+    </div>
+
+    <!-- Notes textarea -->
+    <div class="db-modal-field">
+      <label class="db-modal-label">Resolution Notes</label>
+      <textarea
+        class="db-modal-textarea"
+        [(ngModel)]="resolveNotes"
+        rows="3"
+        placeholder="Describe how this exception was resolved…">
+      </textarea>
+    </div>
+
+    <!-- Feedback messages -->
+    <div *ngIf="resolveSuccess" class="db-modal-feedback db-modal-feedback--success">
+      <lucide-icon name="check-circle" class="db-icon-sm"></lucide-icon>
+      Exception resolved successfully!
+    </div>
+    <div *ngIf="resolveError" class="db-modal-feedback db-modal-feedback--error">
+      <lucide-icon name="alert-circle" class="db-icon-sm"></lucide-icon>
+      {{ resolveError }}
+    </div>
+
+    <!-- Actions -->
+    <div class="db-modal-actions">
+      <button class="db-btn-ghost" (click)="closeResolveModal()">Cancel</button>
+      <button class="db-btn-primary"
+        (click)="submitResolve()"
+        [disabled]="resolveLoading || resolveSuccess">
+        <lucide-icon *ngIf="resolveLoading" name="loader-circle" class="db-icon-xs db-spin"></lucide-icon>
+        {{ resolveLoading ? 'Resolving…' : 'Confirm Resolve' }}
+      </button>
+    </div>
+
+  </div>
 </div>
