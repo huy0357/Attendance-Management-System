@@ -87,10 +87,10 @@ public class EmployeeRepository {
                 INSERT INTO employees
                     (employee_code, full_name, dob, gender, phone, email, status,
                      department_id, position_id, manager_id, hire_date,
-                     created_at, updated_at, avatar_url)
+                     created_at, avatar_url) -- XÓA updated_at ở đây
                 VALUES
                     (?, ?, ?, ?, ?, ?, ?,
-                     ?, ?, ?, ?, ?, ?, ?)
+                     ?, ?, ?, ?, ?, ?) 
                 """;
 
         jdbcTemplate.update(
@@ -107,7 +107,7 @@ public class EmployeeRepository {
                 req.managerId,
                 req.hireDate,
                 Timestamp.valueOf(createdAt),
-                Timestamp.valueOf(createdAt),
+                // Timestamp.valueOf(createdAt),
                 null);
 
         Long id = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
@@ -125,8 +125,8 @@ public class EmployeeRepository {
                     department_id = ?,
                     position_id = ?,
                     manager_id = ?,
-                    hire_date = ?,
-                    updated_at = ?
+                    hire_date = ?
+                    -- XÓA updated_at = ? ở đây
                 WHERE employee_id = ?
                 """;
 
@@ -141,7 +141,7 @@ public class EmployeeRepository {
                 req.positionId,
                 req.managerId,
                 req.hireDate,
-                Timestamp.valueOf(updatedAt),
+                // Timestamp.valueOf(updatedAt),
                 employeeId);
     }
 
@@ -149,14 +149,13 @@ public class EmployeeRepository {
         String sql = """
                 UPDATE employees
                 SET avatar_url = ?,
-                    updated_at = ?
                 WHERE employee_id = ?
                 """;
 
         return jdbcTemplate.update(
                 sql,
                 avatarUrl,
-                Timestamp.valueOf(updatedAt),
+                // Timestamp.valueOf(updatedAt),
                 employeeId);
     }
 

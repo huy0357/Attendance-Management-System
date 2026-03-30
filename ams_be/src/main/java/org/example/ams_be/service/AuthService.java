@@ -68,7 +68,7 @@ public class AuthService {
                 acc.getAccountId(),
                 acc.getEmployeeId(),
                 null,
-                "Login successful");
+                "{\"status\":\"SUCCESS\", \"username\":\"" + acc.getUsername() + "\", \"message\":\"Đăng nhập thành công\"}");
 
         return new AuthResponse(
                 accessToken,
@@ -114,8 +114,8 @@ public class AuthService {
                     "ACCOUNT",
                     acc.getAccountId(),
                     acc.getEmployeeId(),
-                    "Old token rotated",
-                    "New token issued");
+                    "{\"tokenStatus\":\"EXPIRED_OR_ROTATED\"}",
+                    "{\"tokenStatus\":\"NEW_ISSUED\", \"at\":\"" + LocalDateTime.now() + "\"}");
         }
 
         tokenStore.revoke(username, refreshToken);
@@ -188,6 +188,14 @@ public class AuthService {
 
         accountRepo.save(account);
 
+        auditLogService.saveAuditLog(
+                "FORGOT_PASSWORD_REQ",
+                "ACCOUNT",
+                account.getAccountId(),
+                employee.getEmployeeId(),
+                null,
+                "{\"action\":\"REQUEST_OTP\", \"targetEmail\":\"" + email + "\", \"expiryMinutes\":5}");
+        
         emailService.sendOtpEmail(email, rawOtp);
     }
 
@@ -197,6 +205,27 @@ public class AuthService {
 
         Account account = accountRepo.findByEmployeeId(employee.getEmployeeId())
                 .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
+
+        try {
+            validateOtp(account, otp);
+
+            auditLogService.saveAuditLog(
+                    "VERIFY_OTP_SUCCESS",
+                    "ACCOUNT",
+                    account.getAccountId(),
+                    employee.getEmployeeId(),
+                    "OTP Verification",
+                    "OTP verified successfully");
+        } catch (RuntimeException e) {
+            auditLogService.saveAuditLog(
+                    "VERIFY_OTP_FAILED",
+                    "ACCOUNT",
+                    account.getAccountId(),
+                    employee.getEmployeeId(),
+                    "OTP Attempt",
+                    e.getMessage());
+            throw e;
+        }
 
         validateOtp(account, otp);
     }
@@ -218,6 +247,14 @@ public class AuthService {
         account.setResetOtp(null);
         account.setResetOtpExpiredAt(null);
         account.setResetOtpAttemptCount(0);
+
+        auditLogService.saveAuditLog(
+                "RESET_PASSWORD_SUCCESS",
+                "ACCOUNT",
+                account.getAccountId(),
+                employee.getEmployeeId(),
+                "{\"method\":\"OTP_VERIFIED\"}",
+                "{\"status\":\"CHANGED\", \"updateAt\":\"" + LocalDateTime.now() + "\"}");
 
         accountRepo.save(account);
     }
