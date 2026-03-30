@@ -135,6 +135,7 @@ class AccountServiceTest {
     @Test
     void createAccountUsesProvidedRoleIdAndActiveFlagAndEncodesPassword() {
         CreateAccountRequest req = createRequest();
+        req.setRoleId(2L);
         req.setIsActive(false);
         Role managerRole = role(2L, "manager");
         when(accountRepository.existsByUsername("alice")).thenReturn(false);
@@ -346,7 +347,7 @@ class AccountServiceTest {
         req.sortDir = " ";
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findAll(pageable))
-                .thenReturn(new PageImpl<>(List.of(account(4L, "dave", null, true)), pageable, 1));
+                .thenReturn(new PageImpl<>(List.of(account(4L, "dave", (String) null, true)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.getAccountsPage(req, null);
 
@@ -382,7 +383,7 @@ class AccountServiceTest {
         PageRequestDto req = new PageRequestDto();
         Pageable pageable = PageRequest.of(0, 10, Sort.by("accountId").descending());
         when(accountRepository.findByUsernameContainingIgnoreCase("adm", pageable))
-                .thenReturn(new PageImpl<>(List.of(account(3L, "admin", null, true)), pageable, 1));
+                .thenReturn(new PageImpl<>(List.of(account(3L, "admin", (String) null, true)), pageable, 1));
 
         PageResponse<AccountDto> response = accountService.searchAccountsByUsername(req, "adm");
 
@@ -417,6 +418,20 @@ class AccountServiceTest {
                 .password("secret1")
                 .roleId(2L)
                 .isActive(true)
+                .build();
+    }
+
+    private Account account(Long id, String username, Role role, boolean isActive) {
+        return Account.builder()
+                .accountId(id)
+                .employeeId(1L)
+                .username(username)
+                .passwordHash("hash")
+                .role(role)
+                .isActive(isActive)
+                .lastLoginAt(LocalDateTime.of(2026, 3, 18, 8, 0))
+                .createdAt(LocalDateTime.of(2026, 3, 1, 8, 0))
+                .updatedAt(LocalDateTime.of(2026, 3, 2, 8, 0))
                 .build();
     }
 
