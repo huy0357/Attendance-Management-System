@@ -5,18 +5,21 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { catchError, finalize, of, Subject, takeUntil } from 'rxjs';
-import { ChatbotService } from '../../../features/chatbot/chatbot.service';
-import { ChatMessage } from '../../../features/chatbot/chatbot.model';
-import { AuthService } from '../../auth/auth.service';
+import { ChatbotService } from './chatbot.service';
+import { ChatMessage } from './chatbot.model';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
-  standalone: false,
-  selector: 'app-ai-chatbot',
-  templateUrl: './ai-chatbot.component.html',
-  styleUrls: ['./ai-chatbot.component.scss'],
+  selector: 'app-chatbot',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './chatbot.component.html',
+  styleUrls: ['./chatbot.component.scss'],
 })
-export class AiChatbotComponent implements OnInit, OnDestroy {
+export class ChatbotComponent implements OnInit, OnDestroy {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef<HTMLElement>;
 
   isOpen = false;
@@ -33,6 +36,7 @@ export class AiChatbotComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Welcome message
     this.messages.push({
       id: crypto.randomUUID(),
       sender: 'ai',
@@ -62,12 +66,13 @@ export class AiChatbotComponent implements OnInit, OnDestroy {
     const content = (text ?? this.inputText).trim();
     if (!content || this.isTyping) return;
 
-    this.messages.push({
+    const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       sender: 'user',
       content,
       timestamp: new Date(),
-    });
+    };
+    this.messages.push(userMsg);
     this.inputText = '';
     this.isTyping = true;
     setTimeout(() => this.scrollToBottom(), 50);
@@ -85,20 +90,21 @@ export class AiChatbotComponent implements OnInit, OnDestroy {
         data: {},
         trace_id: '',
         latency_ms: 0,
-        suggestions: [] as string[],
+        suggestions: [],
       })),
       finalize(() => {
         this.isTyping = false;
         setTimeout(() => this.scrollToBottom(), 50);
       }),
     ).subscribe(response => {
-      this.messages.push({
+      const aiMsg: ChatMessage = {
         id: crypto.randomUUID(),
         sender: 'ai',
         content: response.message,
         timestamp: new Date(),
         suggestions: response.suggestions ?? [],
-      });
+      };
+      this.messages.push(aiMsg);
     });
   }
 

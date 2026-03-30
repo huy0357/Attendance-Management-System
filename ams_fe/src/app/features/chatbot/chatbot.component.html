@@ -17,16 +17,12 @@
 
 <!-- Chat Window -->
 <div class="chatbot-window" [class.chatbot-window--visible]="isOpen" role="dialog" aria-label="AMS AI Assistant">
-
   <!-- Header -->
   <div class="chatbot-header">
     <div class="chatbot-header__info">
       <div class="chatbot-header__avatar">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-          <line x1="9" y1="9" x2="9.01" y2="9"/>
-          <line x1="15" y1="9" x2="15.01" y2="9"/>
+          <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
         </svg>
       </div>
       <div>
@@ -48,19 +44,23 @@
   <!-- Messages -->
   <div class="chatbot-body" #messagesContainer>
     <ng-container *ngFor="let msg of messages; trackBy: trackByMessage">
-
       <!-- AI Message -->
       <div class="chatbot-message chatbot-message--ai" *ngIf="msg.sender === 'ai'">
         <div class="chatbot-message__avatar">AI</div>
         <div class="chatbot-message__content-wrap">
-          <div class="chatbot-message__bubble chatbot-message__bubble--ai">{{ msg.content }}</div>
+          <div class="chatbot-message__bubble chatbot-message__bubble--ai">
+            {{ msg.content }}
+          </div>
           <div class="chatbot-message__time">{{ msg.timestamp | date: 'HH:mm' }}</div>
+          <!-- Suggestions -->
           <div class="chatbot-suggestions" *ngIf="msg.suggestions && msg.suggestions.length > 0">
             <button
               class="chatbot-suggestion-btn"
               *ngFor="let suggestion of msg.suggestions"
               (click)="sendMessage(suggestion)"
-            >{{ suggestion }}</button>
+            >
+              {{ suggestion }}
+            </button>
           </div>
         </div>
       </div>
@@ -68,11 +68,12 @@
       <!-- User Message -->
       <div class="chatbot-message chatbot-message--user" *ngIf="msg.sender === 'user'">
         <div class="chatbot-message__content-wrap chatbot-message__content-wrap--user">
-          <div class="chatbot-message__bubble chatbot-message__bubble--user">{{ msg.content }}</div>
+          <div class="chatbot-message__bubble chatbot-message__bubble--user">
+            {{ msg.content }}
+          </div>
           <div class="chatbot-message__time chatbot-message__time--right">{{ msg.timestamp | date: 'HH:mm' }}</div>
         </div>
       </div>
-
     </ng-container>
 
     <!-- Typing Indicator -->
@@ -86,7 +87,7 @@
     </div>
   </div>
 
-  <!-- Input Footer -->
+  <!-- Input -->
   <div class="chatbot-footer">
     <div class="chatbot-input-wrap">
       <textarea
@@ -111,6 +112,6 @@
         </svg>
       </button>
     </div>
-    <div class="chatbot-footer__hint">Enter để gửi &bull; Shift+Enter xuống dòng</div>
+    <div class="chatbot-footer__hint">Enter để gửi • Shift+Enter xuống dòng</div>
   </div>
 </div>

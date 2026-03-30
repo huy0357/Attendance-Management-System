@@ -89,6 +89,7 @@ import {
   Ban,
   ArrowRight,
   Minus,
+  ClipboardList,
 } from 'lucide-angular';
 
 @NgModule({
@@ -183,6 +184,7 @@ import {
       Ban,
       ArrowRight,
       Minus,
+      ClipboardList,
     }),
   ],
   exports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, LucideAngularModule],
