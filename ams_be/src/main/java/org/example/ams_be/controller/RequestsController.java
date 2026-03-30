@@ -82,7 +82,7 @@ public class RequestsController {
     }
 
     /**
-     * 6. Chuyển trạng thái nộp đơn (SUBMITTED). Quản lý chỉ có thể duyệt đơn khi trạng thái = SUBMITTED
+     * 6. Chuyển trạng thái nộp đơn c(SUBMITTED). Quản lý chỉ có thể duyệt đơn khi trạng thái = SUBMITTED
      */
     @PutMapping("/{id}/submit")
     public ResponseEntity<RequestsResponse> submitRequest(
