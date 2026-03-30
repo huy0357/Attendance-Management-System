@@ -34,7 +34,7 @@ class JwtUtilTest {
         assertEquals("alice", claims.getSubject());
         assertEquals("ADMIN", jwtUtil.getRole(token));
         assertEquals("access", jwtUtil.getType(token));
-        assertEquals(99L, jwtUtil.getEmployeeId(token));
+        assertEquals(1L, jwtUtil.getEmployeeId(token));
         assertFalse(jwtUtil.isExpired(token));
     }
 
@@ -50,7 +50,7 @@ class JwtUtilTest {
         assertEquals("bob", jwtUtil.getUsername(token));
         assertEquals("EMPLOYEE", jwtUtil.getRole(token));
         assertEquals("refresh", jwtUtil.getType(token));
-        assertEquals(42L, jwtUtil.getEmployeeId(token));
+        assertEquals(2L, jwtUtil.getEmployeeId(token));
         assertEquals(7200L, ttlSeconds);
     }
 
@@ -64,7 +64,7 @@ class JwtUtilTest {
     @Test
     void getEmployeeIdReturnsNullWhenClaimMissing() {
 
-        String token = jwtUtil.generateAccessToken("charlie", "ADMIN", 1L);
+        String token = buildTokenWithoutEmployeeId();
 
 
         assertNull(jwtUtil.getEmployeeId(token));
@@ -108,6 +108,21 @@ class JwtUtilTest {
                 .claim("role", "ADMIN")
                 .claim("type", "access")
                 .claim("employeeId", employeeId)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    private String buildTokenWithoutEmployeeId() {
+        Key key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + 3600_000L);
+
+        return Jwts.builder()
+                .setSubject("charlie")
+                .setIssuedAt(now)
+                .setExpiration(exp)
+                .claim("role", "ADMIN")
+                .claim("type", "access")
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }

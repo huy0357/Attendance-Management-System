@@ -2,7 +2,7 @@ import { AfterViewChecked, Component, ElementRef, EventEmitter, Output, ViewChil
 
 interface Message {
   id: string;
-  type: 'user' | 'ai' | 'loading';
+  type: 'user' | 'ai' | 'error' | 'loading';
   content: string;
   data?: any;
   timestamp: Date;

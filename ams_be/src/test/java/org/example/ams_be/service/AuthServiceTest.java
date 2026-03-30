@@ -18,8 +18,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -51,9 +53,6 @@ class AuthServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
-
-    @Mock
-    private RoleRepository roleRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -99,8 +98,8 @@ class AuthServiceTest {
         Account account = account(1L, "alice", "admin", true);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
-        when(jwtUtil.generateAccessToken("alice", "admin", 100L)).thenReturn("access");
-        when(jwtUtil.generateRefreshToken("alice", "admin", 100L)).thenReturn("refresh");
+        when(jwtUtil.generateAccessToken("alice", "ADMIN", 100L)).thenReturn("access");
+        when(jwtUtil.generateRefreshToken("alice", "ADMIN", 100L)).thenReturn("refresh");
 
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
@@ -112,17 +111,27 @@ class AuthServiceTest {
         assertEquals("alice", response.getUsername());
         assertEquals("ADMIN", response.getRole());
         verify(tokenStore).storeRefreshToken("alice", "refresh", 7200L);
-        verify(auditLogService).saveAuditLog("LOGIN", "ACCOUNT", 1L, 100L, null, "Login successful");
+        verify(auditLogService).saveAuditLog(
+                org.mockito.ArgumentMatchers.eq("LOGIN"),
+                org.mockito.ArgumentMatchers.eq("ACCOUNT"),
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.isNull(),
+                argThat((String payload) -> payload.contains("\"status\":\"SUCCESS\"")
+                        && payload.contains("\"username\":\"alice\"")
+                        && payload.contains("\"message\""))
+        );
     }
 
     @Test
     void loginUsesEmployeeRoleWhenAccountRoleMissing() {
-        Account account = account(1L, "alice", null, true);
+        Account account = account(1L, "alice", "admin", true);
+        account.setRole(null);
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
 
-        when(jwtUtil.generateAccessToken("alice", "employee", 100L)).thenReturn("access");
-        when(jwtUtil.generateRefreshToken("alice", "employee", 100L)).thenReturn("refresh");
+        when(jwtUtil.generateAccessToken("alice", "EMPLOYEE", 100L)).thenReturn("access");
+        when(jwtUtil.generateRefreshToken("alice", "EMPLOYEE", 100L)).thenReturn("refresh");
 
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
@@ -215,8 +224,8 @@ class AuthServiceTest {
         when(tokenStore.exists("alice", "token")).thenReturn(true);
 
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
-        when(jwtUtil.generateRefreshToken("alice", "employee", 100L)).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "employee", 100L)).thenReturn("new-access");
+        when(jwtUtil.generateRefreshToken("alice", "EMPLOYEE", 100L)).thenReturn("new-refresh");
+        when(jwtUtil.generateAccessToken("alice", "EMPLOYEE", 100L)).thenReturn("new-access");
 
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
@@ -241,8 +250,8 @@ class AuthServiceTest {
         when(tokenStore.exists("alice", "token")).thenReturn(true);
 
         when(accountRepo.findByUsername("alice")).thenReturn(Optional.of(account));
-        when(jwtUtil.generateRefreshToken("alice", "employee", 100L)).thenReturn("new-refresh");
-        when(jwtUtil.generateAccessToken("alice", "employee", 100L)).thenReturn("new-access");
+        when(jwtUtil.generateRefreshToken("alice", "EMPLOYEE", 100L)).thenReturn("new-refresh");
+        when(jwtUtil.generateAccessToken("alice", "EMPLOYEE", 100L)).thenReturn("new-access");
 
         when(jwtUtil.getRefreshTtlSeconds()).thenReturn(7200L);
         when(jwtUtil.getAccessTtlSeconds()).thenReturn(3600L);
@@ -344,7 +353,7 @@ class AuthServiceTest {
 
 
     private Account account(Long accountId, String username, String roleCode, boolean active) {
-        Role role = Role.builder().roleId(1L).roleCode(roleCode).build();
+        Role role = roleCode != null ? Role.builder().roleId(1L).roleCode(roleCode).build() : null;
 
         return Account.builder()
                 .accountId(accountId)
