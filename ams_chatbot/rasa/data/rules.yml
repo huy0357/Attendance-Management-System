@@ -1,0 +1,25 @@
+version: "3.1"
+rules:
+  - rule: cancel active form
+    condition:
+      - active_loop: leave_request_form
+    steps:
+      - intent: stop
+      - action: action_cancel_flow
+      - active_loop: null
+      - action: utter_cancelled
+
+  - rule: fallback search policy
+    steps:
+      - intent: fallback_search_policy
+      - action: action_search_policy_fallback
+
+  - rule: handoff human
+    steps:
+      - intent: handoff_human
+      - action: utter_handoff_human
+
+  - rule: default fallback
+    steps:
+      - intent: nlu_fallback
+      - action: action_default_fallback

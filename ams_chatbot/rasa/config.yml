@@ -1,0 +1,28 @@
+recipe: default.v1
+language: vi
+pipeline:
+- name: WhitespaceTokenizer
+- name: RegexFeaturizer
+- name: LexicalSyntacticFeaturizer
+- name: CountVectorsFeaturizer
+  analyzer: char_wb
+  min_ngram: 1
+  max_ngram: 4
+- name: CountVectorsFeaturizer
+- name: DIETClassifier
+  epochs: 100
+  constrain_similarities: true
+- name: EntitySynonymMapper
+- name: FallbackClassifier
+  threshold: 0.45
+  ambiguity_threshold: 0.1
+policies:
+- name: RulePolicy
+  core_fallback_threshold: 0.3
+  core_fallback_action_name: action_default_fallback
+  enable_fallback_prediction: true
+- name: TEDPolicy
+  max_history: 8
+  epochs: 50
+- name: MemoizationPolicy
+assistant_id: 20260322-100131-bare-squash

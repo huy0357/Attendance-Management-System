@@ -1,0 +1,116 @@
+version: "3.1"
+intents:
+  - greet
+  - ask_today_shift
+  - ask_my_attendance_today
+  - ask_attendance_history
+  - ask_request_status
+  - create_leave_request
+  - create_ot_request
+  - create_explanation_request
+  - ask_team_attendance
+  - ask_report_summary
+  - fallback_search_policy
+  - handoff_human
+  - affirm
+  - deny
+  - stop
+
+entities:
+  - date
+  - date_range
+  - request_type
+  - department
+  - employee_code
+  - employee_name
+  - shift_name
+  - status
+  - reason
+  - duration
+
+slots:
+  date:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: date
+  date_range:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: date_range
+  request_type:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: request_type
+  reason:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: reason
+  duration:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: duration
+
+responses:
+  utter_greet:
+    - text: "Chào bạn, mình có thể hỗ trợ tra cứu chấm công, ca làm việc, đơn từ và policy chấm công."
+  utter_ask_reason:
+    - text: "Bạn cho mình biết lý do nhé."
+  utter_ask_date:
+    - text: "Bạn muốn áp dụng cho ngày nào?"
+  utter_ask_date_range:
+    - text: "Bạn cần tra cứu trong khoảng thời gian nào?"
+  utter_ask_duration:
+    - text: "Thời lượng hoặc khung giờ cụ thể là gì?"
+  utter_submit_confirm:
+    - text: "Mình đã ghi nhận thông tin. Bạn xác nhận để mình gửi yêu cầu nhé?"
+  utter_cancelled:
+    - text: "Đã hủy thao tác hiện tại."
+  utter_handoff_human:
+    - text: "Mình sẽ chuyển bạn sang hỗ trợ thủ công nếu cần."
+
+forms:
+  leave_request_form:
+    required_slots:
+      - date
+      - duration
+      - reason
+  ot_request_form:
+    required_slots:
+      - date
+      - duration
+      - reason
+  explanation_request_form:
+    required_slots:
+      - date
+      - reason
+  attendance_filter_form:
+    required_slots:
+      - date_range
+
+actions:
+  - action_greet_user
+  - action_get_today_shift
+  - action_get_my_attendance_today
+  - action_get_attendance_history
+  - action_get_request_status
+  - action_submit_leave_request
+  - action_submit_ot_request
+  - action_submit_explanation_request
+  - action_get_team_attendance
+  - action_get_report_summary
+  - action_search_policy_fallback
+  - action_default_fallback
+  - validate_leave_request_form
+  - validate_ot_request_form
+  - validate_explanation_request_form
+  - validate_attendance_filter_form
+  - action_cancel_flow
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

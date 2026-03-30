@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JacksonConfigTest {
 
@@ -14,7 +15,7 @@ class JacksonConfigTest {
         ObjectMapper mapper = new JacksonConfig().objectMapper();
 
         assertNotNull(mapper);
-        assertNotNull(mapper.findModules());
+        assertTrue(ObjectMapper.findModules().iterator().hasNext());
         assertFalse(mapper.isEnabled(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS));
     }
 }

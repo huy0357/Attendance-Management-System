@@ -25,7 +25,9 @@ class JwtUtilTest {
 
     @Test
     void generateAccessTokenContainsExpectedClaims() {
-        String token = jwtUtil.generateAccessToken("alice", "ADMIN", 99L);
+
+        String token = jwtUtil.generateAccessToken("alice", "ADMIN", 1L);
+
 
         Claims claims = jwtUtil.parseClaims(token);
 
@@ -38,7 +40,9 @@ class JwtUtilTest {
 
     @Test
     void generateRefreshTokenContainsRefreshTypeAndConfiguredTtl() {
-        String token = jwtUtil.generateRefreshToken("bob", "EMPLOYEE", 42L);
+
+        String token = jwtUtil.generateRefreshToken("bob", "EMPLOYEE", 2L);
+
 
         Claims claims = jwtUtil.parseClaims(token);
         long ttlSeconds = (claims.getExpiration().getTime() - claims.getIssuedAt().getTime()) / 1000;
@@ -59,7 +63,9 @@ class JwtUtilTest {
 
     @Test
     void getEmployeeIdReturnsNullWhenClaimMissing() {
-        String token = jwtUtil.generateAccessToken("charlie", "ADMIN", null);
+
+        String token = jwtUtil.generateAccessToken("charlie", "ADMIN", 1L);
+
 
         assertNull(jwtUtil.getEmployeeId(token));
     }
@@ -67,7 +73,9 @@ class JwtUtilTest {
     @Test
     void isExpiredReturnsTrueForExpiredToken() {
         JwtUtil expiredJwtUtil = new JwtUtil(SECRET, -1, 7200);
-        String token = expiredJwtUtil.generateAccessToken("david", "ADMIN", null);
+
+        String token = expiredJwtUtil.generateAccessToken("david", "ADMIN", 1L);
+
 
         assertTrue(expiredJwtUtil.isExpired(token));
     }

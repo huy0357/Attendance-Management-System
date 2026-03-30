@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 @Entity
 @Table(
         name = "employees",
@@ -60,7 +62,8 @@ public class Employee {
     @Column(name = "terminated_date")
     private LocalDate terminatedDate;
 
-    @Column(name = "created_at")
+    @CreationTimestamp // Tự động lấy giờ hệ thống khi INSERT
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "avatar_url")

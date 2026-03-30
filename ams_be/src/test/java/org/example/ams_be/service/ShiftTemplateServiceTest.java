@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,8 +37,7 @@ class ShiftTemplateServiceTest {
     void listFiltersByActiveAndKeyword() {
         when(repo.findAll()).thenReturn(List.of(
                 shift(1L, "DAY", "Day Shift", true),
-                shift(2L, "NIGHT", "Night Shift", false)
-        ));
+                shift(2L, "NIGHT", "Night Shift", false)));
 
         List<ShiftTemplateResponse> responses = shiftTemplateService.list(true, "day");
 
@@ -52,8 +50,7 @@ class ShiftTemplateServiceTest {
     void listReturnsAllWhenFiltersAreNullOrBlank() {
         when(repo.findAll()).thenReturn(List.of(
                 shift(1L, "DAY", "Day Shift", true),
-                shift(2L, "NIGHT", "Night Shift", false)
-        ));
+                shift(2L, "NIGHT", "Night Shift", false)));
 
         List<ShiftTemplateResponse> responses = shiftTemplateService.list(null, " ");
 
@@ -64,8 +61,7 @@ class ShiftTemplateServiceTest {
     void listReturnsAllWhenKeywordIsNull() {
         when(repo.findAll()).thenReturn(List.of(
                 shift(1L, "DAY", "Day Shift", true),
-                shift(2L, "NIGHT", "Night Shift", false)
-        ));
+                shift(2L, "NIGHT", "Night Shift", false)));
 
         List<ShiftTemplateResponse> responses = shiftTemplateService.list(true, null);
 
@@ -77,8 +73,7 @@ class ShiftTemplateServiceTest {
     void listMatchesKeywordAgainstShiftNameForInactiveShift() {
         when(repo.findAll()).thenReturn(List.of(
                 shift(1L, "DAY", "Morning", true),
-                shift(2L, "NIGHT", "Night Shift", false)
-        ));
+                shift(2L, "NIGHT", "Night Shift", false)));
 
         List<ShiftTemplateResponse> responses = shiftTemplateService.list(false, "shift");
 
@@ -91,8 +86,7 @@ class ShiftTemplateServiceTest {
     void listReturnsEmptyWhenKeywordMatchesNeitherCodeNorName() {
         when(repo.findAll()).thenReturn(List.of(
                 shift(1L, "DAY", "Day Shift", true),
-                shift(2L, "NIGHT", "Night Shift", false)
-        ));
+                shift(2L, "NIGHT", "Night Shift", false)));
 
         List<ShiftTemplateResponse> responses = shiftTemplateService.list(null, "weekend");
 
@@ -252,7 +246,8 @@ class ShiftTemplateServiceTest {
     void updateThrowsWhenShiftNotFound() {
         when(repo.findById(10L)).thenReturn(Optional.empty());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> shiftTemplateService.update(10L, validRequest(false, 60, 420)));
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> shiftTemplateService.update(10L, validRequest(false, 60, 420)));
 
         assertEquals("Shift not found", ex.getMessage());
     }

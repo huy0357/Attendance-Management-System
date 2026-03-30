@@ -72,7 +72,7 @@ public class EmployeeService {
                 .orElseThrow(() -> new BadRequestException("Tạo nhân viên thất bại"));
 
         // Ghi log CREATE
-        auditLogService.saveAuditLog("CREATE", "EMPLOYEE", newId, getCurrentActorId(), null, "ADD EMPLOYEE SUCCESSFUL"); // THAY ADD EMPLOYEE SUCCESSFUL bằng savedDto
+        auditLogService.saveAuditLog("CREATE", "EMPLOYEE", newId, getCurrentActorId(), null, savedDto); // THAY ADD EMPLOYEE SUCCESSFUL bằng savedDto
 
         return savedDto;
     }
@@ -98,7 +98,7 @@ public class EmployeeService {
 
         // Ghi log UPDATE
         auditLogService.saveAuditLog("UPDATE", "EMPLOYEE", id,
-                getCurrentActorId(), current, "UPDATE EMPLOYEE SUCCESSFUL"); //updatedDto
+                getCurrentActorId(), current, updatedDto); //updatedDto
 
         return updatedDto;
     }
