@@ -3,7 +3,6 @@ package org.example.ams_be.service;
 import org.example.ams_be.dto.DepartmentDto;
 import org.example.ams_be.entity.Department;
 import org.example.ams_be.exception.ResourceNotFoundException;
-import org.example.ams_be.repository.AccountRepository;
 import org.example.ams_be.repository.DepartmentRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -34,9 +33,6 @@ class DepartmentServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
-    @Mock
-    private AccountRepository accountRepository;
-
     @InjectMocks
     private DepartmentService departmentService;
 
@@ -55,7 +51,7 @@ class DepartmentServiceTest {
         Assertions.assertEquals(1L, result.departmentId);
         Assertions.assertEquals("Phong IT", result.departmentName);
         verify(departmentRepository, times(1)).save(any(Department.class));
-        verify(auditLogService).saveAuditLog("CREATE", "DEPARTMENT", 1L, 8L, null, result);
+        verifyNoInteractions(auditLogService);
     }
 
     @Test

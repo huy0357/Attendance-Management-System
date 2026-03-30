@@ -14,7 +14,7 @@ class EmployeeTest {
     void equalsAndHashCodeCoverGeneratedBranches() {
         LombokPojoBranchAssertions.assertEqualsAndHashCodeBranches(
                 this::populated,
-                () -> new Employee(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+                () -> new Employee(null, null, null, null, null, null, null, null, null, null, null, null, null, null),
                 populatedMismatchMutators(),
                 emptyMismatchMutators(),
                 employee -> new NonEqualEmployee(employee)
@@ -36,8 +36,7 @@ class EmployeeTest {
                 employee -> setManagerId(employee, 40L),
                 employee -> setHireDate(employee, LocalDate.of(2025, 2, 1)),
                 employee -> setTerminatedDate(employee, LocalDate.of(2026, 3, 20)),
-                employee -> setCreatedAt(employee, LocalDateTime.of(2025, 1, 1, 9, 0)),
-                employee -> setAvatarUrl(employee, "/avatars/bob.png")
+                employee -> setCreatedAt(employee, LocalDateTime.of(2025, 1, 1, 9, 0))
         );
     }
 
@@ -56,8 +55,7 @@ class EmployeeTest {
                 employee -> setManagerId(employee, 30L),
                 employee -> setHireDate(employee, LocalDate.of(2025, 1, 1)),
                 employee -> setTerminatedDate(employee, LocalDate.of(2026, 3, 19)),
-                employee -> setCreatedAt(employee, LocalDateTime.of(2025, 1, 1, 8, 0)),
-                employee -> setAvatarUrl(employee, "/avatars/alice.png")
+                employee -> setCreatedAt(employee, LocalDateTime.of(2025, 1, 1, 8, 0))
         );
     }
 
@@ -77,7 +75,6 @@ class EmployeeTest {
                 .hireDate(LocalDate.of(2025, 1, 1))
                 .terminatedDate(LocalDate.of(2026, 3, 19))
                 .createdAt(LocalDateTime.of(2025, 1, 1, 8, 0))
-                .avatarUrl("/avatars/alice.png")
                 .build();
     }
 
@@ -95,7 +92,6 @@ class EmployeeTest {
     private Employee setHireDate(Employee employee, LocalDate value) { employee.setHireDate(value); return employee; }
     private Employee setTerminatedDate(Employee employee, LocalDate value) { employee.setTerminatedDate(value); return employee; }
     private Employee setCreatedAt(Employee employee, LocalDateTime value) { employee.setCreatedAt(value); return employee; }
-    private Employee setAvatarUrl(Employee employee, String value) { employee.setAvatarUrl(value); return employee; }
 
     private static final class NonEqualEmployee extends Employee {
         private NonEqualEmployee(Employee base) {
@@ -113,8 +109,7 @@ class EmployeeTest {
                     base.getManagerId(),
                     base.getHireDate(),
                     base.getTerminatedDate(),
-                    base.getCreatedAt(),
-                    base.getAvatarUrl()
+                    base.getCreatedAt()
             );
         }
 

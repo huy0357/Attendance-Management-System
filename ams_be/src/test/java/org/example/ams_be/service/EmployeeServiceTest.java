@@ -5,7 +5,6 @@ import org.example.ams_be.dto.request.EmployeeRequest;
 import org.example.ams_be.dto.response.PageResponse;
 import org.example.ams_be.exception.BadRequestException;
 import org.example.ams_be.exception.NotFoundException;
-import org.example.ams_be.repository.AccountRepository;
 import org.example.ams_be.repository.EmployeeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +28,6 @@ class EmployeeServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
-
-    @Mock
-    private AuditLogService auditLogService;
-
-    @Mock
-    private AccountRepository accountRepository;
 
     @InjectMocks
     private EmployeeService employeeService;
