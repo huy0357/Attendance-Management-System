@@ -3,6 +3,7 @@ package org.example.ams_be.controller;
 import org.example.ams_be.dto.request.LoginRequest;
 import org.example.ams_be.dto.request.LogoutRequest;
 import org.example.ams_be.dto.request.RefreshRequest;
+import org.example.ams_be.dto.response.ApiResponse;
 import org.example.ams_be.dto.response.AuthResponse;
 import org.example.ams_be.service.AuthService;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,10 +35,12 @@ class AuthControllerTest {
         AuthResponse authResponse = new AuthResponse("access", "refresh", 3600L, "alice", "admin");
         when(authService.login("alice", "secret")).thenReturn(authResponse);
 
-        ResponseEntity<AuthResponse> response = controller.login(request);
+        ResponseEntity<ApiResponse<AuthResponse>> response = controller.login(request);
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(authResponse, response.getBody());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().getSuccess());
+        assertEquals(authResponse, response.getBody().getData());
     }
 
     @Test
@@ -46,20 +50,25 @@ class AuthControllerTest {
         AuthResponse authResponse = new AuthResponse("access-2", "refresh-2", 3600L, "alice", "employee");
         when(authService.refresh("refresh")).thenReturn(authResponse);
 
-        ResponseEntity<AuthResponse> response = controller.refresh(request);
+        ResponseEntity<ApiResponse<AuthResponse>> response = controller.refresh(request);
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(authResponse, response.getBody());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().getSuccess());
+        assertEquals(authResponse, response.getBody().getData());
     }
 
     @Test
-    void logoutReturnsNoContent() {
+    void logoutReturnsSuccessResponse() {
         LogoutRequest request = new LogoutRequest();
         request.setRefreshToken("refresh");
 
-        ResponseEntity<Void> response = controller.logout(request);
+        ResponseEntity<ApiResponse<Void>> response = controller.logout(request);
 
-        assertEquals(204, response.getStatusCode().value());
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().getSuccess());
+        assertEquals(null, response.getBody().getData());
         verify(authService).logout("refresh");
     }
 }
