@@ -9,6 +9,7 @@ import org.example.ams_be.entity.Employee;
 import org.example.ams_be.entity.Requests;
 import org.example.ams_be.enums.RequestStatus;
 import org.example.ams_be.enums.RequestType;
+import org.example.ams_be.exception.BadRequestException;
 import org.example.ams_be.exception.ResourceNotFoundException;
 import org.example.ams_be.repository.EmployeeRepository;
 import org.example.ams_be.repository.RequestRepository;
@@ -56,7 +57,7 @@ class RequestsServiceTest {
         request.startDatetime = LocalDateTime.of(2026, 3, 20, 10, 0);
         request.endDatetime = LocalDateTime.of(2026, 3, 20, 9, 0);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        BadRequestException ex = assertThrows(BadRequestException.class,
                 () -> requestsService.createDraft(request));
 
         assertEquals("Start time must be before end time", ex.getMessage());
@@ -193,7 +194,7 @@ class RequestsServiceTest {
         Requests request = requestEntity(10L, RequestStatus.DRAFT);
         when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
 
-        assertThrows(IllegalStateException.class, () -> requestsService.approveOrReject(10L, approvalRequest()));
+        assertThrows(BadRequestException.class, () -> requestsService.approveOrReject(10L, approvalRequest()));
     }
 
     @Test
