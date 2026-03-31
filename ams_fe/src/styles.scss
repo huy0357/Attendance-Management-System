@@ -3436,6 +3436,53 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root {
+  --ams-surface-page: #f4f7fb;
+  --ams-surface-card: rgba(255, 255, 255, 0.9);
+  --ams-surface-card-strong: #ffffff;
+  --ams-border-color: rgba(148, 163, 184, 0.22);
+  --ams-text-primary: #0f172a;
+  --ams-text-secondary: #475569;
+  --ams-accent: #2563eb;
+  --ams-accent-soft: rgba(37, 99, 235, 0.14);
+  --ams-shadow-sm: 0 12px 30px -26px rgba(15, 23, 42, 0.38);
+  --ams-shadow-lg: 0 28px 60px -42px rgba(15, 23, 42, 0.45);
+  color-scheme: light;
+}
+
+html.dark,
+body.dark {
+  --ams-surface-page: #09111f;
+  --ams-surface-card: rgba(15, 23, 42, 0.88);
+  --ams-surface-card-strong: #111c30;
+  --ams-border-color: rgba(148, 163, 184, 0.16);
+  --ams-text-primary: #e5eefb;
+  --ams-text-secondary: #94a3b8;
+  --ams-accent: #60a5fa;
+  --ams-accent-soft: rgba(96, 165, 250, 0.18);
+  --ams-shadow-sm: 0 16px 34px -28px rgba(2, 6, 23, 0.95);
+  --ams-shadow-lg: 0 30px 70px -46px rgba(2, 6, 23, 0.98);
+  color-scheme: dark;
+}
+
+html.dark body,
+body.dark {
+  background: var(--ams-surface-page);
+  color: var(--ams-text-primary);
+}
+
+html.reduced-motion *,
+body.reduced-motion *,
+html.reduced-motion *::before,
+body.reduced-motion *::before,
+html.reduced-motion *::after,
+body.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
   margin: 0;

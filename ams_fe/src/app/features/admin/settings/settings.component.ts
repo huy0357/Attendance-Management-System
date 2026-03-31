@@ -1,6 +1,10 @@
-import { Component } from '@angular/core';
-
-type SettingsTab = 'general' | 'notifications' | 'security' | 'integrations' | 'advanced';
+import { Component, inject } from '@angular/core';
+import {
+  LanguageMode,
+  SettingsService,
+  ThemeMode,
+  TimeFormatMode,
+} from './settings.service';
 
 @Component({
   standalone: false,
@@ -9,29 +13,45 @@ type SettingsTab = 'general' | 'notifications' | 'security' | 'integrations' | '
   styleUrls: ['./settings.component.scss'],
 })
 export class SettingsComponent {
-  activeTab: SettingsTab = 'general';
-  saveStatus: 'idle' | 'saving' | 'saved' = 'idle';
-  darkMode = false;
-  language = 'en';
-  autoSaveEnabled = true;
-  autoSaveInterval = 30;
+  private readonly settingsService = inject(SettingsService);
 
-  tabs: Array<{ id: SettingsTab; name: string; icon: string }> = [
-    { id: 'general', name: 'General', icon: 'settings' },
-    { id: 'notifications', name: 'Notifications', icon: 'bell' },
-    { id: 'security', name: 'Security', icon: 'shield' },
-    { id: 'integrations', name: 'Integrations', icon: 'globe' },
-    { id: 'advanced', name: 'Advanced', icon: 'zap' },
-  ];
+  readonly theme$ = this.settingsService.theme$;
+  readonly language$ = this.settingsService.language$;
+  readonly timeFormat$ = this.settingsService.timeFormat$;
+  readonly compactSidebar$ = this.settingsService.compactSidebar$;
+  readonly reduceMotion$ = this.settingsService.reduceMotion$;
 
-  handleSave(): void {
-    if (this.saveStatus !== 'idle') {
-      return;
-    }
-    this.saveStatus = 'saving';
-    setTimeout(() => {
-      this.saveStatus = 'saved';
-      setTimeout(() => (this.saveStatus = 'idle'), 2000);
-    }, 1000);
+  setTheme(theme: ThemeMode): void {
+    this.settingsService.setTheme(theme);
+  }
+
+  setLanguage(language: LanguageMode): void {
+    this.settingsService.setLanguage(language);
+  }
+
+  setTimeFormat(timeFormat: TimeFormatMode): void {
+    this.settingsService.setTimeFormat(timeFormat);
+  }
+
+  toggleCompactSidebar(compactSidebar: boolean): void {
+    this.settingsService.setCompactSidebar(compactSidebar);
+  }
+
+  onCompactSidebarChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.toggleCompactSidebar(target.checked);
+  }
+
+  toggleReduceMotion(reduceMotion: boolean): void {
+    this.settingsService.setReduceMotion(reduceMotion);
+  }
+
+  onReduceMotionChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.toggleReduceMotion(target.checked);
+  }
+
+  resetPreferences(): void {
+    this.settingsService.reset();
   }
 }
