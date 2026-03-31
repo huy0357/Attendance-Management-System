@@ -153,7 +153,7 @@
         <div class="pagination-footer" *ngIf="!isLoading && logs.length > 0">
           <div class="pagination-info">
             Showing {{ (currentPage - 1) * pageSize + 1 }} to 
-            {{ Math?.min(currentPage * pageSize, totalElements) || (currentPage * pageSize) }} 
+            {{ Math.min(currentPage * pageSize, totalElements) || (currentPage * pageSize) }} 
             of {{ totalElements }} entries
           </div>
           <div class="pagination-controls">

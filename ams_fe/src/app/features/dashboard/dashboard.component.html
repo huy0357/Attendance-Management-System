@@ -146,12 +146,12 @@
               <td>
                 <div class="db-emp-cell">
                   <div class="db-avatar"
-                    [style.background-color]="getAvatarColor(rec.employee?.name)">
-                    {{ getInitials(rec.employee?.name) }}
+                    [style.background-color]="getAvatarColor(rec.employee.name)">
+                    {{ getInitials(rec.employee.name) }}
                   </div>
                   <div>
-                    <p class="db-emp-name">{{ rec.employee?.name ?? '—' }}</p>
-                    <p class="db-emp-dept">{{ rec.employee?.department ?? '' }}</p>
+                    <p class="db-emp-name">{{ rec.employee.name }}</p>
+                    <p class="db-emp-dept">{{ rec.employee.department }}</p>
                   </div>
                 </div>
               </td>
@@ -216,12 +216,12 @@
           (keyup.enter)="openResolveModal(ex)">
 
           <div class="db-avatar db-avatar--sm"
-            [style.background-color]="getAvatarColor(ex.employee?.name)">
-            {{ getInitials(ex.employee?.name) }}
+            [style.background-color]="getAvatarColor(ex.employee.name)">
+            {{ getInitials(ex.employee.name) }}
           </div>
 
           <div class="db-exc-info">
-            <p class="db-exc-name">{{ ex.employee?.name ?? '—' }}</p>
+            <p class="db-exc-name">{{ ex.employee.name }}</p>
             <p class="db-exc-desc">{{ ex.description || ex.exceptionType }}</p>
           </div>
 
@@ -331,3 +331,4 @@
 
   </div>
 </div>
+
