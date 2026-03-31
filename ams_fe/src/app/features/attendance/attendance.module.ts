@@ -8,7 +8,6 @@ import { ShiftTemplatesComponent } from './shift-templates/shift-templates.compo
 import { RequestsManagementComponent } from './requests-management/requests-management.component';
 import { AttendanceDailyComponent } from './attendance-daily/attendance-daily.component';
 import { AttendanceEmailComponent } from './attendance-email/attendance-email.component';
-import { AttendanceMonthlySummaryComponent } from './attendance-monthly-summary/attendance-monthly-summary.component';
 import { AttendanceLandingComponent } from './attendance-landing.component';
 
 @NgModule({
@@ -20,7 +19,6 @@ import { AttendanceLandingComponent } from './attendance-landing.component';
     RequestsManagementComponent,
     AttendanceDailyComponent,
     AttendanceEmailComponent,
-    AttendanceMonthlySummaryComponent,
     AttendanceLandingComponent,
   ],
   imports: [SharedModule, AttendanceRoutingModule],

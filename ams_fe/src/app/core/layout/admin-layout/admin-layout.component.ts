@@ -47,7 +47,7 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
         '/attendance/attendance-daily/employee',
       ],
     },
-    { label: 'Attendance Monthly Summary', path: '/attendance/monthly-summary', icon: 'file-text', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
+
     { label: 'Shift Templates', path: '/attendance/shift-templates', icon: 'calendar', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Attendance Email', path: '/attendance/attendance-email', icon: 'mail', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
     { label: 'Leave Requests', path: '/attendance/leave-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },

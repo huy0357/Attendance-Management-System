@@ -36,11 +36,11 @@
     </div>
     
     <div class="toolbar-export">
-       <button class="export-btn">
+       <button class="export-btn monthly-report-btn" (click)="openMonthlyModal()">
          <svg class="export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
          </svg>
-         Export Report
+         Monthly Report
        </button>
     </div>
   </div>
@@ -135,6 +135,76 @@
         <button [disabled]="page <= 0 || isLoading" (click)="prevPage()" class="page-btn">Prev</button>
         <span class="page-current text-sm">Page {{ currentPage }} of {{ totalPages || 1 }}</span>
         <button [disabled]="isLastPage || isLoading" (click)="nextPage()" class="page-btn">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Summary Modal -->
+  <div class="modal-overlay" *ngIf="isMonthlyModalOpen">
+    <div class="modal-container" [attr.aria-busy]="isGeneratingSummary || isExportingSummary">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Monthly Summary</h2>
+          <p class="modal-description">Generate the monthly attendance summary and export the report for the selected period.</p>
+        </div>
+        <button class="modal-close-btn" (click)="closeMonthlyModal()" [disabled]="isGeneratingSummary || isExportingSummary">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="attendance-summary-month">Month</label>
+          <input
+            id="attendance-summary-month"
+            type="month"
+            [(ngModel)]="summaryMonth"
+            class="form-input"
+          />
+        </div>
+        
+        <div *ngIf="summarySuccessMessage" class="alert alert-success mt-15" role="status" aria-live="polite">
+          {{ summarySuccessMessage }}
+        </div>
+
+        <div *ngIf="summaryErrorMessage" class="alert alert-error mt-15" role="alert" aria-live="assertive">
+          {{ summaryErrorMessage }}
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button
+            type="button"
+            (click)="closeMonthlyModal()"
+            [disabled]="isGeneratingSummary || isExportingSummary"
+            class="btn btn-secondary"
+          >
+            Cancel
+        </button>
+        <div class="action-buttons">
+          <button
+            type="button"
+            (click)="onGenerateSummary()"
+            [disabled]="isGeneratingSummary || isExportingSummary || !summaryMonth"
+            class="btn btn-primary"
+          >
+            {{ isGeneratingSummary ? 'Generating...' : 'Generate Summary' }}
+          </button>
+          <button
+            type="button"
+            (click)="onExportSummary()"
+            [disabled]="isGeneratingSummary || isExportingSummary || !summaryMonth"
+            class="btn btn-outline"
+          >
+            {{ isExportingSummary ? 'Exporting...' : 'Export Report' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
