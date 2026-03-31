@@ -31,6 +31,10 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
   mode: EditMode = 'create';
   selectedId: number | null = null;
 
+  isDeleteModalOpen = false;
+  templateToDelete: ShiftTemplateResponse | null = null;
+  isDeleting = false;
+
   constructor(
     private attendanceService: AttendanceService,
     private authService: AuthService,
@@ -231,18 +235,32 @@ export class ShiftTemplatesComponent implements OnInit, OnDestroy {
     });
   }
 
-  deleteTemplate(template: ShiftTemplateResponse): void {
-    const confirmed = window.confirm(
-      `Delete shift template ${template.shiftCode}? Backend delete marks the template inactive.`,
-    );
-    if (!confirmed) return;
-    this.attendanceService.deleteShiftTemplate(template.shiftId).subscribe({
+  openDeleteModal(template: ShiftTemplateResponse): void {
+    this.templateToDelete = template;
+    this.isDeleteModalOpen = true;
+  }
+
+  cancelDelete(): void {
+    this.isDeleteModalOpen = false;
+    this.templateToDelete = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.templateToDelete) return;
+    this.isDeleting = true;
+    const deletedId = this.templateToDelete.shiftId;
+    this.attendanceService.deleteShiftTemplate(deletedId).subscribe({
       next: () => {
         this.errorMessage = null;
-        this.loadTemplates();
+        this.templates = this.templates.filter(t => t.shiftId !== deletedId);
+        this.cancelDelete();
+        this.isDeleting = false;
+        this.cdr.markForCheck();
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage = this.extractErrorMessage(error, 'Unable to delete shift template.');
+        this.cancelDelete();
+        this.isDeleting = false;
         this.cdr.markForCheck();
       },
     });
