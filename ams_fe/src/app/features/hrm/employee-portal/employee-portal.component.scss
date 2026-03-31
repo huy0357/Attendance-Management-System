@@ -1,1 +1,228 @@
 
+.portal-page {
+  --portal-accent: #2563eb;
+  --portal-accent-soft: #dbeafe;
+  --portal-violet: #7c3aed;
+  --portal-violet-soft: #ede9fe;
+}
+
+.portal-page__intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.portal-shell {
+  overflow: hidden;
+}
+
+.portal-shell__body {
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.portal-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border: 1px solid #dbeafe;
+  border-radius: 1.75rem;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 60%, #ffffff 100%);
+  padding: 1.75rem;
+}
+
+.portal-hero__content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.portal-hero__avatar {
+  flex-shrink: 0;
+}
+
+.portal-hero__avatar-image,
+.portal-hero__avatar-fallback {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 9999px;
+}
+
+.portal-hero__avatar-image {
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.15);
+}
+
+.portal-hero__avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
+}
+
+.portal-hero__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+.portal-hero__name {
+  margin: 0;
+  font-size: clamp(1.75rem, 2vw, 2.25rem);
+  line-height: 1.1;
+  color: #0f172a;
+}
+
+.portal-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.portal-hero__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.portal-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.875rem;
+  min-width: min(100%, 420px);
+}
+
+.portal-hero__stat {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #e2e8f0;
+  padding: 1rem;
+}
+
+.portal-hero__stat-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.portal-hero__stat-value {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.portal-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1.5rem;
+  background: #ffffff;
+  padding: 1.5rem;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.04);
+}
+
+.portal-card__header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.portal-card__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.portal-card__subtitle {
+  margin: 0.3rem 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.portal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.5rem;
+}
+
+.portal-info-item {
+  min-height: 88px;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.portal-info-item__label {
+  margin: 0 0 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.portal-info-item__value {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #111827;
+  word-break: break-word;
+}
+
+.portal-info-item:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+@media (max-width: 1023px) {
+  .portal-hero__stats {
+    grid-template-columns: 1fr;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .portal-hero {
+    padding: 1.25rem;
+  }
+
+  .portal-hero__content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .portal-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-info-item:nth-last-child(-n + 2) {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .portal-info-item:last-child {
+    border-bottom: 0;
+  }
+}

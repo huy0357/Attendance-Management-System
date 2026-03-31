@@ -8,13 +8,6 @@
       <div class="flex items-center gap-3">
         <button
           type="button"
-          (click)="openAssignRangeModal()"
-          class="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm"
-        >
-          Assign Range
-        </button>
-        <button
-          type="button"
           (click)="goToPreviousWeek()"
           class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
         >
@@ -33,6 +26,13 @@
           class="px-3 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors text-sm"
         >
           Next
+        </button>
+        <button
+          type="button"
+          (click)="openAssignRangeModal()"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
+        >
+          Assign Range
         </button>
       </div>
     </div>
@@ -253,104 +253,107 @@
   </div>
 
   <div *ngIf="showAssignRangeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-    <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
-      <div class="mb-6 flex items-center justify-between">
+    <div class="assign-range-modal">
+      <div class="assign-range-modal__header">
         <div>
           <h2 class="text-2xl font-bold text-slate-900">Assign Shift Range</h2>
-          <p class="text-sm text-slate-600">
-            Uses backend <code>POST /api/v1/schedules/assign-range</code> with the full assign-range payload.
+          <p class="mt-1 text-sm text-slate-600">
+            Assign a specific shift template to an employee over a date range.
           </p>
         </div>
         <button
           type="button"
           (click)="closeAssignRangeModal()"
-          class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          class="assign-range-modal__icon-button"
+          aria-label="Close assign shift range modal"
         >
-          Close
+          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
         </button>
       </div>
 
-      <form [formGroup]="assignRangeForm" class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div class="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Use this modal when one employee needs the same shift across a date range. Single-day drag-drop stays available in the weekly grid.
-        </div>
+      <div class="assign-range-modal__body">
+        <form [formGroup]="assignRangeForm" class="assign-range-form">
+          <div class="assign-range-form__field">
+            <label class="assign-range-form__label">Find Employee</label>
+            <input
+              type="text"
+              [(ngModel)]="assignRangeEmployeeSearch"
+              [ngModelOptions]="{ standalone: true }"
+              class="assign-range-form__control"
+              placeholder="Search by employee name, code, department, or ID"
+            />
+          </div>
 
-        <div class="md:col-span-2">
-          <label class="mb-2 block text-sm font-medium text-slate-700">Find Employee</label>
-          <input
-            type="text"
-            [(ngModel)]="assignRangeEmployeeSearch"
-            [ngModelOptions]="{ standalone: true }"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2"
-            placeholder="Search by employee name, code, department, or ID"
-          />
-        </div>
+          <div class="assign-range-form__field">
+            <label class="assign-range-form__label">Select Employee</label>
+            <select formControlName="employeeId" class="assign-range-form__control">
+              <option [ngValue]="null">Select employee</option>
+              <option *ngFor="let employee of filteredAssignRangeEmployees; trackBy: trackByEmployee" [ngValue]="$any(employee.id)">
+                {{ employee.name }} (ID {{ employee.id }}){{ employee.employeeCode ? ' - ' + employee.employeeCode : '' }}{{ employee.department ? ' - ' + employee.department : '' }}
+              </option>
+            </select>
+            <p *ngIf="filteredAssignRangeEmployees.length === 0" class="assign-range-form__hint">
+              No employee matches the current search.
+            </p>
+          </div>
 
-        <div>
-          <label class="mb-2 block text-sm font-medium text-slate-700">Employee</label>
-          <select formControlName="employeeId" class="w-full rounded-lg border border-slate-200 px-3 py-2">
-            <option [ngValue]="null">Select employee</option>
-            <option *ngFor="let employee of filteredAssignRangeEmployees; trackBy: trackByEmployee" [ngValue]="$any(employee.id)">
-              {{ employee.name }} (ID {{ employee.id }}){{ employee.employeeCode ? ' - ' + employee.employeeCode : '' }}{{ employee.department ? ' - ' + employee.department : '' }}
-            </option>
-          </select>
-          <p *ngIf="filteredAssignRangeEmployees.length === 0" class="mt-2 text-sm text-slate-500">
-            No employee matches the current search.
-          </p>
-        </div>
+          <div class="assign-range-form__field">
+            <label class="assign-range-form__label">Start Date</label>
+            <input type="date" formControlName="startDate" class="assign-range-form__control" />
+          </div>
 
-        <div>
-          <label class="mb-2 block text-sm font-medium text-slate-700">Shift Template</label>
-          <select formControlName="shiftId" class="w-full rounded-lg border border-slate-200 px-3 py-2">
-            <option [ngValue]="null">Select shift template</option>
-            <option *ngFor="let template of templates" [ngValue]="$any(template.id)">
-              {{ template.name }} - {{ template.time }}
-            </option>
-          </select>
-        </div>
+          <div class="assign-range-form__field">
+            <label class="assign-range-form__label">End Date</label>
+            <input type="date" formControlName="endDate" class="assign-range-form__control" />
+          </div>
 
-        <div>
-          <label class="mb-2 block text-sm font-medium text-slate-700">Start Date</label>
-          <input type="date" formControlName="startDate" class="w-full rounded-lg border border-slate-200 px-3 py-2" />
-        </div>
+          <div class="assign-range-form__field">
+            <label class="assign-range-form__label">Shift Template</label>
+            <select formControlName="shiftId" class="assign-range-form__control">
+              <option [ngValue]="null">Select shift template</option>
+              <option *ngFor="let template of templates" [ngValue]="$any(template.id)">
+                {{ template.name }} - {{ template.time }}
+              </option>
+            </select>
+          </div>
 
-        <div>
-          <label class="mb-2 block text-sm font-medium text-slate-700">End Date</label>
-          <input type="date" formControlName="endDate" class="w-full rounded-lg border border-slate-200 px-3 py-2" />
-        </div>
-        <div *ngIf="assignRangeForm.hasError('invalidDateRange') && (assignRangeForm.touched || assignRangeForm.dirty)" class="md:col-span-2 text-sm text-red-600">
-          End date must be on or after start date to match the backend assign-range rule.
-        </div>
+          <div class="assign-range-form__field">
+            <label class="assign-range-form__label">Schedule Source</label>
+            <select formControlName="scheduleSource" class="assign-range-form__control">
+              <option value="MANUAL">MANUAL</option>
+              <option value="IMPORT">IMPORT</option>
+            </select>
+          </div>
 
-        <div>
-          <label class="mb-2 block text-sm font-medium text-slate-700">Schedule Source</label>
-          <select formControlName="scheduleSource" class="w-full rounded-lg border border-slate-200 px-3 py-2">
-            <option value="MANUAL">MANUAL</option>
-            <option value="IMPORT">IMPORT</option>
-          </select>
-        </div>
+          <div class="assign-range-form__field assign-range-form__field--full">
+            <label class="assign-range-form__label">Note</label>
+            <textarea
+              formControlName="note"
+              rows="4"
+              class="assign-range-form__control assign-range-form__control--textarea"
+              placeholder="Optional note stored with each assigned day"
+            ></textarea>
+          </div>
 
-        <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
-          <input type="checkbox" formControlName="overwrite" class="rounded border-slate-300" />
-          Overwrite existing schedule on the same work date
-        </label>
+          <label class="assign-range-form__checkbox assign-range-form__field--full">
+            <input type="checkbox" formControlName="overwrite" class="rounded border-slate-300" />
+            <span>Overwrite existing schedule on the same work date</span>
+          </label>
 
-        <div class="md:col-span-2">
-          <label class="mb-2 block text-sm font-medium text-slate-700">Note</label>
-          <textarea
-            formControlName="note"
-            rows="3"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2"
-            placeholder="Optional note stored with each assigned day"
-          ></textarea>
-        </div>
-      </form>
+          <div
+            *ngIf="assignRangeForm.hasError('invalidDateRange') && (assignRangeForm.touched || assignRangeForm.dirty)"
+            class="assign-range-form__error assign-range-form__field--full"
+          >
+            End date must be on or after start date.
+          </div>
+        </form>
+      </div>
 
-      <div class="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-6">
+      <div class="assign-range-modal__footer">
         <button
           type="button"
           (click)="closeAssignRangeModal()"
-          class="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50"
+          class="assign-range-modal__action assign-range-modal__action--secondary"
         >
           Cancel
         </button>
@@ -358,9 +361,9 @@
           type="button"
           (click)="submitAssignRange()"
           [disabled]="isAssigningRange"
-          class="rounded-lg bg-amber-600 px-4 py-2 text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+          class="assign-range-modal__action assign-range-modal__action--primary"
         >
-          {{ isAssigningRange ? 'Assigning...' : 'Assign Range' }}
+          {{ isAssigningRange ? 'Assigning...' : 'Assign Shift' }}
         </button>
       </div>
     </div>

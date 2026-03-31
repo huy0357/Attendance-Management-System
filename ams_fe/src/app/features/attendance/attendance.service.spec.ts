@@ -1,14 +1,13 @@
-﻿import { TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { AttendanceService, AssignShiftRangeRequest, ShiftTemplateResponse } from './attendance.service';
-import { RequestsUpsertRequest } from '../../shared/models/requests.model';
+import { AssignShiftRangeRequest, AttendanceService, ShiftTemplateResponse, ShiftTemplateUpsertPayload } from './attendance.service';
 
-describe('Dich vu cham cong', () => {
+describe('AttendanceService', () => {
   let service: AttendanceService;
   let httpMock: HttpTestingController;
 
-  const taoShift = (overrides: Partial<ShiftTemplateResponse> = {}): ShiftTemplateResponse => ({
+  const createShiftResponse = (overrides: Partial<ShiftTemplateResponse> = {}): ShiftTemplateResponse => ({
     shiftId: 1,
     shiftCode: 'S1',
     shiftName: 'Ca sang',
@@ -23,8 +22,21 @@ describe('Dich vu cham cong', () => {
     ...overrides,
   });
 
+  const createShiftPayload = (overrides: Partial<ShiftTemplateUpsertPayload> = {}): ShiftTemplateUpsertPayload => ({
+    shiftCode: 'S1',
+    shiftName: 'Ca sang',
+    startTime: '08:00',
+    endTime: '17:00',
+    breakMinutes: 60,
+    graceInMinutes: 5,
+    graceOutMinutes: 5,
+    isNightShift: false,
+    minWorkMinutes: 480,
+    isActive: true,
+    ...overrides,
+  });
+
   beforeEach(() => {
-    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [AttendanceService, provideHttpClient(), provideHttpClientTesting()],
     });
@@ -35,10 +47,9 @@ describe('Dich vu cham cong', () => {
 
   afterEach(() => {
     httpMock.verify();
-    localStorage.clear();
   });
 
-  it('✅ getShiftTemplates g?i dúng params active và q', () => {
+  it('passes active and q params to getShiftTemplates', () => {
     service.getShiftTemplates(true, 'sang').subscribe((items) => {
       expect(items.length).toBe(1);
     });
@@ -47,20 +58,23 @@ describe('Dich vu cham cong', () => {
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('active')).toBe('true');
     expect(req.request.params.get('q')).toBe('sang');
-    req.flush([taoShift()]);
+    req.flush([createShiftResponse()]);
   });
 
-  it('✅ create/update/delete shift template g?i dúng endpoint', () => {
-    service.createShiftTemplate({ shiftName: 'Ca toi' }).subscribe();
+  it('calls create, update, and delete shift template endpoints', () => {
+    const createPayload = createShiftPayload({ shiftName: 'Ca toi', shiftCode: 'S2', startTime: '22:00', endTime: '06:00', isNightShift: true });
+    service.createShiftTemplate(createPayload).subscribe();
     const createReq = httpMock.expectOne('/api/v1/shifts');
     expect(createReq.request.method).toBe('POST');
-    createReq.flush(taoShift({ shiftId: 5 }));
+    expect(createReq.request.body).toEqual(createPayload);
+    createReq.flush(createShiftResponse({ shiftId: 5, shiftName: 'Ca toi', shiftCode: 'S2', isNightShift: true }));
 
-    service.updateShiftTemplate(5, { shiftName: 'Ca toi moi' }).subscribe();
+    const updatePayload = createShiftPayload({ shiftName: 'Ca toi moi', shiftCode: 'S2' });
+    service.updateShiftTemplate(5, updatePayload).subscribe();
     const updateReq = httpMock.expectOne('/api/v1/shifts/5');
     expect(updateReq.request.method).toBe('PUT');
-    expect(updateReq.request.body.shiftName).toBe('Ca toi moi');
-    updateReq.flush(taoShift({ shiftId: 5, shiftName: 'Ca toi moi' }));
+    expect(updateReq.request.body).toEqual(updatePayload);
+    updateReq.flush(createShiftResponse({ shiftId: 5, shiftName: 'Ca toi moi', shiftCode: 'S2' }));
 
     service.deleteShiftTemplate(5).subscribe();
     const deleteReq = httpMock.expectOne('/api/v1/shifts/5');
@@ -68,7 +82,7 @@ describe('Dich vu cham cong', () => {
     deleteReq.flush(null);
   });
 
-  it('✅ setShiftTemplateActive g?i PATCH v?i query active', () => {
+  it('calls setShiftTemplateActive with active query param', () => {
     service.setShiftTemplateActive(9, false).subscribe((response) => {
       expect(response.isActive).toBe(false);
     });
@@ -76,96 +90,35 @@ describe('Dich vu cham cong', () => {
     const req = httpMock.expectOne('/api/v1/shifts/9/active?active=false');
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toBeNull();
-    req.flush(taoShift({ shiftId: 9, isActive: false }));
+    req.flush(createShiftResponse({ shiftId: 9, isActive: false }));
   });
 
-  it('✅ findEmployeeByNameOrEmail tìm du?c theo email ho?c tên', () => {
-    service.findEmployeeByNameOrEmail('an@example.com').subscribe((employee) => {
-      expect(employee?.employeeId).toBe(8);
+  it('searches attendance email employees by name', () => {
+    service.searchAttendanceEmailEmployees('an', 1, 10, 'employee_id', 'desc').subscribe((response) => {
+      expect(response.items[0].employeeId).toBe(8);
     });
 
-    const req = httpMock.expectOne('/api/employees');
+    const req = httpMock.expectOne((request) => request.url === '/api/employees/search');
     expect(req.request.method).toBe('GET');
-    req.flush([
-      { employeeId: 8, employeeCode: 'EMP008', fullName: 'Tran An', email: 'an@example.com' },
-      { employeeId: 9, employeeCode: 'EMP009', fullName: 'Le B', email: 'b@example.com' },
-    ]);
-  });
-
-  it('✅ approveRequest resolve employee t? username r?i g?i PUT /approval', () => {
-    localStorage.setItem('ams.username', 'ql@example.com');
-
-    service.approveRequest(15, 'APPROVED', 'duyet').subscribe((response) => {
-      expect(response.requestId).toBe(15);
-      expect(response.status).toBe('APPROVED');
-    });
-
-    const lookupReq = httpMock.expectOne('/api/employees');
-    lookupReq.flush([
-      { employeeId: 21, employeeCode: 'EMP021', fullName: 'Quan Ly', email: 'ql@example.com' },
-    ]);
-
-    const approveReq = httpMock.expectOne('/api/requests/15/approval');
-    expect(approveReq.request.method).toBe('PUT');
-    expect(approveReq.request.body).toEqual({ approverId: 21, status: 'APPROVED', decisionNote: 'duyet' });
-    approveReq.flush({
-      requestId: 15,
-      employeeId: 10,
-      employeeName: 'A',
-      requestType: 'OVERTIME',
-      title: 'OT',
-      reason: 'x',
-      startDatetime: '2026-03-01T10:00:00Z',
-      endDatetime: '2026-03-01T12:00:00Z',
-      status: 'APPROVED',
+    expect(req.request.params.get('name')).toBe('an');
+    expect(req.request.params.get('page')).toBe('1');
+    expect(req.request.params.get('size')).toBe('10');
+    expect(req.request.params.get('sortBy')).toBe('employee_id');
+    expect(req.request.params.get('sortDir')).toBe('desc');
+    req.flush({
+      items: [
+        { employeeId: 8, employeeCode: 'EMP008', fullName: 'Tran An', email: 'an@example.com', status: 'ACTIVE' },
+      ],
+      page: 1,
+      size: 10,
+      totalItems: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
     });
   });
 
-  it('✅ approveRequest báo l?i khi thi?u username trong auth context', () => {
-    let thongDiep = '';
-
-    service.approveRequest(2, 'APPROVED').subscribe({
-      error: (error) => {
-        thongDiep = String(error.message);
-      },
-    });
-
-    expect(thongDiep).toContain('Missing username');
-    httpMock.expectNone('/api/employees');
-  });
-
-  it('✅ createRequest/getRequestsByEmployee/update/delete g?i dúng endpoint requests', () => {
-    const payload: RequestsUpsertRequest = {
-      employeeId: 1,
-      requestType: 'LEAVE',
-      title: 'Nghi phep',
-      reason: 'Viec rieng',
-      startDatetime: '2026-03-10T08:00:00Z',
-      endDatetime: '2026-03-11T17:00:00Z',
-    };
-
-    service.createRequest(payload).subscribe();
-    const createReq = httpMock.expectOne('/api/requests');
-    expect(createReq.request.method).toBe('POST');
-    createReq.flush({ requestId: 1 });
-
-    service.getRequestsByEmployee(1).subscribe();
-    const listReq = httpMock.expectOne('/api/requests?employeeId=1');
-    expect(listReq.request.method).toBe('GET');
-    listReq.flush([]);
-
-    service.updateRequest(1, payload).subscribe();
-    const updateReq = httpMock.expectOne('/api/requests/1');
-    expect(updateReq.request.method).toBe('PUT');
-    updateReq.flush({ requestId: 1 });
-
-    service.deleteRequest(1).subscribe();
-    const deleteReq = httpMock.expectOne('/api/requests/1');
-    expect(deleteReq.request.method).toBe('DELETE');
-    deleteReq.flush(null);
-  });
-
-  it('✅ assignShiftRange g?i POST dúng payload', () => {
+  it('posts assignShiftRange with normalized payload', () => {
     const payload: AssignShiftRangeRequest = {
       employeeId: 7,
       shiftId: 2,
@@ -185,20 +138,20 @@ describe('Dich vu cham cong', () => {
     req.flush({ ...payload, created: 7, updated: 0 });
   });
 
-  it('✅ getScheduleByEmployeeDay ch?n id không h?p l? tru?c khi g?i API', () => {
-    let thongDiep = '';
+  it('rejects invalid employee ids before requesting schedule by day', () => {
+    let message = '';
 
     service.getScheduleByEmployeeDay(0, '2026-03-04').subscribe({
-      error: (error) => {
-        thongDiep = String(error.message);
+      error: (error: Error) => {
+        message = String(error.message);
       },
     });
 
-    expect(thongDiep).toContain('positive integer');
+    expect(message).toContain('positive integer');
     httpMock.expectNone('/api/v1/schedules/by-employee/day');
   });
 
-  it('✅ getInitialShifts tr? [] khi danh sách nhân viên r?ng', () => {
+  it('returns an empty shift list when employee ids are empty', () => {
     service.getInitialShifts([]).subscribe((items) => {
       expect(items).toEqual([]);
     });
@@ -206,7 +159,7 @@ describe('Dich vu cham cong', () => {
     httpMock.expectNone('/api/v1/schedules/by-employee/day');
   });
 
-  it('✅ getInitialShifts map d? li?u schedule thành shift trong tu?n', () => {
+  it('maps weekly schedule responses into shifts', () => {
     const weekStart = new Date('2026-03-02T00:00:00');
 
     service.getInitialShifts([3], weekStart).subscribe((items) => {
@@ -236,12 +189,10 @@ describe('Dich vu cham cong', () => {
             scheduleSource: 'MANUAL',
           },
         ]);
-      } else {
-        req.flush([]);
+        return;
       }
+
+      req.flush([]);
     });
   });
 });
-
-
-

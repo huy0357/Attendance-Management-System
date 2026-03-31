@@ -14,6 +14,8 @@ export class EmployeePortalComponent implements OnInit {
   employee: ProfileRecord | null = null;
   isLoadingProfile = true;
   profileErrorMessage = '';
+  avatarImageFailed = false;
+
   constructor(
     private readonly profileService: ProfileService,
     private readonly cdr: ChangeDetectorRef
@@ -41,9 +43,36 @@ export class EmployeePortalComponent implements OnInit {
     return String(value);
   }
 
+  get shouldShowAvatarImage(): boolean {
+    return Boolean(this.employee?.avatarUrl) && !this.avatarImageFailed;
+  }
+
+  get employeeDisplayName(): string {
+    return this.employee?.fullName || this.employee?.username || 'Employee';
+  }
+
+  get employeeAvatarText(): string {
+    const provided = (this.employee?.avatarLabel || '').trim();
+    if (provided) {
+      return provided.slice(0, 2).toUpperCase();
+    }
+
+    return this.employeeDisplayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || '')
+      .join('') || 'EM';
+  }
+
+  onAvatarError(): void {
+    this.avatarImageFailed = true;
+  }
+
   private loadProfile(): void {
     this.isLoadingProfile = true;
     this.profileErrorMessage = '';
+    this.avatarImageFailed = false;
 
     this.profileService.getMyProfile()
       .pipe(finalize(() => {
@@ -75,6 +104,6 @@ export class EmployeePortalComponent implements OnInit {
       return backendMessage;
     }
 
-    return 'Unable to load your profile from GET /api/v1/profile/me.';
+    return 'Unable to load your profile right now. Please try again later.';
   }
 }

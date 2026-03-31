@@ -24,6 +24,13 @@ describe('Dich vu xac thuc', () => {
     ...overrides,
   });
 
+  const taoApiResponse = (data: AuthResponse) => ({
+    success: true,
+    data,
+    message: 'OK',
+    timestamp: '2026-01-01T00:00:00Z',
+  });
+
   beforeEach(() => {
     localStorage.clear();
     TestBed.configureTestingModule({
@@ -50,7 +57,7 @@ describe('Dich vu xac thuc', () => {
     const req = httpMock.expectOne('/api/auth/login');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ username: 'admin', password: '123456' });
-    req.flush(taoAuthResponse());
+    req.flush(taoApiResponse(taoAuthResponse()));
   });
 
   it('✅ tra loi khi refresh token bi thieu', async () => {
@@ -68,7 +75,7 @@ describe('Dich vu xac thuc', () => {
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ refreshToken: 'r1' });
 
-    req.flush(taoAuthResponse({ accessToken: 'new-access' }));
+    req.flush(taoApiResponse(taoAuthResponse({ accessToken: 'new-access' })));
 
     expect(ketQua).toEqual(['new-access', 'new-access']);
   });

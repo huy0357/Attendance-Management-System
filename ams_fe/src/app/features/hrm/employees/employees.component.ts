@@ -1,6 +1,5 @@
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DepartmentDto, EmployeeDto, EmployeeService, PositionDto } from './employee.service';
@@ -37,10 +36,12 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   @ViewChild('pageHeading') private pageHeading?: ElementRef<HTMLElement>;
 
   searchQuery = '';
+  showDetailsModal = false;
   showAddModal = false;
   showEditModal = false;
   showDeleteModal = false;
   showRoleModal = false;
+  detailEmployee: UiEmployee | null = null;
   selectedEmployee: UiEmployee | null = null;
   viewMode: 'grid' | 'table' = 'table';
 
@@ -83,7 +84,6 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private employeeService: EmployeeService,
     private authService: AuthService,
-    private router: Router,
     private cdr: ChangeDetectorRef,
   ) {
     this.addForm = this.fb.group({
@@ -141,10 +141,6 @@ export class EmployeesComponent implements OnInit, OnDestroy {
 
   get canManageEmployeeRoles(): boolean {
     return this.authService.hasRole('ADMIN');
-  }
-
-  get canOpenOtherEmployeeAttendance(): boolean {
-    return this.authService.hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   }
 
   getDepartmentName(id: number | null | undefined): string {
@@ -212,6 +208,16 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.showAddModal = false;
   }
 
+  openDetailsModal(employee: UiEmployee): void {
+    this.detailEmployee = employee;
+    this.showDetailsModal = true;
+  }
+
+  closeDetailsModal(): void {
+    this.showDetailsModal = false;
+    this.detailEmployee = null;
+  }
+
   handleAddEmployee(): void {
     if (this.addForm.invalid) {
       this.addForm.markAllAsTouched();
@@ -256,6 +262,16 @@ export class EmployeesComponent implements OnInit, OnDestroy {
   closeEditModal(): void {
     this.showEditModal = false;
     this.selectedEmployee = null;
+  }
+
+  openEditFromDetails(): void {
+    if (!this.detailEmployee) {
+      return;
+    }
+
+    const employee = this.detailEmployee;
+    this.closeDetailsModal();
+    this.openEditModal(employee);
   }
 
   handleEditEmployee(): void {
@@ -303,6 +319,16 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.selectedEmployee = null;
   }
 
+  openDeleteFromDetails(): void {
+    if (!this.detailEmployee) {
+      return;
+    }
+
+    const employee = this.detailEmployee;
+    this.closeDetailsModal();
+    this.openDeleteModal(employee);
+  }
+
   openRoleModal(employee: UiEmployee): void {
     this.selectedEmployee = employee;
     this.showRoleModal = true;
@@ -322,6 +348,16 @@ export class EmployeesComponent implements OnInit, OnDestroy {
     this.selectedRoleId = null;
     this.roleModalError = '';
     this.roleModalMessage = '';
+  }
+
+  openRoleFromDetails(): void {
+    if (!this.detailEmployee) {
+      return;
+    }
+
+    const employee = this.detailEmployee;
+    this.closeDetailsModal();
+    this.openRoleModal(employee);
   }
 
   assignSelectedRole(): void {
@@ -376,16 +412,6 @@ export class EmployeesComponent implements OnInit, OnDestroy {
         this.roleModalError = this.resolveApiError(error, 'Unable to remove role.');
       },
     });
-  }
-
-  navigateToAttendance(employee: UiEmployee): void {
-    const employeeId = Number(employee.id);
-    if (!Number.isFinite(employeeId)) {
-      alert('Invalid employee ID.');
-      return;
-    }
-
-    this.router.navigate(['/attendance/attendance-daily/employee', employeeId]);
   }
 
   handleDeleteEmployee(): void {

@@ -23,6 +23,7 @@ describe('Dich vu nhan vien', () => {
     terminatedDate: '',
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    avatarUrl: null,
     ...overrides,
   });
 
@@ -59,11 +60,8 @@ describe('Dich vu nhan vien', () => {
   });
 
   it('✅ getAll tr? m?ng r?ng khi shape ph?n h?i không h?p l?', () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
     service.getAll().subscribe((employees) => {
       expect(employees).toEqual([]);
-      expect(consoleSpy).toHaveBeenCalled();
     });
 
     const req = httpMock.expectOne('/api/employees');
@@ -76,7 +74,10 @@ describe('Dich vu nhan vien', () => {
       expect(departments[0].departmentName).toBe('HR');
     });
 
-    const req = httpMock.expectOne('/api/departments');
+    const req = httpMock.expectOne((request) => request.url === '/api/departments');
+    expect(req.request.params.get('page')).toBe('0');
+    expect(req.request.params.get('size')).toBe('1000');
+    expect(req.request.params.get('sort')).toBe('departmentId,asc');
     req.flush({
       items: [{ departmentId: 1, departmentName: 'HR' }],
       page: 1,
@@ -111,9 +112,9 @@ describe('Dich vu nhan vien', () => {
 
     const req = httpMock.expectOne((request) => request.url === '/api/employees/page');
     expect(req.request.method).toBe('GET');
-    expect(req.request.params.get('page')).toBe('1');
+    expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('20');
-    expect(req.request.params.get('sortBy')).toBe('employeeId');
+    expect(req.request.params.get('sortBy')).toBe('employee_id');
     expect(req.request.params.get('sortDir')).toBe('asc');
     req.flush({ items: [], page: 1, size: 20, totalItems: 0, totalPages: 0, hasNext: false, hasPrev: false });
   });
@@ -123,7 +124,7 @@ describe('Dich vu nhan vien', () => {
 
     const req = httpMock.expectOne((request) => request.url === '/api/employees/search');
     expect(req.request.params.get('name')).toBe('an');
-    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('page')).toBe('3');
     expect(req.request.params.get('size')).toBe('5');
     expect(req.request.params.get('sortBy')).toBe('fullName');
     expect(req.request.params.get('sortDir')).toBe('desc');

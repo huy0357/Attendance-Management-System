@@ -92,19 +92,21 @@
     </div>
   </div>
 
-  <div *ngIf="viewMode === 'table'" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-    <div class="overflow-x-auto">
-      <table class="w-full">
+  <div *ngIf="viewMode === 'table'" class="rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div class="employees-table-wrapper">
+      <table class="employees-table w-full">
+        <colgroup>
+          <col class="employees-table__col employees-table__col--employee" />
+          <col class="employees-table__col employees-table__col--code" />
+          <col class="employees-table__col employees-table__col--status" />
+          <col class="employees-table__col employees-table__col--actions" />
+        </colgroup>
         <thead class="border-b border-gray-200 bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Employee</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Employee Code</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Email</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Department</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Position</th>
             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-600">Hire Date</th>
-            <th class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-600">Actions</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-600">Action</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
@@ -121,48 +123,20 @@
               </div>
             </td>
             <td class="px-6 py-4 text-gray-900">{{ employee.employeeCode || '-' }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ employee.email || '-' }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ getDepartmentName(employee.departmentId) }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ getPositionName(employee.positionId) }}</td>
             <td class="px-6 py-4">
               <span class="rounded-full px-2 py-1 text-xs font-medium" [ngClass]="getStatusColor(employee.status)">
                 {{ getStatusLabel(employee.status) }}
               </span>
             </td>
-            <td class="px-6 py-4 text-gray-900">{{ formatDate(employee.hireDate) }}</td>
             <td class="px-6 py-4">
-              <div class="flex items-center justify-end gap-2">
+              <div class="flex items-center justify-end">
                 <button
-                  *ngIf="canOpenOtherEmployeeAttendance"
-                  (click)="navigateToAttendance(employee)"
-                  class="rounded-lg px-2 py-1 text-sm text-emerald-700 transition-colors hover:bg-emerald-50"
-                  title="Attendance Daily"
+                  type="button"
+                  (click)="openDetailsModal(employee)"
+                  class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  title="View details"
                 >
-                  Attendance
-                </button>
-                <button
-                  *ngIf="canManageEmployeeRoles"
-                  (click)="openRoleModal(employee)"
-                  class="rounded-lg px-2 py-1 text-sm text-violet-700 transition-colors hover:bg-violet-50"
-                  title="Assign or remove role"
-                >
-                  Role
-                </button>
-                <button
-                  *ngIf="canManageEmployees"
-                  (click)="openEditModal(employee)"
-                  class="rounded-lg p-2 transition-colors hover:bg-gray-100"
-                  title="Edit"
-                >
-                  &#9999;&#65039;
-                </button>
-                <button
-                  *ngIf="canManageEmployees"
-                  (click)="openDeleteModal(employee)"
-                  class="rounded-lg p-2 transition-colors hover:bg-red-50"
-                  title="Delete"
-                >
-                  &#128465;&#65039;
+                  View Details
                 </button>
               </div>
             </td>
@@ -213,42 +187,18 @@
       </div>
 
       <div class="space-y-2 text-sm text-gray-600">
+        <div>Employee Code: <span class="text-gray-900">{{ employee.employeeCode || '-' }}</span></div>
         <div>Email: <span class="text-gray-900">{{ employee.email || '-' }}</span></div>
-        <div>Phone: <span class="text-gray-900">{{ employee.phone || '-' }}</span></div>
         <div>Department: <span class="text-gray-900">{{ getDepartmentName(employee.departmentId) }}</span></div>
-        <div>Position: <span class="text-gray-900">{{ getPositionName(employee.positionId) }}</span></div>
-        <div>Manager ID: <span class="text-gray-900">{{ formatOptionalNumber(employee.managerId) }}</span></div>
-        <div>Hire Date: <span class="text-gray-900">{{ formatDate(employee.hireDate) }}</span></div>
       </div>
 
-      <div class="mt-4 flex items-center gap-2 border-t border-gray-200 pt-4">
+      <div class="mt-4 border-t border-gray-200 pt-4">
         <button
-          *ngIf="canOpenOtherEmployeeAttendance"
-          (click)="navigateToAttendance(employee)"
-          class="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700 transition-colors hover:bg-emerald-100"
+          type="button"
+          (click)="openDetailsModal(employee)"
+          class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
-          Attendance
-        </button>
-        <button
-          *ngIf="canManageEmployeeRoles"
-          (click)="openRoleModal(employee)"
-          class="rounded-lg bg-violet-50 px-3 py-2 text-violet-700 transition-colors hover:bg-violet-100"
-        >
-          Role
-        </button>
-        <button
-          *ngIf="canManageEmployees"
-          (click)="openEditModal(employee)"
-          class="flex-1 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
-        >
-          Edit
-        </button>
-        <button
-          *ngIf="canManageEmployees"
-          (click)="openDeleteModal(employee)"
-          class="rounded-lg bg-red-50 px-3 py-2 text-red-600 transition-colors hover:bg-red-100"
-        >
-          Delete
+          View Details
         </button>
       </div>
     </div>
@@ -277,6 +227,98 @@
       >
         Next
       </button>
+    </div>
+  </div>
+
+  <div
+    *ngIf="showDetailsModal && detailEmployee"
+    class="employee-modal-backdrop z-50 flex items-center justify-center bg-gray-900/50 p-8"
+    (click)="closeDetailsModal()"
+  >
+    <div class="employee-details-modal w-full max-w-4xl rounded-2xl bg-white p-8 shadow-2xl" (click)="$event.stopPropagation()">
+      <div class="mb-6 flex items-start justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-lg font-bold text-white">
+            {{ detailEmployee.avatar }}
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">{{ detailEmployee.fullName }}</h2>
+            <p class="text-sm text-gray-600">Employee ID {{ detailEmployee.id }}</p>
+          </div>
+        </div>
+        <button type="button" (click)="closeDetailsModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100" title="Close">
+          &#10006;&#65039;
+        </button>
+      </div>
+
+      <div class="employee-details-grid">
+        <div class="employee-details-card">
+          <p class="employee-details-card__label">Employee Name</p>
+          <p class="employee-details-card__value">{{ detailEmployee.fullName }}</p>
+        </div>
+        <div class="employee-details-card">
+          <p class="employee-details-card__label">Employee Code</p>
+          <p class="employee-details-card__value">{{ detailEmployee.employeeCode || '-' }}</p>
+        </div>
+        <div class="employee-details-card">
+          <p class="employee-details-card__label">Email</p>
+          <p class="employee-details-card__value">{{ detailEmployee.email || '-' }}</p>
+        </div>
+        <div class="employee-details-card">
+          <p class="employee-details-card__label">Department</p>
+          <p class="employee-details-card__value">{{ getDepartmentName(detailEmployee.departmentId) }}</p>
+        </div>
+        <div class="employee-details-card">
+          <p class="employee-details-card__label">Hire Date</p>
+          <p class="employee-details-card__value">{{ formatDate(detailEmployee.hireDate) }}</p>
+        </div>
+        <div class="employee-details-card">
+          <p class="employee-details-card__label">Status</p>
+          <div>
+            <span class="rounded-full px-3 py-1 text-xs font-medium" [ngClass]="getStatusColor(detailEmployee.status)">
+              {{ getStatusLabel(detailEmployee.status) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="employee-details-footer">
+        <button
+          type="button"
+          (click)="closeDetailsModal()"
+          class="employee-details-footer__button employee-details-footer__button--neutral"
+        >
+          Close
+        </button>
+        <button
+          *ngIf="canManageEmployeeRoles"
+          type="button"
+          (click)="openRoleFromDetails()"
+          class="employee-details-footer__button employee-details-footer__button--role"
+        >
+          Manage Role
+        </button>
+        <button
+          *ngIf="canManageEmployees"
+          type="button"
+          (click)="openEditFromDetails()"
+          class="employee-details-footer__button employee-details-footer__button--edit"
+          title="Edit"
+        >
+          <span aria-hidden="true">&#9999;&#65039;</span>
+          <span>Edit</span>
+        </button>
+        <button
+          *ngIf="canManageEmployees"
+          type="button"
+          (click)="openDeleteFromDetails()"
+          class="employee-details-footer__button employee-details-footer__button--delete"
+          title="Delete"
+        >
+          <span aria-hidden="true">&#128465;&#65039;</span>
+          <span>Delete</span>
+        </button>
+      </div>
     </div>
   </div>
 
