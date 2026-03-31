@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { AuthService } from '../../../core/auth/auth.service';
 import { LeaveRequest, RequestsService } from '../../../core/services/requests.service';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   standalone: false,
@@ -24,6 +25,7 @@ export class LeaveManagementComponent implements OnInit {
     private readonly requestsService: RequestsService,
     private authService: AuthService,
     private fb: FormBuilder,
+    private cdr: ChangeDetectorRef,
   ) {
     this.filterForm = this.fb.group({
       searchQuery: [''],
@@ -57,9 +59,10 @@ export class LeaveManagementComponent implements OnInit {
     });
   }
 
-  get stats(): Array<{ label: string; value: number; color: string; bg: string; icon: string }> {
+  get stats(): Array<{ key: 'open' | 'approved' | 'rejected' | 'cancelled-total'; label: string; value: number; color: string; bg: string; icon: string }> {
     return [
       {
+        key: 'open',
         label: 'Open Requests',
         value: this.leaveRequests.filter((request) => this.isOpenStatus(request.status)).length,
         color: 'text-yellow-600',
@@ -67,6 +70,7 @@ export class LeaveManagementComponent implements OnInit {
         icon: 'clock',
       },
       {
+        key: 'approved',
         label: 'Approved Requests',
         value: this.leaveRequests.filter((request) => request.status === 'APPROVED').length,
         color: 'text-green-600',
@@ -74,6 +78,7 @@ export class LeaveManagementComponent implements OnInit {
         icon: 'check-circle',
       },
       {
+        key: 'rejected',
         label: 'Rejected Requests',
         value: this.leaveRequests.filter((request) => request.status === 'REJECTED').length,
         color: 'text-red-600',
@@ -81,17 +86,11 @@ export class LeaveManagementComponent implements OnInit {
         icon: 'x-circle',
       },
       {
-        label: 'Cancelled Requests',
-        value: this.leaveRequests.filter((request) => request.status === 'CANCELLED').length,
-        color: 'text-slate-600',
-        bg: 'bg-slate-50',
-        icon: 'ban',
-      },
-      {
-        label: 'Total Requests',
+        key: 'cancelled-total',
+        label: 'Cancelled / Total',
         value: this.leaveRequests.length,
-        color: 'text-blue-600',
-        bg: 'bg-blue-50',
+        color: 'text-indigo-600',
+        bg: 'bg-indigo-50',
         icon: 'calendar',
       },
     ];
@@ -206,23 +205,32 @@ export class LeaveManagementComponent implements OnInit {
     return request.requestId;
   }
 
-  trackByStatLabel(_: number, stat: { label: string }): string {
-    return stat.label;
+  trackByStatLabel(_: number, stat: { key: string }): string {
+    return stat.key;
   }
 
   private loadLeaveRequests(): void {
     this.isLoading = true;
     this.errorMessage = '';
+    this.cdr.detectChanges();
 
-    this.requestsService.getLeaveRequestsForCurrentEmployee().subscribe({
+    this.requestsService.getLeaveRequestsForCurrentEmployee().pipe(
+      finalize(() => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
       next: (data) => {
-        this.leaveRequests = data;
-        this.isLoading = false;
+        console.log('Raw Data received from BE:', data);
+        this.leaveRequests = Array.isArray(data) ? data : [];
+        this.errorMessage = '';
+        this.cdr.detectChanges();
       },
-      error: () => {
+      error: (error) => {
+        console.error('Fetch Leave Requests Error:', error);
         this.leaveRequests = [];
-        this.errorMessage = 'Unable to load leave requests for the signed-in employee.';
-        this.isLoading = false;
+        this.errorMessage = 'No leave requests found or unable to load data.';
+        this.cdr.detectChanges();
       },
     });
   }

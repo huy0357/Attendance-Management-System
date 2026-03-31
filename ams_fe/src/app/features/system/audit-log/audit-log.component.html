@@ -5,12 +5,6 @@
       <h1 class="page-title">System Audit Logs</h1>
       <p class="page-subtitle">Track and review all system activities</p>
     </div>
-    <div class="action-section">
-      <button class="btn btn-outline" disabled>
-        <i class="icon-download"></i>
-        Export Logs
-      </button>
-    </div>
   </div>
 
   <!-- Filters Toolbar -->
@@ -59,20 +53,16 @@
           <option *ngFor="let mod of modules" [value]="mod">{{ mod }}</option>
         </select>
       </div>
-      
-      <!-- Date Range Mockup (If needed backend support, currently just mockup UI per requirements) -->
-      <div class="filter-group flex-2">
-        <label class="filter-label">Date Range</label>
-        <div class="date-range-wrapper">
-          <input type="date" class="form-control" [(ngModel)]="dateRangeStart" />
-          <span class="separator">-</span>
-          <input type="date" class="form-control" [(ngModel)]="dateRangeEnd" />
-        </div>
-      </div>
 
       <div class="filter-actions">
         <!-- Assuming auto-apply on enter/change, but a clear button is useful -->
-        <button class="btn btn-text" (click)="resetFilter()">Reset</button>
+        <button class="btn btn-reset" (click)="resetFilter()" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M21 3v6h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Reset
+        </button>
       </div>
     </div>
   </div>
@@ -80,100 +70,90 @@
   <!-- Data Table Card -->
   <div class="data-card">
     <div class="table-container">
-      <ng-container *ngIf="(logs$ | async) as logs">
-        
-        <!-- Loading State -->
-        <div class="loading-state" *ngIf="isLoading">
-          <div class="spinner"></div>
-          <p>Loading audit logs...</p>
-        </div>
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading">
+        <div class="spinner"></div>
+        <p>Loading audit logs...</p>
+      </div>
 
-        <!-- Empty State -->
-        <div class="empty-state" *ngIf="!isLoading && logs.length === 0">
-          <div class="empty-icon">
-            <i class="icon-document-text"></i>
-          </div>
-          <h3>No records found</h3>
-          <p>Try adjusting your search or filters.</p>
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!isLoading && logs.length === 0">
+        <div class="empty-icon">
+          <i class="icon-document-text"></i>
         </div>
+        <h3>No records found</h3>
+        <p>Try adjusting your search or filters.</p>
+      </div>
 
-        <!-- Table -->
-        <table class="data-table" *ngIf="!isLoading && logs.length > 0">
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>User</th>
-              <th>Action</th>
-              <th>Module</th>
-              <th class="text-right">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let log of logs">
-              <td class="col-timestamp">
-                <div class="date">{{ log.createdAt | date: 'MMM dd, yyyy' }}</div>
-                <div class="time">{{ log.createdAt | date: 'hh:mm:ss a' }}</div>
-              </td>
-              <td class="col-user">
-                <div class="user-info">
-                  <div class="avatar">{{ getEmployeeName(log.actorId).charAt(0) | uppercase }}</div>
-                  <div>
-                    <div class="primary-text">{{ getEmployeeName(log.actorId) }}</div>
-                    <div class="secondary-text">{{ getEmployeeIdentity(log.actorId) || 'ID: ' + log.actorId }}</div>
-                  </div>
+      <!-- Table -->
+      <table class="data-table" *ngIf="!isLoading && logs.length > 0">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Module</th>
+            <th class="text-center">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of logs">
+            <td class="col-timestamp">
+              <div class="date">{{ log.createdAt | date: 'MMM dd, yyyy' }}</div>
+              <div class="time">{{ log.createdAt | date: 'hh:mm:ss a' }}</div>
+            </td>
+            <td class="col-user">
+              <div class="user-info">
+                <div class="avatar">{{ getEmployeeName(log.actorId).charAt(0) | uppercase }}</div>
+                <div>
+                  <div class="primary-text">{{ getEmployeeName(log.actorId) }}</div>
+                  <div class="secondary-text">{{ getEmployeeIdentity(log.actorId) || 'ID: ' + log.actorId }}</div>
                 </div>
-              </td>
-              <td class="col-action">
-                <span class="badge" [ngClass]="{
-                  'badge-create': log.action === 'CREATE',
-                  'badge-update': log.action === 'UPDATE',
-                  'badge-delete': log.action === 'DELETE',
-                  'badge-login': log.action === 'LOGIN' || log.action === 'LOGOUT',
-                  'badge-default': log.action !== 'CREATE' && log.action !== 'UPDATE' && log.action !== 'DELETE' && log.action !== 'LOGIN' && log.action !== 'LOGOUT'
-                }">
-                  {{ log.action }}
-                </span>
-              </td>
-              <td class="col-module">
-                <span class="module-tag">{{ log.entityType || 'General' }}</span>
-              </td>
-              <td class="col-details text-right">
-                <button class="btn-icon" title="View Details" (click)="openDetailsModal(log)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </td>
+            <td class="col-action">
+              <span class="badge" [ngClass]="getActionBadgeClass(log.action)">
+                {{ log.action }}
+              </span>
+            </td>
+            <td class="col-module">
+              <span class="module-tag">{{ log.entityType || 'General' }}</span>
+            </td>
+            <td class="col-details">
+              <button class="btn-icon" title="View Details" (click)="openDetailsModal(log)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-        <!-- Pagination -->
-        <div class="pagination-footer" *ngIf="!isLoading && logs.length > 0">
-          <div class="pagination-info">
-            Showing {{ (currentPage - 1) * pageSize + 1 }} to 
-            {{ Math.min(currentPage * pageSize, totalElements) || (currentPage * pageSize) }} 
-            of {{ totalElements }} entries
-          </div>
-          <div class="pagination-controls">
-            <select class="form-control page-size-select" [(ngModel)]="pageSize" (change)="changePageSize($event)">
-              <option value="10">10 per page</option>
-              <option value="20">20 per page</option>
-              <option value="50">50 per page</option>
-            </select>
-            
-            <button class="btn btn-outline" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
-              Previous
-            </button>
-            <span class="current-page">Page {{ currentPage }} {{ totalPages ? 'of ' + totalPages : '' }}</span>
-            <button class="btn btn-outline" [disabled]="!totalPages || currentPage === totalPages" (click)="changePage(currentPage + 1)">
-              Next
-            </button>
-          </div>
+      <!-- Pagination -->
+      <div class="pagination-footer" *ngIf="!isLoading && logs.length > 0">
+        <div class="pagination-info">
+          Showing {{ (currentPage - 1) * pageSize + 1 }} to
+          {{ Math.min(currentPage * pageSize, totalElements) || (currentPage * pageSize) }}
+          of {{ totalElements }} entries
         </div>
-
-      </ng-container>
+        <div class="pagination-controls">
+          <select class="form-control page-size-select" [(ngModel)]="pageSize" (change)="changePageSize($event)">
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+          </select>
+          
+          <button class="btn btn-outline" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+            Previous
+          </button>
+          <span class="current-page">Page {{ currentPage }} {{ totalPages ? 'of ' + totalPages : '' }}</span>
+          <button class="btn btn-outline" [disabled]="!totalPages || currentPage === totalPages" (click)="changePage(currentPage + 1)">
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

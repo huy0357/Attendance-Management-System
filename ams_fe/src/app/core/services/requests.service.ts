@@ -9,6 +9,7 @@ import {
 } from '../../shared/models/requests.model';
 import { map, switchMap } from 'rxjs/operators';
 import { ProfileService } from './profile.service';
+import { PageResponse, SpringPage } from '../../shared/models/page-response.model';
 
 export interface LeaveRequest {
   requestId: number;
@@ -39,16 +40,40 @@ export class RequestsService {
   }
 
   submitRequest(id: number): Observable<RequestsResponse> {
-    return this.http.put<RequestsResponse>(`${this.baseUrl}/${id}/submit`, null);
+    return this.submitRequestByEmployee(id, null);
   }
 
-  getMyRequests(employeeId: number): Observable<RequestsResponse[]> {
-    const params = new HttpParams().set('employeeId', employeeId.toString());
-    return this.http.get<RequestsResponse[]>(this.baseUrl, { params });
+  submitRequestByEmployee(id: number, employeeId: number | null): Observable<RequestsResponse> {
+    let params = new HttpParams();
+    if (employeeId && employeeId > 0) {
+      params = params.set('employeeId', employeeId.toString());
+    }
+    return this.http.put<RequestsResponse>(`${this.baseUrl}/${id}/submit`, null, { params });
   }
 
-  getRequestsByEmployee(employeeId: number): Observable<RequestsResponse[]> {
-    return this.getMyRequests(employeeId);
+  getMyRequests(
+    employeeId: number,
+    status?: RequestsResponse['status'] | '',
+    requestType?: RequestsResponse['requestType'] | '',
+  ): Observable<RequestsResponse[]> {
+    let params = new HttpParams().set('employeeId', employeeId.toString());
+    if (status) {
+      params = params.set('status', status);
+    }
+    if (requestType) {
+      params = params.set('type', requestType);
+    }
+    return this.http.get<RequestsResponse[] | PageResponse<RequestsResponse> | SpringPage<RequestsResponse>>(this.baseUrl, { params }).pipe(
+      map((response) => this.normalizeRequestsList(response)),
+    );
+  }
+
+  getRequestsByEmployee(
+    employeeId: number,
+    status?: RequestsResponse['status'] | '',
+    requestType?: RequestsResponse['requestType'] | '',
+  ): Observable<RequestsResponse[]> {
+    return this.getMyRequests(employeeId, status, requestType);
   }
 
   getOvertimeRequests(employeeId: number): Observable<RequestsResponse[]> {
@@ -63,18 +88,20 @@ export class RequestsService {
       switchMap((employeeId) => this.getRequestsByEmployee(employeeId)),
       map((requests) =>
         requests
-          .filter((request) => request.requestType === 'LEAVE')
+          .filter((request) => request.requestType?.toUpperCase() === 'LEAVE')
           .map((request) => this.mapRequestToLeave(request)),
       ),
     );
   }
 
   updateRequest(id: number, payload: RequestsUpsertRequest): Observable<RequestsResponse> {
-    return this.http.put<RequestsResponse>(`${this.baseUrl}/${id}`, this.cleanPayload(payload));
+    const params = new HttpParams().set('employeeId', payload.employeeId.toString());
+    return this.http.put<RequestsResponse>(`${this.baseUrl}/${id}`, this.cleanPayload(payload), { params });
   }
 
-  deleteRequest(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  deleteRequest(id: number, employeeId: number): Observable<void> {
+    const params = new HttpParams().set('employeeId', employeeId.toString());
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { params });
   }
 
   approveOrReject(id: number, payload: RequestsApprovalRequest): Observable<RequestsResponse> {
@@ -128,5 +155,28 @@ export class RequestsService {
     }
 
     return cleaned;
+  }
+
+  private normalizeRequestsList(
+    response: RequestsResponse[] | PageResponse<RequestsResponse> | SpringPage<RequestsResponse> | null | undefined,
+  ): RequestsResponse[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    const responseAsRecord = response as {
+      items?: unknown;
+      content?: unknown;
+    } | null;
+
+    if (Array.isArray(responseAsRecord?.items)) {
+      return responseAsRecord.items as RequestsResponse[];
+    }
+
+    if (Array.isArray(responseAsRecord?.content)) {
+      return responseAsRecord.content as RequestsResponse[];
+    }
+
+    return [];
   }
 }

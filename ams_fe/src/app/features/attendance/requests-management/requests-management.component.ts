@@ -1,7 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { RequestsService } from '../../../core/services/requests.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { RequestsResponse } from '../../../shared/models/requests.model';
@@ -12,20 +14,29 @@ import { RequestsResponse } from '../../../shared/models/requests.model';
   templateUrl: './requests-management.component.html',
   styleUrls: ['./requests-management.component.scss'],
 })
-export class RequestsManagementComponent implements OnInit {
+export class RequestsManagementComponent implements OnInit, OnDestroy {
   requests: RequestsResponse[] = [];
+  filteredRequests: RequestsResponse[] = [];
   currentEmployeeId: number | null = null;
 
   isLoading = false;
   errorMessage = '';
   successMessage = '';
   submittingRequestId: number | null = null;
+  isSaving = false;
+  saveMode: 'draft' | 'submit' | null = null;
+  rowLoadingRequestId: number | null = null;
+  rowLoadingAction: 'submit' | 'delete' | null = null;
 
   createForm: FormGroup;
   editForm: FormGroup;
+  filterForm: FormGroup;
   showCreateForm = false;
   showEditForm = false;
+  showViewModal = false;
+  viewRequest: RequestsResponse | null = null;
   selectedRequestId: number | null = null;
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly requestsService: RequestsService,
@@ -49,19 +60,33 @@ export class RequestsManagementComponent implements OnInit {
       endDatetime: ['', Validators.required],
     }, { validators: this.requestDateRangeValidator() });
 
+    this.filterForm = this.fb.group({
+      searchQuery: [''],
+      requestType: [''],
+      status: [''],
+    });
   }
 
   ngOnInit(): void {
+    this.bindFilterChanges();
     this.requestsService.resolveEmployeeIdFromAuthContext().subscribe({
       next: (employeeId) => {
         this.currentEmployeeId = employeeId;
         this.loadRequests();
+        this.cdr.detectChanges();
       },
       error: () => {
         this.currentEmployeeId = null;
         this.errorMessage = 'Missing employeeId in auth context for loading requests.';
+        this.requests = [];
+        this.cdr.detectChanges();
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   get canApproveRequests(): boolean {
@@ -72,9 +97,20 @@ export class RequestsManagementComponent implements OnInit {
     return 'Reviewer actions are hidden here because backend approval only exposes PUT /api/requests/{id}/approval, while manager-safe employee lookup/list APIs are not available. FE keeps this page in self-service mode to avoid guaranteed /api/employees/** failures.';
   }
 
+  clearFilters(): void {
+    this.filterForm.reset({
+      searchQuery: '',
+      requestType: '',
+      status: '',
+    });
+    this.applyAllFilters();
+    this.cdr.detectChanges();
+  }
+
   loadRequests(): void {
     if (!this.currentEmployeeId) {
       this.requests = [];
+      this.filteredRequests = [];
       this.errorMessage = 'Missing employeeId in auth context for loading requests.';
       return;
     }
@@ -88,11 +124,15 @@ export class RequestsManagementComponent implements OnInit {
       }))
       .subscribe({
       next: (data: RequestsResponse[]) => {
-        this.requests = data;
+        this.requests = Array.isArray(data) ? data : [];
+        this.applyAllFilters();
+        this.cdr.detectChanges();
       },
       error: (error: HttpErrorResponse) => {
         this.requests = [];
+        this.filteredRequests = [];
         this.handleError(error, 'Unable to load requests.');
+        this.cdr.detectChanges();
       },
     });
   }
@@ -105,24 +145,33 @@ export class RequestsManagementComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
     this.submittingRequestId = request.requestId;
+    this.rowLoadingRequestId = request.requestId;
+    this.rowLoadingAction = 'submit';
 
-    this.requestsService.submitRequest(request.requestId).subscribe({
+    this.requestsService.submitRequestByEmployee(request.requestId, this.currentEmployeeId).pipe(
+      finalize(() => {
+        this.submittingRequestId = null;
+        this.rowLoadingRequestId = null;
+        this.rowLoadingAction = null;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
       next: () => {
         this.requestsService.getRequestsByEmployee(this.currentEmployeeId as number).subscribe({
           next: (data: RequestsResponse[]) => {
             this.requests = data;
             this.successMessage = `Request ${request.requestId} submitted successfully.`;
-            this.submittingRequestId = null;
+            this.cdr.detectChanges();
           },
           error: (error: HttpErrorResponse) => {
-            this.submittingRequestId = null;
             this.handleError(error, 'Unable to reload requests after submit.');
+            this.cdr.detectChanges();
           },
         });
       },
       error: (error: HttpErrorResponse) => {
-        this.submittingRequestId = null;
         this.handleError(error, 'Unable to submit request.');
+        this.cdr.detectChanges();
       },
     });
   }
@@ -151,6 +200,9 @@ export class RequestsManagementComponent implements OnInit {
       startDatetime: '',
       endDatetime: '',
     });
+    this.isSaving = false;
+    this.saveMode = null;
+    this.cdr.detectChanges();
   }
 
   createRequest(submitAfterCreate: boolean): void {
@@ -169,6 +221,9 @@ export class RequestsManagementComponent implements OnInit {
 
     this.errorMessage = '';
     this.successMessage = '';
+    this.isSaving = true;
+    this.saveMode = submitAfterCreate ? 'submit' : 'draft';
+    this.cdr.detectChanges();
     this.requestsService.createRequest({
       employeeId: this.currentEmployeeId,
       requestType: value.requestType,
@@ -176,31 +231,41 @@ export class RequestsManagementComponent implements OnInit {
       reason: value.reason,
       startDatetime: this.toRequestDateTime(value.startDatetime),
       endDatetime: this.toRequestDateTime(value.endDatetime),
-    }).subscribe({
+    }).pipe(
+      finalize(() => {
+        this.isSaving = false;
+        this.saveMode = null;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
       next: (created) => {
         if (!submitAfterCreate) {
           this.showCreateForm = false;
           this.successMessage = `Request ${created.requestId} created successfully.`;
           this.loadRequests();
+          this.cdr.detectChanges();
           return;
         }
 
         this.submittingRequestId = created.requestId;
-        this.requestsService.submitRequest(created.requestId).subscribe({
+        this.requestsService.submitRequestByEmployee(created.requestId, this.currentEmployeeId).subscribe({
           next: () => {
             this.submittingRequestId = null;
             this.showCreateForm = false;
             this.successMessage = `Request ${created.requestId} created and submitted successfully.`;
             this.loadRequests();
+            this.cdr.detectChanges();
           },
           error: (error: HttpErrorResponse) => {
             this.submittingRequestId = null;
             this.handleError(error, 'Request was created but could not be submitted.');
+            this.cdr.detectChanges();
           },
         });
       },
       error: (error: HttpErrorResponse) => {
         this.handleError(error, 'Unable to create request.');
+        this.cdr.detectChanges();
       },
     });
   }
@@ -218,6 +283,16 @@ export class RequestsManagementComponent implements OnInit {
       endDatetime: this.toDatetimeLocal(request.endDatetime),
     });
     this.showEditForm = true;
+  }
+
+  openView(request: RequestsResponse): void {
+    this.viewRequest = request;
+    this.showViewModal = true;
+  }
+
+  closeView(): void {
+    this.showViewModal = false;
+    this.viewRequest = null;
   }
 
   cancelEdit(): void {
@@ -270,13 +345,22 @@ export class RequestsManagementComponent implements OnInit {
 
     this.errorMessage = '';
     this.successMessage = '';
-    this.requestsService.deleteRequest(request.requestId).subscribe({
+    if (!this.currentEmployeeId) {
+      return;
+    }
+    this.rowLoadingRequestId = request.requestId;
+    this.rowLoadingAction = 'delete';
+    this.requestsService.deleteRequest(request.requestId, this.currentEmployeeId).subscribe({
       next: () => {
         this.successMessage = `Request ${request.requestId} deleted successfully.`;
         this.loadRequests();
+        this.cdr.detectChanges();
       },
       error: (error: HttpErrorResponse) => {
         this.handleError(error, 'Unable to delete request.');
+        this.rowLoadingRequestId = null;
+        this.rowLoadingAction = null;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -348,6 +432,8 @@ export class RequestsManagementComponent implements OnInit {
 
   private handleError(error: HttpErrorResponse, fallback: string): void {
     this.successMessage = '';
+    this.rowLoadingRequestId = null;
+    this.rowLoadingAction = null;
     if (error.status === 403) {
       this.errorMessage = 'You do not have permission to perform this action.';
       return;
@@ -364,4 +450,53 @@ export class RequestsManagementComponent implements OnInit {
     this.errorMessage = fallback;
   }
 
+  private bindFilterChanges(): void {
+    this.filterForm.get('searchQuery')?.valueChanges
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(250),
+        distinctUntilChanged(),
+      )
+      .subscribe(() => {
+        this.applyAllFilters();
+        this.cdr.detectChanges();
+      });
+
+    this.filterForm.get('requestType')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.applyAllFilters();
+        this.cdr.detectChanges();
+      });
+
+    this.filterForm.get('status')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.applyAllFilters();
+        this.cdr.detectChanges();
+      });
+  }
+
+  private applyAllFilters(): void {
+    const typeFilter = (this.filterForm.get('requestType')?.value as RequestsResponse['requestType'] | '' | null) ?? '';
+    const statusFilter = (this.filterForm.get('status')?.value as RequestsResponse['status'] | '' | null) ?? '';
+    const query = String(this.filterForm.get('searchQuery')?.value ?? '').trim().toLowerCase();
+
+    const base = this.requests.filter((request) => {
+      const typeMatches = !typeFilter || request.requestType === typeFilter;
+      const statusMatches = !statusFilter || request.status === statusFilter;
+      return typeMatches && statusMatches;
+    });
+
+    if (!query) {
+      this.filteredRequests = [...base];
+      return;
+    }
+
+    this.filteredRequests = base.filter((request) => {
+      const title = (request.title ?? '').toLowerCase();
+      const reason = (request.reason ?? '').toLowerCase();
+      return title.includes(query) || reason.includes(query) || String(request.requestId).includes(query);
+    });
+  }
 }

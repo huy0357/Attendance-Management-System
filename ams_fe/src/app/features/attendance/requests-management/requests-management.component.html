@@ -2,33 +2,9 @@
   <div class="flex items-start justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-slate-900">Requests Management</h1>
-      <p class="mt-1 text-slate-600">
-        Use this page for your own request lifecycle. Managers can also review submitted requests here through the shared backend approval flow.
-      </p>
+      <p class="mt-1 text-slate-600">Create and track your requests in one place.</p>
     </div>
-    <div class="text-right">
-      <p class="text-slate-600">Self-service request history based on the current signed-in employee.</p>
-      <button class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-white" (click)="openCreate()">Create Request</button>
-    </div>
-  </div>
-
-  <div *ngIf="canApproveRequests" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-    {{ reviewerFlowNotice }}
-  </div>
-
-  <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
-    <h2 class="text-lg font-semibold text-slate-900">My Request Timeline</h2>
-    <p class="mt-1 text-sm text-slate-600">
-      Draft requests can be deleted or submitted. Draft and submitted requests can still be edited until they are processed by the backend reviewer flow.
-    </p>
-  </div>
-
-  <div class="rounded-xl border border-gray-200 bg-white p-4">
-    <p class="text-sm text-gray-600">Current Employee Context</p>
-    <p class="mt-1 font-semibold text-slate-900" *ngIf="currentEmployeeId; else noEmployee">
-      Employee ID {{ currentEmployeeId }}
-    </p>
-    <ng-template #noEmployee><p class="mt-1 text-sm text-gray-500">Unable to resolve current employee.</p></ng-template>
+    <button class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" (click)="openCreate()">Create Request</button>
   </div>
 
   <div *ngIf="successMessage" class="rounded-lg border border-green-200 bg-green-50 p-4 text-green-700">
@@ -38,42 +14,49 @@
     {{ errorMessage }}
   </div>
 
-  <div *ngIf="showCreateForm" class="rounded-xl border border-gray-200 bg-white p-4">
-    <h2 class="mb-4 text-lg font-semibold">Create Request</h2>
-    <form [formGroup]="createForm" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+  <div class="rounded-xl border border-gray-200 bg-white p-4">
+    <form [formGroup]="filterForm" class="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div class="md:col-span-2">
+        <label class="text-xs font-medium uppercase tracking-wide text-gray-500">Search</label>
+        <input
+          type="text"
+          formControlName="searchQuery"
+          placeholder="Search by title, reason, or request ID..."
+          class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
       <div>
-        <label class="text-sm text-gray-600">Type</label>
-        <select class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="requestType">
+        <label class="text-xs font-medium uppercase tracking-wide text-gray-500">Type</label>
+        <select
+          formControlName="requestType"
+          class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Types</option>
           <option value="LEAVE">LEAVE</option>
-          <option value="OVERTIME">OVERTIME</option>
           <option value="REMOTE">REMOTE</option>
+          <option value="OVERTIME">OVERTIME</option>
           <option value="LATE_EARLY">LATE_EARLY</option>
         </select>
       </div>
       <div>
-        <label class="text-sm text-gray-600">Title</label>
-        <input type="text" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="title" />
-      </div>
-      <div>
-        <label class="text-sm text-gray-600">Start</label>
-        <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="startDatetime" />
-      </div>
-      <div>
-        <label class="text-sm text-gray-600">End</label>
-        <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="endDatetime" />
-      </div>
-      <div *ngIf="createForm.hasError('invalidDateRange') && (createForm.touched || createForm.dirty)" class="md:col-span-2 text-sm text-red-600">
-        End must be on or after start. This matches the backend request rule.
-      </div>
-      <div class="md:col-span-2">
-        <label class="text-sm text-gray-600">Reason</label>
-        <textarea class="mt-1 w-full rounded-lg border px-3 py-2" rows="3" formControlName="reason"></textarea>
+        <label class="text-xs font-medium uppercase tracking-wide text-gray-500">Status</label>
+        <select
+          formControlName="status"
+          class="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Statuses</option>
+          <option value="DRAFT">DRAFT</option>
+          <option value="SUBMITTED">SUBMITTED</option>
+          <option value="APPROVED">APPROVED</option>
+          <option value="REJECTED">REJECTED</option>
+          <option value="CANCELLED">CANCELLED</option>
+        </select>
       </div>
     </form>
-    <div class="mt-4 flex flex-wrap gap-2">
-      <button class="rounded-lg bg-gray-900 px-4 py-2 text-white" (click)="createRequest(false)">Save Draft</button>
-      <button class="rounded-lg bg-emerald-600 px-4 py-2 text-white" (click)="createRequest(true)">Create & Submit</button>
-      <button class="rounded-lg border px-4 py-2" (click)="cancelCreate()">Cancel</button>
+    <div class="mt-3 flex justify-end">
+      <button type="button" class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" (click)="clearFilters()">
+        Clear Filters
+      </button>
     </div>
   </div>
 
@@ -96,7 +79,7 @@
         <tr *ngIf="isLoading">
           <td colspan="9" class="px-4 py-6 text-center text-gray-500">Loading requests...</td>
         </tr>
-        <tr *ngFor="let r of requests; trackBy: trackByRequestId" class="border-t">
+        <tr *ngFor="let r of filteredRequests; trackBy: trackByRequestId" class="border-t">
           <td class="px-4 py-3">{{ r.requestId }}</td>
           <td class="px-4 py-3">{{ r.requestType }}</td>
           <td class="px-4 py-3">{{ r.title }}</td>
@@ -106,60 +89,188 @@
           <td class="px-4 py-3">{{ formatDateTime(r.submittedAt || '') }}</td>
           <td class="px-4 py-3">{{ r.status }}</td>
           <td class="space-x-2 px-4 py-3 text-right">
-            <button *ngIf="canEdit(r)" class="text-blue-600" (click)="openEdit(r)">Edit</button>
-            <button *ngIf="canDelete(r)" class="text-red-600" (click)="deleteRequest(r)">Delete</button>
+            <button class="inline-flex items-center text-gray-600 hover:text-gray-800" (click)="openView(r)" title="View details">
+              <lucide-icon name="eye" class="h-4 w-4"></lucide-icon>
+            </button>
+            <button *ngIf="canEdit(r)" class="inline-flex items-center text-blue-600 hover:text-blue-700" (click)="openEdit(r)">
+              <lucide-icon name="pencil" class="h-4 w-4"></lucide-icon>
+            </button>
+            <button
+              *ngIf="canDelete(r)"
+              class="inline-flex items-center text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete'"
+              (click)="deleteRequest(r)"
+            >
+              <span *ngIf="rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete'" class="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></span>
+              <lucide-icon *ngIf="!(rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete')" name="trash-2" class="h-4 w-4"></lucide-icon>
+            </button>
             <button
               *ngIf="r.status === 'DRAFT'"
-              class="text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
-              [disabled]="submittingRequestId === r.requestId"
+              class="inline-flex items-center text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="submittingRequestId === r.requestId || (rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit')"
               (click)="submitRequest(r)"
             >
-              {{ submittingRequestId === r.requestId ? 'Submitting...' : 'Submit' }}
+              <span *ngIf="rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit'" class="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></span>
+              <span *ngIf="!(rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit')">Submit</span>
             </button>
           </td>
         </tr>
-        <tr *ngIf="!isLoading && requests.length === 0">
+        <tr *ngIf="!isLoading && filteredRequests.length === 0">
           <td colspan="9" class="px-4 py-6 text-center text-gray-500">No requests found.</td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <div *ngIf="showEditForm" class="rounded-xl border border-gray-200 bg-white p-4">
-    <h2 class="mb-4 text-lg font-semibold">Edit Request</h2>
-    <form [formGroup]="editForm" class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <div>
-        <label class="text-sm text-gray-600">Type</label>
-        <select class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="requestType">
-          <option value="LEAVE">LEAVE</option>
-          <option value="OVERTIME">OVERTIME</option>
-          <option value="REMOTE">REMOTE</option>
-          <option value="LATE_EARLY">LATE_EARLY</option>
-        </select>
+  <div *ngIf="showCreateForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <h2 class="text-xl font-semibold text-gray-900">Create New Request</h2>
+        <button type="button" class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700" (click)="cancelCreate()">
+          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
+        </button>
       </div>
-      <div>
-        <label class="text-sm text-gray-600">Title</label>
-        <input type="text" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="title" />
+
+      <form [formGroup]="createForm" class="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+        <div>
+          <label class="text-sm text-gray-600">Type</label>
+          <select class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="requestType">
+            <option value="LEAVE">LEAVE</option>
+            <option value="OVERTIME">OVERTIME</option>
+            <option value="REMOTE">REMOTE</option>
+            <option value="LATE_EARLY">LATE_EARLY</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Title</label>
+          <input type="text" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="title" />
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Start Time</label>
+          <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="startDatetime" />
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">End Time</label>
+          <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="endDatetime" />
+        </div>
+        <div *ngIf="createForm.hasError('invalidDateRange') && (createForm.touched || createForm.dirty)" class="text-sm text-red-600 md:col-span-2">
+          End must be on or after start.
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-sm text-gray-600">Reason</label>
+          <textarea class="mt-1 w-full rounded-lg border px-3 py-2" rows="3" formControlName="reason"></textarea>
+        </div>
+      </form>
+
+      <div class="flex flex-wrap justify-end gap-2 border-t border-gray-200 px-6 py-4">
+        <button type="button" class="rounded-lg border border-gray-300 px-4 py-2 text-gray-700" (click)="cancelCreate()">Cancel</button>
+        <button
+          type="button"
+          class="rounded-lg bg-gray-900 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+          [disabled]="isSaving"
+          (click)="createRequest(false)"
+        >
+          {{ isSaving && saveMode === 'draft' ? 'Saving...' : 'Save Draft' }}
+        </button>
+        <button
+          type="button"
+          class="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+          [disabled]="isSaving"
+          (click)="createRequest(true)"
+        >
+          {{ isSaving && saveMode === 'submit' ? 'Submitting...' : 'Submit' }}
+        </button>
       </div>
-      <div>
-        <label class="text-sm text-gray-600">Start</label>
-        <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="startDatetime" />
+    </div>
+  </div>
+
+  <div *ngIf="showEditForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <h2 class="text-xl font-semibold text-gray-900">Edit Request</h2>
+        <button type="button" class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700" (click)="cancelEdit()">
+          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
+        </button>
       </div>
-      <div>
-        <label class="text-sm text-gray-600">End</label>
-        <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="endDatetime" />
+      <form [formGroup]="editForm" class="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+        <div>
+          <label class="text-sm text-gray-600">Type</label>
+          <select class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="requestType">
+            <option value="LEAVE">LEAVE</option>
+            <option value="OVERTIME">OVERTIME</option>
+            <option value="REMOTE">REMOTE</option>
+            <option value="LATE_EARLY">LATE_EARLY</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Title</label>
+          <input type="text" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="title" />
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Start Time</label>
+          <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="startDatetime" />
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">End Time</label>
+          <input type="datetime-local" class="mt-1 w-full rounded-lg border px-3 py-2" formControlName="endDatetime" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-sm text-gray-600">Reason</label>
+          <textarea class="mt-1 w-full rounded-lg border px-3 py-2" rows="3" formControlName="reason"></textarea>
+        </div>
+      </form>
+      <div class="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+        <button type="button" class="rounded-lg border px-4 py-2" (click)="cancelEdit()">Cancel</button>
+        <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-white" (click)="submitEdit()">Save</button>
       </div>
-      <div *ngIf="editForm.hasError('invalidDateRange') && (editForm.touched || editForm.dirty)" class="md:col-span-2 text-sm text-red-600">
-        End must be on or after start. This matches the backend request rule.
+    </div>
+  </div>
+
+  <div *ngIf="showViewModal && viewRequest" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <h2 class="text-xl font-semibold text-gray-900">Request Details</h2>
+        <button type="button" class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700" (click)="closeView()">
+          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
+        </button>
       </div>
-      <div class="md:col-span-2">
-        <label class="text-sm text-gray-600">Reason</label>
-        <textarea class="mt-1 w-full rounded-lg border px-3 py-2" rows="3" formControlName="reason"></textarea>
+      <div class="space-y-4 p-6">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <p class="text-xs font-semibold uppercase text-gray-500">Request ID</p>
+            <p class="mt-1 text-sm font-medium text-gray-900">#{{ viewRequest.requestId }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-gray-500">Type</p>
+            <p class="mt-1 text-sm font-medium text-gray-900">{{ viewRequest.requestType }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-gray-500">Status</p>
+            <p class="mt-1 text-sm font-medium text-gray-900">{{ viewRequest.status }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-gray-500">Title</p>
+            <p class="mt-1 text-sm font-medium text-gray-900">{{ viewRequest.title }}</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <p class="text-xs font-semibold uppercase text-gray-500">Start</p>
+            <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(viewRequest.startDatetime) }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-gray-500">End</p>
+            <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(viewRequest.endDatetime) }}</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase text-gray-500">Reason</p>
+          <p class="mt-1 rounded-lg bg-gray-50 p-3 text-sm text-gray-800">{{ viewRequest.reason || '-' }}</p>
+        </div>
       </div>
-    </form>
-    <div class="mt-4 flex gap-2">
-      <button class="rounded-lg bg-blue-600 px-4 py-2 text-white" (click)="submitEdit()">Save</button>
-      <button class="rounded-lg border px-4 py-2" (click)="cancelEdit()">Cancel</button>
+      <div class="flex justify-end border-t border-gray-200 px-6 py-4">
+        <button type="button" class="rounded-lg border px-4 py-2 text-sm" (click)="closeView()">Close</button>
+      </div>
     </div>
   </div>
 

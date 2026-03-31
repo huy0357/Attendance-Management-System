@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BehaviorSubject, Observable, Subject, of } from 'rxjs';
-import { catchError, map, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { catchError, takeUntil } from 'rxjs/operators';
 import { AuditLogService } from './audit-log.service';
 import { AuditLog, AuditLogFilter, PageResponse } from './audit-log.model';
 import { EmployeeService, EmployeeDto } from '../../hrm/employees/employee.service';
@@ -16,7 +16,7 @@ import { EmployeeService, EmployeeDto } from '../../hrm/employees/employee.servi
   providers: [DatePipe]
 })
 export class AuditLogComponent implements OnInit, OnDestroy {
-  logs$: Observable<AuditLog[]> | undefined;
+  logs: AuditLog[] = [];
   employees: EmployeeDto[] = [];
   employeesMap = new Map<number, EmployeeDto>();
 
@@ -25,13 +25,6 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   totalPages = 0;
   currentPage = 1;
   pageSize = 10;
-  
-  filter$ = new BehaviorSubject<AuditLogFilter>({
-    page: 1,
-    size: 10,
-    sortBy: 'createdAt',
-    sortDir: 'desc'
-  });
 
   private destroy$ = new Subject<void>();
   
@@ -49,24 +42,48 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   formattedNewValue = '';
 
   modules = ['System', 'Attendance', 'Employee', 'Leave', 'Overtime', 'Department', 'Position'];
-  actions = ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'];
+  actions = [
+    'CREATE',
+    'ADD',
+    'REGISTER',
+    'UPDATE',
+    'EDIT',
+    'SUBMIT',
+    'REFRESH_TOKEN',
+    'DELETE',
+    'REMOVE',
+    'LOGIN',
+    'LOGOUT',
+  ];
 
   Math = Math;
 
+  private filter: AuditLogFilter = {
+    page: 1,
+    size: 10,
+    sortBy: 'createdAt',
+    sortDir: 'desc',
+  };
+
   constructor(
     private auditLogService: AuditLogService,
-    private employeeService: EmployeeService
+    private employeeService: EmployeeService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    // Fetch employees first for mapping
+    // IMPORTANT: Fetch logs immediately with default filters (All Actions, All Modules, no date range limit).
+    // UI should render even if employee mapping API is slow/failed.
+    this.resetFiltersAndFetch();
+
     this.employeeService.getAll().pipe(
       takeUntil(this.destroy$),
       catchError(() => of([]))
     ).subscribe((emps) => {
       this.employees = emps;
       emps.forEach(emp => this.employeesMap.set(emp.employeeId, emp));
-      this.initDataStream();
+      // Refresh labels (name/email) once employee mapping is ready.
+      this.cdr.detectChanges();
     });
   }
 
@@ -75,23 +92,47 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private initDataStream(): void {
-    this.logs$ = this.filter$.pipe(
-      tap(() => this.isLoading = true),
-      switchMap(filter => this.auditLogService.getAuditLogs(filter).pipe(
-        catchError(() => {
-           this.isLoading = false;
-           return of({ items: [], content: [], data: [], totalElements: 0, totalPages: 0, page: 1, size: 10 } as PageResponse<AuditLog>);
-        })
-      )),
-      map(response => {
+  private resetFiltersAndFetch(): void {
+    this.searchQuery = '';
+    this.selectedModule = '';
+    this.selectedAction = '';
+    this.dateRangeStart = this.dateRangeStart || '';
+    this.dateRangeEnd = this.dateRangeEnd || '';
+
+    this.currentPage = 1;
+    this.pageSize = this.pageSize || 10;
+
+    this.filter = {
+      page: this.currentPage,
+      size: this.pageSize,
+      sortBy: 'createdAt',
+      sortDir: 'desc',
+    };
+
+    this.fetchData();
+  }
+
+  private fetchData(): void {
+    this.isLoading = true;
+    this.cdr.detectChanges();
+
+    this.auditLogService.getAuditLogs(this.filter).pipe(
+      takeUntil(this.destroy$),
+      catchError(() => {
+        this.logs = [];
+        this.totalElements = 0;
+        this.totalPages = 0;
         this.isLoading = false;
-        // Map total elements safely based on what BE returns
-        this.totalElements = response.totalElements || response.totalItems || 0;
-        this.totalPages = response.totalPages || 0;
-        return response.items || response.content || response.data || [];
+        this.cdr.detectChanges();
+        return of({ items: [], content: [], data: [], totalElements: 0, totalItems: 0, totalPages: 0, page: 1, size: this.pageSize } as PageResponse<AuditLog>);
       })
-    );
+    ).subscribe((response) => {
+      this.totalElements = response.totalElements ?? response.totalItems ?? 0;
+      this.totalPages = response.totalPages ?? 0;
+      this.logs = response.items || response.content || response.data || [];
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    });
   }
 
   getEmployeeName(actorId: number): string {
@@ -104,11 +145,28 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     return emp && emp.email ? emp.email : '';
   }
 
+  getActionBadgeClass(action: string): string {
+    const a = (action || '').toUpperCase().trim();
+    const greenActions = new Set(['CREATE', 'ADD', 'REGISTER']);
+    const blueActions = new Set(['UPDATE', 'EDIT', 'SUBMIT', 'REFRESH_TOKEN']);
+    const redActions = new Set(['DELETE', 'REMOVE']);
+
+    if (greenActions.has(a)) return 'badge-create';
+    if (blueActions.has(a)) return 'badge-update';
+    if (redActions.has(a)) return 'badge-delete';
+    return 'badge-default';
+  }
+
   applyFilter(): void {
     let actorIdFilter: number | undefined = undefined;
 
     // Frontend filtering to map searchTerm to actorId
     if (this.searchQuery) {
+      // If employee mapping is not ready yet, don't restrict by actorId.
+      // This prevents showing "no records" just because actorId mapping hasn't loaded.
+      if (!this.employees.length) {
+        actorIdFilter = undefined;
+      } else {
       const q = this.searchQuery.toLowerCase();
       const matched = this.employees.find(emp => 
         (emp.fullName && emp.fullName.toLowerCase().includes(q)) || 
@@ -120,42 +178,49 @@ export class AuditLogComponent implements OnInit, OnDestroy {
         // Force a non-existent ID so it returns empty if no match found
         actorIdFilter = -1;
       }
+      }
     }
 
-    this.filter$.next({
-      ...this.filter$.value,
-      page: 1, // reset to page 1 on filter
+    this.currentPage = 1;
+    this.filter = {
+      ...this.filter,
+      page: this.currentPage,
       entityType: this.selectedModule || undefined,
       action: this.selectedAction || undefined,
-      actorId: actorIdFilter
-    });
+      actorId: actorIdFilter,
+    };
+
+    this.fetchData();
   }
 
   resetFilter(): void {
     this.searchQuery = '';
     this.selectedModule = '';
     this.selectedAction = '';
-    this.applyFilter();
+    this.currentPage = 1;
+    this.filter = {
+      ...this.filter,
+      page: this.currentPage,
+      entityType: undefined,
+      action: undefined,
+      actorId: undefined,
+    };
+    this.fetchData();
   }
 
   changePage(page: number): void {
     if (page < 1 || (this.totalPages && page > this.totalPages)) return;
     this.currentPage = page;
-    this.filter$.next({
-      ...this.filter$.value,
-      page: this.currentPage
-    });
+    this.filter = { ...this.filter, page: this.currentPage };
+    this.fetchData();
   }
 
   changePageSize(event: Event): void {
     const target = event.target as HTMLSelectElement;
     this.pageSize = Number(target.value);
     this.currentPage = 1;
-    this.filter$.next({
-      ...this.filter$.value,
-      page: this.currentPage,
-      size: this.pageSize
-    });
+    this.filter = { ...this.filter, page: this.currentPage, size: this.pageSize };
+    this.fetchData();
   }
 
   openDetailsModal(log: AuditLog): void {

@@ -373,37 +373,6 @@
   white-space: nowrap;
 }
 
-/* Location cell */
-.db-location-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: #6b7280;
-  font-size: 0.85rem;
-}
-
-/* Status badges */
-.db-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.db-status--ontime {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.db-status--late {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
 /* ── Exceptions list ──────────────────────────────────────────────────── */
 .db-exc-list {
   display: flex;

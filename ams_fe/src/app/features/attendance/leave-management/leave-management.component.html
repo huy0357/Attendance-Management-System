@@ -1,120 +1,77 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
+  <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
     <div>
       <h1 class="text-3xl font-bold text-gray-900">My Leave Requests</h1>
-      <p class="text-gray-600 mt-1">This page is your own leave history only. Leave approval still runs through the shared request reviewer flow in Requests Management.</p>
+      <p class="mt-1 text-gray-600">Track your leave requests with a cleaner status overview.</p>
     </div>
-    <div class="flex items-center gap-3">
-      <a routerLink="/attendance/requests-management" class="rounded-lg bg-blue-600 px-4 py-2 text-white">
+    <div class="flex items-center gap-3 self-start md:self-auto">
+      <a
+        routerLink="/attendance/requests-management"
+        class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+      >
         Go to Requests Management
-        <lucide-icon name="arrow-right" class="w-4 h-4 ml-2 inline-block"></lucide-icon>
+        <lucide-icon name="arrow-right" class="ml-2 inline-block h-4 w-4"></lucide-icon>
       </a>
       <a
         *ngIf="canOpenReviewerFlow"
         routerLink="/attendance/requests-management"
-        class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-amber-800"
+        class="inline-flex items-center rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800"
       >
         Review Submitted Requests
       </a>
     </div>
   </div>
 
-  <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-    Draft, edit, delete, and submit actions are handled in <a routerLink="/attendance/requests-management" class="font-semibold underline">Requests Management</a>.
-    This leave page stays focused on self-service tracking so employees are not pushed into reviewer/admin flow by mistake.
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-    <div *ngFor="let stat of stats; trackBy: trackByStatLabel" class="{{ stat.bg }} rounded-xl p-6 border border-gray-200">
+  <div class="stats-grid">
+    <div *ngFor="let stat of stats; trackBy: trackByStatLabel" class="{{ stat.bg }} stat-card border border-gray-200">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
-          <p class="text-3xl font-bold {{ stat.color }} mt-2">{{ stat.value }}</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ stat.label }}</p>
+          <p class="mt-2 text-3xl font-bold {{ stat.color }}">{{ stat.value }}</p>
+          <p *ngIf="stat.key === 'cancelled-total'" class="mt-1 text-xs text-gray-500">
+            Cancelled: {{ getTabCount('cancelled') }}
+          </p>
         </div>
-        <lucide-icon [name]="stat.icon" class="w-8 h-8 {{ stat.color }}"></lucide-icon>
+        <lucide-icon [name]="stat.icon" class="h-7 w-7 {{ stat.color }}"></lucide-icon>
       </div>
     </div>
   </div>
 
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <form [formGroup]="filterForm" class="flex flex-col lg:flex-row gap-4">
-      <div class="flex-1 relative">
-        <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+  <div class="rounded-xl border border-gray-200 bg-white">
+    <div class="space-y-4 border-b border-gray-200 px-4 py-4 md:px-6">
+      <div class="leave-tabs flex flex-wrap gap-2">
+        <button type="button" (click)="setActiveTab('open')" class="tab-button" [ngClass]="activeTab === 'open' ? 'tab-active' : 'tab-idle'">
+          Open <span class="tab-count">{{ getTabCount('open') }}</span>
+        </button>
+        <button type="button" (click)="setActiveTab('approved')" class="tab-button" [ngClass]="activeTab === 'approved' ? 'tab-active' : 'tab-idle'">
+          Approved <span class="tab-count">{{ getTabCount('approved') }}</span>
+        </button>
+        <button type="button" (click)="setActiveTab('rejected')" class="tab-button" [ngClass]="activeTab === 'rejected' ? 'tab-active' : 'tab-idle'">
+          Rejected <span class="tab-count">{{ getTabCount('rejected') }}</span>
+        </button>
+        <button type="button" (click)="setActiveTab('cancelled')" class="tab-button" [ngClass]="activeTab === 'cancelled' ? 'tab-active' : 'tab-idle'">
+          Cancelled <span class="tab-count">{{ getTabCount('cancelled') }}</span>
+        </button>
+        <button type="button" (click)="setActiveTab('all')" class="tab-button" [ngClass]="activeTab === 'all' ? 'tab-active' : 'tab-idle'">
+          All <span class="tab-count">{{ getTabCount('all') }}</span>
+        </button>
+      </div>
+
+      <form [formGroup]="filterForm">
+        <div class="relative">
+          <lucide-icon name="search" class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"></lucide-icon>
         <input
           type="text"
           formControlName="searchQuery"
           placeholder="Search by request ID, employee name, title, or reason..."
-          class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="h-10 w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-      </div>
-    </form>
-  </div>
-
-  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-    <div class="flex border-b border-gray-200">
-      <button
-        type="button"
-        (click)="setActiveTab('open')"
-        class="flex-1 px-6 py-4 font-semibold transition-colors"
-        [ngClass]="activeTab === 'open'
-          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-          : 'text-gray-600 hover:bg-gray-50'"
-      >
-        Open <span class="ml-2 text-sm">({{ getTabCount('open') }})</span>
-      </button>
-      <button
-        type="button"
-        (click)="setActiveTab('approved')"
-        class="flex-1 px-6 py-4 font-semibold transition-colors"
-        [ngClass]="activeTab === 'approved'
-          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-          : 'text-gray-600 hover:bg-gray-50'"
-      >
-        Approved <span class="ml-2 text-sm">({{ getTabCount('approved') }})</span>
-      </button>
-      <button
-        type="button"
-        (click)="setActiveTab('rejected')"
-        class="flex-1 px-6 py-4 font-semibold transition-colors"
-        [ngClass]="activeTab === 'rejected'
-          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-          : 'text-gray-600 hover:bg-gray-50'"
-      >
-        Rejected <span class="ml-2 text-sm">({{ getTabCount('rejected') }})</span>
-      </button>
-      <button
-        type="button"
-        (click)="setActiveTab('cancelled')"
-        class="flex-1 px-6 py-4 font-semibold transition-colors"
-        [ngClass]="activeTab === 'cancelled'
-          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-          : 'text-gray-600 hover:bg-gray-50'"
-      >
-        Cancelled <span class="ml-2 text-sm">({{ getTabCount('cancelled') }})</span>
-      </button>
-      <button
-        type="button"
-        (click)="setActiveTab('all')"
-        class="flex-1 px-6 py-4 font-semibold transition-colors"
-        [ngClass]="activeTab === 'all'
-          ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-          : 'text-gray-600 hover:bg-gray-50'"
-      >
-        All Requests <span class="ml-2 text-sm">({{ getTabCount('all') }})</span>
-      </button>
+        </div>
+      </form>
     </div>
 
-    <div *ngIf="errorMessage" class="border-b border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
-      {{ errorMessage }}
-    </div>
-
-    <div *ngIf="isLoading" class="text-center py-12">
-      <lucide-icon name="loader-circle" class="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin"></lucide-icon>
-      <p class="text-gray-600 font-medium">Loading leave requests</p>
-    </div>
-
-    <div *ngIf="!isLoading" class="overflow-x-auto">
-      <table class="w-full">
+    <div class="overflow-x-auto">
+      <table class="w-full border-b border-gray-200">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Request ID</th>
@@ -128,6 +85,26 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
+          <tr *ngIf="isLoading">
+            <td colspan="8" class="px-6 py-12">
+              <div class="flex items-center justify-center gap-3 text-gray-500">
+                <span class="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></span>
+                <span class="text-sm font-medium">Loading leave requests...</span>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="!isLoading && (errorMessage || filteredRequests.length === 0)">
+            <td colspan="8" class="px-6 py-14">
+              <div class="mx-auto flex max-w-md flex-col items-center text-center">
+                <lucide-icon name="triangle-alert" class="mb-3 h-10 w-10 text-gray-400"></lucide-icon>
+                <p class="text-sm font-medium text-gray-500">
+                  No leave requests found. (Note: Admin accounts may not have personal leave records).
+                </p>
+              </div>
+            </td>
+          </tr>
+
           <tr *ngFor="let request of filteredRequests; trackBy: trackByRequestId" class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4">
               <span class="font-semibold text-gray-900">#{{ request.requestId }}</span>
@@ -176,12 +153,9 @@
           </tr>
         </tbody>
       </table>
-
-      <div *ngIf="filteredRequests.length === 0 && !errorMessage" class="text-center py-12">
-        <lucide-icon name="calendar" class="w-12 h-12 text-gray-400 mx-auto mb-4"></lucide-icon>
-        <p class="text-gray-600 font-medium">No leave requests found</p>
-        <p class="text-sm text-gray-500 mt-1">Try adjusting your search or tab selection</p>
-      </div>
+    </div>
+    <div class="px-4 pb-4 pt-2 md:px-6">
+      <div class="h-4 border-t border-gray-100 rounded-b-xl"></div>
     </div>
   </div>
 

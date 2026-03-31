@@ -159,16 +159,22 @@
               <td class="db-time-cell">{{ formatCheckInTime(rec.checkInTime) }}</td>
               <!-- Location -->
               <td>
-                <div class="db-location-cell">
-                  <lucide-icon name="map-pin" class="db-icon-xs"></lucide-icon>
-                  <span>{{ rec.branchId || rec.location || 'HQ Main' }}</span>
+                <div class="flex items-center gap-2 text-gray-500 text-sm">
+                  <lucide-icon name="map-pin" class="w-4 h-4 shrink-0"></lucide-icon>
+                  <span class="whitespace-nowrap">{{ rec.branchId || rec.location || 'HQ Main' }}</span>
                 </div>
               </td>
               <!-- Status badge -->
               <td>
-                <span [class]="attendanceStatusIsLate(rec) ? 'db-status db-status--late' : 'db-status db-status--ontime'">
-                  <lucide-icon [name]="attendanceStatusIsLate(rec) ? 'clock' : 'check-circle'" class="db-icon-xs"></lucide-icon>
-                  {{ attendanceStatusLabel(rec) }}
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap"
+                  [ngClass]="attendanceStatusIsLate(rec) ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'"
+                >
+                  <lucide-icon
+                    [name]="attendanceStatusIsLate(rec) ? 'clock' : 'check-circle'"
+                    class="w-3.5 h-3.5 shrink-0"
+                  ></lucide-icon>
+                  <span>{{ attendanceStatusLabel(rec) }}</span>
                 </span>
               </td>
             </tr>

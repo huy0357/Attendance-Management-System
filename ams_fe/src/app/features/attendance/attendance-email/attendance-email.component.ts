@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { finalize } from 'rxjs/operators';
 import { AttendanceEmailEmployee, AttendanceService } from '../attendance.service';
 import { AuthService } from '../../../core/auth/auth.service';
 
@@ -15,10 +16,9 @@ export class AttendanceEmailComponent implements OnInit {
   employeeQuery = '';
 
   employees: AttendanceEmailEmployee[] = [];
-  selectedEmployeeId: number | null = null;
+  sendingEmployeeId: number | null = null;
 
   isSearchingEmployees = false;
-  isSendingOne = false;
   isSendingAll = false;
 
   successMessage = '';
@@ -32,6 +32,7 @@ export class AttendanceEmailComponent implements OnInit {
   constructor(
     private attendanceService: AttendanceService,
     private authService: AuthService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   get canManageAttendanceEmails(): boolean {
@@ -48,42 +49,48 @@ export class AttendanceEmailComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.canSelectAttendanceEmailRecipient) {
-      this.searchEmployees();
+      this.searchEmployees(1);
     }
   }
 
   searchEmployees(page: number = 1): void {
     if (!this.canSelectAttendanceEmailRecipient) {
       this.employees = [];
-      this.selectedEmployeeId = null;
       return;
     }
 
     this.isSearchingEmployees = true;
     this.errorMessage = '';
     this.employeeSearchPage = page;
+    this.cdr.detectChanges();
 
     this.attendanceService.searchAttendanceEmailEmployees(
       this.employeeQuery.trim(),
       this.employeeSearchPage,
       this.employeeSearchPageSize,
+    ).pipe(
+      finalize(() => {
+        this.isSearchingEmployees = false;
+        this.cdr.detectChanges();
+      }),
     ).subscribe({
       next: (response) => {
-        this.employees = response.items ?? [];
-        this.employeeSearchTotalItems = response.totalItems ?? 0;
-        this.employeeSearchTotalPages = response.totalPages || Math.ceil(this.employeeSearchTotalItems / this.employeeSearchPageSize) || 1;
-        if (!this.employees.some(employee => employee.employeeId === this.selectedEmployeeId)) {
-          this.selectedEmployeeId = this.employees[0]?.employeeId ?? null;
-        }
-        this.isSearchingEmployees = false;
+        // response is PageResponse<AttendanceEmailEmployee> → items field
+        const rawItems = response?.items;
+        this.employees = Array.isArray(rawItems) ? rawItems : [];
+        this.employeeSearchTotalItems = response?.totalItems ?? 0;
+        this.employeeSearchTotalPages =
+          response?.totalPages ||
+          Math.ceil(this.employeeSearchTotalItems / this.employeeSearchPageSize) ||
+          1;
+        this.cdr.detectChanges();
       },
       error: (error: HttpErrorResponse) => {
         this.employees = [];
-        this.selectedEmployeeId = null;
         this.employeeSearchTotalItems = 0;
         this.employeeSearchTotalPages = 0;
-        this.isSearchingEmployees = false;
-        this.errorMessage = this.extractErrorMessage(error, 'Unable to load employees for attendance email.');
+        this.errorMessage = this.extractErrorMessage(error, 'Unable to load employees.');
+        this.cdr.detectChanges();
       },
     });
   }
@@ -95,66 +102,72 @@ export class AttendanceEmailComponent implements OnInit {
     this.searchEmployees(1);
   }
 
-  selectEmployee(employeeId: number): void {
-    this.selectedEmployeeId = employeeId;
-  }
-
-  sendToSelectedEmployee(): void {
-    if (!this.canSelectAttendanceEmailRecipient) {
-      this.errorMessage = 'Single-recipient attendance email is hidden because backend employee lookup is not available for your role.';
-      this.successMessage = '';
-      return;
-    }
-
-    const normalizedMonth = this.normalizeMonth(this.month);
+  sendToEmployee(employee: AttendanceEmailEmployee): void {
+    const normalizedMonth = this.normalizeMonthForApi(this.month);
     if (!normalizedMonth) {
-      this.errorMessage = 'Month must use yyyy-MM format.';
+      this.errorMessage = 'Please select a valid month (yyyy-MM format).';
       this.successMessage = '';
+      this.cdr.detectChanges();
       return;
     }
 
-    if (!this.selectedEmployeeId) {
-      this.errorMessage = 'Employee is required for sending to one employee.';
+    const employeeId = this.resolveEmployeeId(employee);
+    if (employeeId === null) {
+      this.errorMessage = 'Invalid employee identifier. Please refresh and try again.';
       this.successMessage = '';
+      this.cdr.detectChanges();
       return;
     }
 
-    this.isSendingOne = true;
+    this.sendingEmployeeId = employeeId;
     this.errorMessage = '';
     this.successMessage = '';
+    this.cdr.detectChanges();
 
-    this.attendanceService.sendAttendanceEmail(normalizedMonth, this.selectedEmployeeId, this.regenerate).subscribe({
+    this.attendanceService.sendAttendanceEmail(normalizedMonth, employeeId, this.regenerate).pipe(
+      finalize(() => {
+        this.sendingEmployeeId = null;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
       next: (response) => {
-        this.successMessage = response.message;
-        this.isSendingOne = false;
+        this.successMessage = response?.message || `Email sent to ${employee.fullName} successfully.`;
+        this.cdr.detectChanges();
       },
       error: (error: HttpErrorResponse) => {
-        this.errorMessage = this.extractErrorMessage(error, 'Unable to send attendance email.');
-        this.isSendingOne = false;
+        this.errorMessage = this.extractErrorMessage(error, `Unable to send email to ${employee.fullName}.`);
+        this.cdr.detectChanges();
       },
     });
   }
 
   sendToAllEmployees(): void {
-    const normalizedMonth = this.normalizeMonth(this.month);
+    const normalizedMonth = this.normalizeMonthForApi(this.month);
     if (!normalizedMonth) {
-      this.errorMessage = 'Month must use yyyy-MM format.';
+      this.errorMessage = 'Please select a valid month (yyyy-MM format).';
       this.successMessage = '';
+      this.cdr.detectChanges();
       return;
     }
 
     this.isSendingAll = true;
     this.errorMessage = '';
     this.successMessage = '';
+    this.cdr.detectChanges();
 
-    this.attendanceService.sendAttendanceEmailToAll(normalizedMonth, this.regenerate).subscribe({
-      next: (response) => {
-        this.successMessage = response.message;
+    this.attendanceService.sendAttendanceEmailToAll(normalizedMonth, this.regenerate).pipe(
+      finalize(() => {
         this.isSendingAll = false;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
+      next: (response) => {
+        this.successMessage = response?.message || 'Emails sent to all employees successfully.';
+        this.cdr.detectChanges();
       },
       error: (error: HttpErrorResponse) => {
-        this.errorMessage = this.extractErrorMessage(error, 'Unable to send attendance email to all employees.');
-        this.isSendingAll = false;
+        this.errorMessage = this.extractErrorMessage(error, 'Unable to send attendance emails to all employees.');
+        this.cdr.detectChanges();
       },
     });
   }
@@ -171,6 +184,12 @@ export class AttendanceEmailComponent implements OnInit {
       return;
     }
     this.searchEmployees(this.employeeSearchPage + 1);
+  }
+
+  dismissMessages(): void {
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.cdr.detectChanges();
   }
 
   private extractErrorMessage(error: HttpErrorResponse, fallback: string): string {
@@ -190,8 +209,29 @@ export class AttendanceEmailComponent implements OnInit {
     return `${year}-${month}`;
   }
 
-  private normalizeMonth(value: string): string | null {
+  private normalizeMonthForApi(value: string): string | null {
     const normalized = String(value ?? '').trim();
-    return /^\d{4}-\d{2}$/.test(normalized) ? normalized : null;
+
+    // Accept native month input (yyyy-MM) directly.
+    if (/^\d{4}-\d{2}$/.test(normalized)) {
+      return normalized;
+    }
+
+    // Fallback for accidental full date/datetime values (yyyy-MM-dd or ISO string).
+    const isoLikeMatch = normalized.match(/^(\d{4})-(\d{2})-\d{2}(?:[T\s].*)?$/);
+    if (isoLikeMatch) {
+      return `${isoLikeMatch[1]}-${isoLikeMatch[2]}`;
+    }
+
+    return null;
+  }
+
+  private resolveEmployeeId(employee: Partial<AttendanceEmailEmployee> & { id?: unknown }): number | null {
+    const rawId = employee?.employeeId ?? employee?.id;
+    const parsedId = Number(rawId);
+    if (!Number.isFinite(parsedId) || parsedId <= 0) {
+      return null;
+    }
+    return parsedId;
   }
 }
