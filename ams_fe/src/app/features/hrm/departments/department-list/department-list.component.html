@@ -7,7 +7,7 @@
         <div class="flex items-center gap-3" *ngIf="!showAddModal && !showEditModal">
             <button (click)="openAddModal()"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                <span>+</span>
+                <ng-icon [name]="'plus' | lucideToHeroicon" class="w-4 h-4 shrink-0"></ng-icon>
                 Add Department
             </button>
         </div>
@@ -39,7 +39,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center gap-4 flex-wrap">
             <div class="relative flex-1">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">🔍</span>
+                <ng-icon [name]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 shrink-0"></ng-icon>
                 <input type="text" placeholder="Search departments..." [(ngModel)]="searchQuery"
                     (ngModelChange)="onSearchChange()"
                     class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
@@ -104,7 +104,7 @@
                             <td class="px-6 py-4 text-gray-900 font-mono text-sm">{{ dept.departmentCode }}</td>
                             <td class="px-6 py-4 text-gray-900">
                                 <div *ngIf="dept.parentDepartmentName" class="flex items-center gap-1">
-                                    <span class="text-gray-400">↳</span>
+                                    <ng-icon [name]="'arrow-right' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-gray-400"></ng-icon>
                                     {{ dept.parentDepartmentName }}
                                 </div>
                                 <span *ngIf="!dept.parentDepartmentName" class="text-gray-400 italic text-sm">
@@ -120,12 +120,12 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-end gap-2">
                                     <button (click)="openEditModal(dept)"
-                                        class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
-                                        ✏️
+                                        class="p-2 text-gray-500 hover:text-blue-600 rounded-lg transition-colors" title="Edit">
+                                        <ng-icon [name]="'edit-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
                                     </button>
                                     <button (click)="openDeleteModal(dept)"
-                                        class="p-2 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                                        🗑️
+                                        class="p-2 text-red-500 hover:text-red-700 rounded-lg transition-colors" title="Delete">
+                                        <ng-icon [name]="'trash-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
                                     </button>
                                 </div>
                             </td>
@@ -169,7 +169,7 @@
             </h2>
             <button type="button" (click)="closeFormModal()"
                 class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                ✖️
+                <ng-icon [name]="'x' | lucideToHeroicon" class="w-5 h-5 shrink-0 text-gray-600"></ng-icon>
             </button>
         </div>
 
@@ -233,7 +233,9 @@
 <section *ngIf="showDeleteModal" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-8">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
         <div class="flex items-center gap-3 mb-6">
-            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">⚠️</div>
+            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <ng-icon [name]="'alert-triangle' | lucideToHeroicon" class="w-6 h-6 shrink-0 text-red-600"></ng-icon>
+            </div>
             <div>
                 <h2 class="text-xl font-bold text-gray-900">Delete Department</h2>
                 <p class="text-sm text-gray-600">This action cannot be undone</p>
