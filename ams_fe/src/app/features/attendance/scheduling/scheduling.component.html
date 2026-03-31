@@ -49,7 +49,7 @@
         placeholder="Search employee name or code"
         class="px-3 py-2 border border-slate-200 rounded-lg text-sm min-w-[260px]"
       />
-      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+      <label class="inline-flex items-center justify-center gap-2 text-sm text-slate-700">
         <input
           type="checkbox"
           [checked]="hideEmptyRows"
@@ -64,8 +64,8 @@
   <div class="grid grid-cols-[280px_1fr] gap-6">
     <div class="space-y-4">
       <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 p-5">
-        <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-          <lucide-icon name="clock" class="w-5 h-5 text-slate-600"></lucide-icon>
+        <h3 class="font-semibold text-slate-900 mb-4 flex items-center justify-center gap-2">
+          <ng-icon [name]="'clock' | lucideToHeroicon" class="w-5 h-5 text-slate-600"></ng-icon>
           Active Shift Templates
         </h3>
         <div class="space-y-3">
@@ -176,16 +176,16 @@
                     </ng-container>
                     <ng-template #emptySlot>
                       <div class="h-12 flex items-center justify-center text-slate-300">
-                        <lucide-icon
+                        <ng-icon
                           *ngIf="isDragOver(employee.id, dayIndex) && !getShift(employee.id, dayIndex)"
-                          name="check-circle"
+                          [name]="'check-circle' | lucideToHeroicon"
                           class="w-5 h-5 text-emerald-500"
-                        ></lucide-icon>
-                        <lucide-icon
+                        ></ng-icon>
+                        <ng-icon
                           *ngIf="isDragOver(employee.id, dayIndex) && getShift(employee.id, dayIndex)"
-                          name="alert-triangle"
+                          [name]="'alert-triangle' | lucideToHeroicon"
                           class="w-5 h-5 text-red-500"
-                        ></lucide-icon>
+                        ></ng-icon>
                       </div>
                     </ng-template>
                   </td>
@@ -210,7 +210,7 @@
           <h3 class="text-lg font-semibold text-slate-900">Employee Schedule Detail</h3>
           <p class="text-sm text-slate-600">{{ selectedEmployee?.name }}</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center justify-center gap-2">
           <button
             type="button"
             *ngIf="selectedEmployee"
@@ -267,7 +267,7 @@
           class="assign-range-modal__icon-button"
           aria-label="Close assign shift range modal"
         >
-          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5"></ng-icon>
         </button>
       </div>
 
@@ -369,3 +369,4 @@
     </div>
   </div>
 </div>
+

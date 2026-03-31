@@ -7,18 +7,18 @@
     <div class="flex items-center gap-3">
       <button
         type="button"
-        class="px-4 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center gap-2"
       >
-        <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+        <ng-icon nname]="'download' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
         Export All
       </button>
       <button
         type="button"
         (click)="handleBulkSend()"
-        [disabled]="selectedEmployees.length === 0"
-        class="px-4 py-2 bg-blue-600 text-slate-50 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        ndisabled]="selectedEmployees.length === 0"
+        class="px-4 py-2 bg-blue-600 text-slate-50 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <lucide-icon name="send" class="w-4 h-4"></lucide-icon>
+        <ng-icon nname]="'send' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
         Send Payslips ({{ selectedEmployees.length }})
       </button>
     </div>
@@ -43,11 +43,11 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-[1fr_400px] gap-6">
+  <div class="grid grid-cols-n1fr_400px] gap-6">
     <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 overflow-hidden">
       <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-        <form [formGroup]="filterForm" class="relative flex-1 max-w-md">
-          <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></lucide-icon>
+        <form nformGroup]="filterForm" class="relative flex-1 max-w-md">
+          <ng-icon nname]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></ng-icon>
           <input
             type="text"
             formControlName="searchQuery"
@@ -59,7 +59,7 @@
           type="button"
           (click)="toggleCompareMode()"
           class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          [ngClass]="compareMode ? 'bg-blue-600 text-slate-50' : 'bg-blue-100 text-slate-900 hover:bg-blue-200'"
+          nngClass]="compareMode ? 'bg-blue-600 text-slate-50' : 'bg-blue-100 text-slate-900 hover:bg-blue-200'"
         >
           Compare with Last Month
         </button>
@@ -72,7 +72,7 @@
               <th class="px-4 py-3 text-left">
                 <input
                   type="checkbox"
-                  [checked]="selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0"
+                  nchecked]="selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0"
                   (change)="handleSelectAll()"
                   class="w-4 h-4 text-blue-600 rounded border-slate-100 focus:ring-blue-300"
                 />
@@ -91,12 +91,12 @@
             <tr
               *ngFor="let employee of filteredEmployees"
               class="hover:bg-blue-50 transition-colors"
-              [ngClass]="selectedForPreview === employee.id ? 'bg-blue-100' : ''"
+              nngClass]="selectedForPreview === employee.id ? 'bg-blue-100' : ''"
             >
               <td class="px-4 py-3">
                 <input
                   type="checkbox"
-                  [checked]="selectedEmployees.includes(employee.id)"
+                  nchecked]="selectedEmployees.includes(employee.id)"
                   (change)="handleSelectEmployee(employee.id)"
                   class="w-4 h-4 text-blue-600 rounded border-slate-100 focus:ring-blue-300"
                 />
@@ -128,9 +128,9 @@
                 <ng-container *ngIf="getDiff(employee.total, employee.lastMonth) as diff">
                   <div
                     class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                    [ngClass]="getChangeBadgeClass(diff)"
+                    nngClass]="getChangeBadgeClass(diff)"
                   >
-                    <lucide-icon [name]="diff.diff > 0 ? 'trending-up' : 'trending-down'" class="w-3 h-3"></lucide-icon>
+                    <ng-icon nname]="diff.diff > 0 ? 'trending-up' : 'trending-down' | lucideToHeroicon" class="w-3 h-3"></ng-icon>
                     <span>{{ diff.percentage }}%</span>
                   </div>
                 </ng-container>
@@ -140,7 +140,7 @@
                   *ngIf="employee.status === 'approved'; else pendingStatus"
                   class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-500 rounded-full text-xs font-medium"
                 >
-                  <lucide-icon name="check-circle" class="w-3 h-3"></lucide-icon>
+                  <ng-icon nname]="'check-circle' | lucideToHeroicon" class="w-3 h-3"></ng-icon>
                   Approved
                 </span>
                 <ng-template #pendingStatus>
@@ -156,7 +156,7 @@
                   class="p-1.5 hover:bg-blue-200 rounded-lg transition-colors"
                   title="Preview Payslip"
                 >
-                  <lucide-icon name="eye" class="w-4 h-4 text-slate-600"></lucide-icon>
+                  <ng-icon nname]="'eye' | lucideToHeroicon" class="w-4 h-4 text-slate-600"></ng-icon>
                 </button>
               </td>
             </tr>
@@ -167,7 +167,7 @@
 
     <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-100 overflow-hidden">
       <div class="p-4 border-b border-slate-100 flex items-center gap-3">
-        <lucide-icon name="file-text" class="w-5 h-5 text-slate-600"></lucide-icon>
+        <ng-icon nname]="'file-text' | lucideToHeroicon" class="w-5 h-5 text-slate-600"></ng-icon>
         <h3 class="font-semibold text-slate-900">Payslip Preview</h3>
       </div>
 
@@ -232,11 +232,11 @@
 
         <div class="space-y-2 pt-4">
           <button class="w-full px-4 py-2.5 bg-blue-600 text-slate-50 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-            <lucide-icon name="send" class="w-4 h-4"></lucide-icon>
+            <ng-icon nname]="'send' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
             Send to {{ selectedEmployee.name }}
           </button>
           <button class="w-full px-4 py-2.5 bg-blue-100 text-slate-900 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
-            <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+            <ng-icon nname]="'download' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
             Download PDF
           </button>
         </div>
@@ -251,21 +251,24 @@
     <div class="bg-slate-50 rounded-2xl shadow-2xl p-8 max-w-md w-full">
       <div class="text-center">
         <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <lucide-icon name="send" class="w-8 h-8 text-slate-50"></lucide-icon>
+          <ng-icon nname]="'send' | lucideToHeroicon" class="w-8 h-8 text-slate-50"></ng-icon>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-2">Sending Payslips</h3>
         <p class="text-slate-600 mb-6">
           Sending to {{ selectedEmployees.length }} employees...
         </p>
         <div class="w-full bg-blue-100 rounded-full h-3 overflow-hidden">
-          <div class="bg-emerald-500 h-3 transition-all duration-300 rounded-full" [style.width.%]="sendingProgress"></div>
+          <div class="bg-emerald-500 h-3 transition-all duration-300 rounded-full" nstyle.width.%]="sendingProgress"></div>
         </div>
         <p class="text-sm text-slate-600 mt-2">{{ sendingProgress }}% complete</p>
         <div *ngIf="sendingProgress === 100" class="mt-4 flex items-center justify-center gap-2 text-emerald-500">
-          <lucide-icon name="check-circle" class="w-5 h-5"></lucide-icon>
+          <ng-icon nname]="'check-circle' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
           <span class="font-medium">All payslips sent successfully!</span>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+
+

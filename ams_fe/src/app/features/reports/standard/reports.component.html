@@ -8,16 +8,16 @@
       <button
         type="button"
         (click)="toggleFilters()"
-        class="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
       >
-        <lucide-icon name="filter" class="w-4 h-4 text-gray-600"></lucide-icon>
+        <ng-icon [name]="'filter' | lucideToHeroicon" class="w-4 h-4 text-gray-600"></ng-icon>
         Filters
       </button>
       <button
         type="button"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
       >
-        <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+        <ng-icon [name]="'download' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
         Export Report
       </button>
     </div>
@@ -32,10 +32,10 @@
         ? 'p-4 rounded-xl border-2 transition-all text-left bg-blue-50 border-blue-600'
         : 'p-4 rounded-xl border-2 transition-all text-left bg-white border-gray-200 hover:border-gray-300'"
     >
-      <lucide-icon
-        [name]="report.icon"
+      <ng-icon
+        [name]="report.icon | lucideToHeroicon"
         [ngClass]="selectedReport === report.id ? 'w-6 h-6 mb-2 text-blue-600' : 'w-6 h-6 mb-2 text-gray-600'"
-      ></lucide-icon>
+      ></ng-icon>
       <h3 [ngClass]="selectedReport === report.id ? 'font-semibold text-blue-900' : 'font-semibold text-gray-900'">
         {{ report.name }}
       </h3>
@@ -107,11 +107,11 @@
           <p class="text-3xl font-bold text-gray-900 mt-1">95.8%</p>
         </div>
         <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-          <lucide-icon name="users" class="w-6 h-6 text-blue-600"></lucide-icon>
+          <ng-icon [name]="'users' | lucideToHeroicon" class="w-6 h-6 text-blue-600"></ng-icon>
         </div>
       </div>
-      <div class="mt-4 flex items-center gap-2 text-sm">
-        <lucide-icon name="trending-up" class="w-4 h-4 text-green-600"></lucide-icon>
+      <div class="mt-4 flex items-center justify-center gap-2 text-sm">
+        <ng-icon [name]="'trending-up' | lucideToHeroicon" class="w-4 h-4 text-green-600"></ng-icon>
         <span class="text-green-600 font-medium">+2.3%</span>
         <span class="text-gray-600">vs last month</span>
       </div>
@@ -124,11 +124,11 @@
           <p class="text-3xl font-bold text-gray-900 mt-1">8:47 AM</p>
         </div>
         <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-          <lucide-icon name="clock" class="w-6 h-6 text-green-600"></lucide-icon>
+          <ng-icon [name]="'clock' | lucideToHeroicon" class="w-6 h-6 text-green-600"></ng-icon>
         </div>
       </div>
-      <div class="mt-4 flex items-center gap-2 text-sm">
-        <lucide-icon name="trending-down" class="w-4 h-4 text-red-600"></lucide-icon>
+      <div class="mt-4 flex items-center justify-center gap-2 text-sm">
+        <ng-icon [name]="'trending-down' | lucideToHeroicon" class="w-4 h-4 text-red-600"></ng-icon>
         <span class="text-red-600 font-medium">+5 min</span>
         <span class="text-gray-600">vs last month</span>
       </div>
@@ -141,11 +141,11 @@
           <p class="text-3xl font-bold text-gray-900 mt-1">284h</p>
         </div>
         <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-          <lucide-icon name="clock" class="w-6 h-6 text-yellow-600"></lucide-icon>
+          <ng-icon [name]="'clock' | lucideToHeroicon" class="w-6 h-6 text-yellow-600"></ng-icon>
         </div>
       </div>
-      <div class="mt-4 flex items-center gap-2 text-sm">
-        <lucide-icon name="trending-up" class="w-4 h-4 text-yellow-600"></lucide-icon>
+      <div class="mt-4 flex items-center justify-center gap-2 text-sm">
+        <ng-icon [name]="'trending-up' | lucideToHeroicon" class="w-4 h-4 text-yellow-600"></ng-icon>
         <span class="text-yellow-600 font-medium">+12%</span>
         <span class="text-gray-600">vs last month</span>
       </div>
@@ -158,11 +158,11 @@
           <p class="text-3xl font-bold text-gray-900 mt-1">$428K</p>
         </div>
         <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-          <lucide-icon name="dollar-sign" class="w-6 h-6 text-purple-600"></lucide-icon>
+          <ng-icon [name]="'dollar-sign' | lucideToHeroicon" class="w-6 h-6 text-purple-600"></ng-icon>
         </div>
       </div>
-      <div class="mt-4 flex items-center gap-2 text-sm">
-        <lucide-icon name="trending-up" class="w-4 h-4 text-purple-600"></lucide-icon>
+      <div class="mt-4 flex items-center justify-center gap-2 text-sm">
+        <ng-icon [name]="'trending-up' | lucideToHeroicon" class="w-4 h-4 text-purple-600"></ng-icon>
         <span class="text-purple-600 font-medium">+3.2%</span>
         <span class="text-gray-600">vs last month</span>
       </div>
@@ -174,7 +174,7 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-6">
           <h3 class="font-semibold text-gray-900 text-lg">Attendance Trends</h3>
-          <div class="flex items-center gap-2 text-sm">
+          <div class="flex items-center justify-center gap-2 text-sm">
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 bg-blue-600 rounded-full"></span>
               Present
@@ -330,3 +330,5 @@
     </div>
   </div>
 </div>
+
+

@@ -7,9 +7,9 @@
     <button
       type="button"
       (click)="openAddModal()"
-      class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+      class="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
     >
-      <lucide-icon name="plus" class="w-5 h-5"></lucide-icon>
+      <ng-icon [name]="'plus' | lucideToHeroicon" class="w-5 h-5 shrink-0"></ng-icon>
       Add Contract
     </button>
   </div>
@@ -21,13 +21,13 @@
           <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
           <p class="text-3xl font-bold {{ stat.color }} mt-2">{{ stat.value }}</p>
         </div>
-        <lucide-icon [name]="stat.icon" class="w-8 h-8 {{ stat.color }}"></lucide-icon>
+        <ng-icon [name]="stat.icon | lucideToHeroicon" class="w-8 h-8 {{ stat.color }}"></ng-icon>
       </div>
     </div>
   </div>
 
   <div *ngIf="expiringContracts.length > 0" class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
-    <lucide-icon name="alert-triangle" class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1"></lucide-icon>
+    <ng-icon [name]="'alert-triangle' | lucideToHeroicon" class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1"></ng-icon>
     <div class="flex-1">
       <h3 class="font-semibold text-yellow-900">Contracts Expiring Soon</h3>
       <div class="mt-2 space-y-1">
@@ -43,7 +43,7 @@
   <div class="bg-white rounded-xl border border-gray-200 p-6">
     <form [formGroup]="filterForm" class="flex flex-col lg:flex-row gap-4">
       <div class="flex-1 relative">
-        <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+        <ng-icon [name]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></ng-icon>
         <input
           type="text"
           formControlName="searchQuery"
@@ -63,7 +63,7 @@
       >
         <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
       </select>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center justify-center gap-2">
         <input
           type="date"
           formControlName="startDate"
@@ -78,9 +78,9 @@
       </div>
       <button
         type="button"
-        class="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+        class="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
       >
-        <lucide-icon name="download" class="w-5 h-5"></lucide-icon>
+        <ng-icon [name]="'download' | lucideToHeroicon" class="w-5 h-5 shrink-0"></ng-icon>
         Export
       </button>
     </form>
@@ -148,35 +148,35 @@
             </td>
             <td class="px-6 py-4">
               <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusClass(contract.status) }}">
-                <lucide-icon [name]="getStatusIcon(contract.status)" class="w-4 h-4"></lucide-icon>
+                <ng-icon [name]="getStatusIcon(contract.status) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                 {{ getStatusLabel(contract.status) }}
               </span>
             </td>
             <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center justify-center gap-2">
                 <button
                   type="button"
                   (click)="openViewModal(contract)"
-                  class="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  class="p-2 text-blue-500 hover:text-blue-700 rounded-lg transition-colors"
                   title="View Details"
                 >
-                  <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                  <ng-icon [name]="'eye' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
                 </button>
                 <button
                   type="button"
                   (click)="openEditModal(contract)"
-                  class="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                  class="p-2 text-gray-500 hover:text-blue-600 rounded-lg transition-colors"
                   title="Edit Contract"
                 >
-                  <lucide-icon name="edit" class="w-4 h-4"></lucide-icon>
+                  <ng-icon [name]="'edit' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
                 </button>
                 <button
                   type="button"
                   (click)="openDeleteModal(contract)"
-                  class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                  class="p-2 text-red-500 hover:text-red-700 rounded-lg transition-colors"
                   title="Delete Contract"
                 >
-                  <lucide-icon name="trash-2" class="w-4 h-4"></lucide-icon>
+                  <ng-icon [name]="'trash-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
                 </button>
               </div>
             </td>
@@ -185,7 +185,7 @@
       </table>
 
       <div *ngIf="filteredContracts.length === 0" class="text-center py-12">
-        <lucide-icon name="file-text" class="w-12 h-12 text-gray-400 mx-auto mb-4"></lucide-icon>
+        <ng-icon [name]="'file-text' | lucideToHeroicon" class="w-12 h-12 text-gray-400 mx-auto mb-4"></ng-icon>
         <p class="text-gray-600 font-medium">No contracts found</p>
         <p class="text-sm text-gray-500 mt-1">Try adjusting your filters or search query</p>
       </div>
@@ -446,7 +446,7 @@
             <p class="text-gray-600">{{ selectedContract.id }}</p>
           </div>
           <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusClass(selectedContract.status) }}">
-            <lucide-icon [name]="getStatusIcon(selectedContract.status)" class="w-4 h-4"></lucide-icon>
+            <ng-icon [name]="getStatusIcon(selectedContract.status) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
             {{ getStatusLabel(selectedContract.status) }}
           </span>
         </div>
@@ -454,8 +454,8 @@
 
       <div class="p-6 space-y-6">
         <div class="bg-gray-50 rounded-lg p-4">
-          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <lucide-icon name="user" class="w-5 h-5"></lucide-icon>
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center justify-center gap-2">
+            <ng-icon [name]="'user' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
             Employee Information
           </h3>
           <div class="grid grid-cols-2 gap-4">
@@ -479,8 +479,8 @@
         </div>
 
         <div class="bg-blue-50 rounded-lg p-4">
-          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <lucide-icon name="file-text" class="w-5 h-5"></lucide-icon>
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center justify-center gap-2">
+            <ng-icon [name]="'file-text' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
             Contract Details
           </h3>
           <div class="grid grid-cols-2 gap-4">
@@ -510,8 +510,8 @@
         </div>
 
         <div class="bg-green-50 rounded-lg p-4">
-          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <lucide-icon name="dollar-sign" class="w-5 h-5"></lucide-icon>
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center justify-center gap-2">
+            <ng-icon [name]="'dollar-sign' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
             Compensation & Benefits
           </h3>
           <div class="space-y-3">
@@ -555,9 +555,9 @@
         <button
           *ngIf="selectedContract.documentUrl"
           type="button"
-          class="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+          class="flex items-center justify-center gap-2 px-6 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
         >
-          <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
+          <ng-icon [name]="'download' | lucideToHeroicon" class="w-4 h-4 shrink-0"></ng-icon>
           Download Contract
         </button>
         <button
@@ -601,3 +601,5 @@
     </div>
   </div>
 </div>
+
+

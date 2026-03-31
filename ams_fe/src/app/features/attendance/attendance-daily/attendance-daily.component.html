@@ -126,7 +126,7 @@
         Showing {{ records.length }} of {{ totalElements }} records
       </div>
       <div class="pagination-controls flex items-center gap-3">
-        <div class="flex items-center gap-2 mr-4">
+        <div class="flex items-center justify-center gap-2 mr-4">
           <label class="text-sm text-gray-600">Items per page:</label>
           <select [(ngModel)]="size" (change)="onPageSizeChange()" class="page-size-select">
             <option *ngFor="let option of pageSizeOptions" [ngValue]="option">{{ option }}</option>
@@ -209,3 +209,4 @@
     </div>
   </div>
 </div>
+

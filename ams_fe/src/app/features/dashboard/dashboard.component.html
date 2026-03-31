@@ -13,7 +13,8 @@
         <option>This Week</option>
         <option>This Month</option>
       </select>
-      <button class="db-btn-primary" (click)="goTo('/attendance/monthly-summary')">
+      <button class="db-btn-primary inline-flex items-center justify-center gap-2" (click)="goTo('/attendance/monthly-summary')">
+        <ng-icon [name]="'download' | lucideToHeroicon" class="w-4 h-4 shrink-0"></ng-icon>
         Export Report
       </button>
     </div>
@@ -34,7 +35,7 @@
       <div class="db-kpi-card">
         <div class="db-kpi-top">
           <div class="db-kpi-icon db-kpi-icon--blue">
-            <lucide-icon name="users" class="db-icon-sm"></lucide-icon>
+            <ng-icon name="heroUsers" class="db-icon-sm"></ng-icon>
           </div>
           <span *ngIf="kpi?.totalEmployees" class="db-kpi-badge db-kpi-badge--blue">
             {{ kpiNewThisMonth }}
@@ -49,7 +50,7 @@
       <div class="db-kpi-card">
         <div class="db-kpi-top">
           <div class="db-kpi-icon db-kpi-icon--green">
-            <lucide-icon name="check-circle" class="db-icon-sm"></lucide-icon>
+            <ng-icon name="heroCheckCircle" class="db-icon-sm"></ng-icon>
           </div>
           <span *ngIf="kpi?.presentToday" class="db-kpi-badge db-kpi-badge--green">
             {{ kpiAttendancePercent }}
@@ -64,7 +65,7 @@
       <div class="db-kpi-card">
         <div class="db-kpi-top">
           <div class="db-kpi-icon db-kpi-icon--amber">
-            <lucide-icon name="clock" class="db-icon-sm"></lucide-icon>
+            <ng-icon name="heroClock" class="db-icon-sm"></ng-icon>
           </div>
           <span *ngIf="kpi?.lateCheckins" class="db-kpi-badge db-kpi-badge--amber">
             {{ kpiLateAvgMin }}
@@ -81,7 +82,7 @@
       <div class="db-kpi-card">
         <div class="db-kpi-top">
           <div class="db-kpi-icon db-kpi-icon--red">
-            <lucide-icon name="alert-triangle" class="db-icon-sm"></lucide-icon>
+            <ng-icon name="heroExclamationTriangle" class="db-icon-sm"></ng-icon>
           </div>
           <span class="db-kpi-badge db-kpi-badge--red">Urgent</span>
         </div>
@@ -96,7 +97,7 @@
     <ng-container *ngIf="!isLoading && canSeeSelfServiceDashboardActions && !canSeeAdminDashboardActions">
       <div class="db-kpi-card">
         <div class="db-kpi-icon db-kpi-icon--blue">
-          <lucide-icon name="user" class="db-icon-sm"></lucide-icon>
+          <ng-icon name="heroUser" class="db-icon-sm"></ng-icon>
         </div>
         <p class="db-kpi-label">My Dashboard</p>
         <p class="db-kpi-value db-kpi-value--sm">Welcome back</p>
@@ -126,7 +127,7 @@
       <div class="db-table-wrapper">
         <!-- Empty -->
         <div *ngIf="!livePulse?.records?.length" class="db-empty-state">
-          <lucide-icon name="activity" class="db-empty-icon"></lucide-icon>
+          <ng-icon name="heroChartBar" class="db-empty-icon"></ng-icon>
           <p>No recent check-ins</p>
         </div>
 
@@ -159,8 +160,8 @@
               <td class="db-time-cell">{{ formatCheckInTime(rec.checkInTime) }}</td>
               <!-- Location -->
               <td>
-                <div class="flex items-center gap-2 text-gray-500 text-sm">
-                  <lucide-icon name="map-pin" class="w-4 h-4 shrink-0"></lucide-icon>
+                <div class="flex items-center justify-center gap-2 text-gray-500 text-sm">
+                  <ng-icon name="heroMapPin" class="w-4 h-4 shrink-0"></ng-icon>
                   <span class="whitespace-nowrap">{{ rec.branchId || rec.location || 'HQ Main' }}</span>
                 </div>
               </td>
@@ -170,10 +171,10 @@
                   class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap"
                   [ngClass]="attendanceStatusIsLate(rec) ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'"
                 >
-                  <lucide-icon
-                    [name]="attendanceStatusIsLate(rec) ? 'clock' : 'check-circle'"
+                  <ng-icon
+                    [name]="(attendanceStatusIsLate(rec) ? 'clock' : 'check-circle') | lucideToHeroicon"
                     class="w-3.5 h-3.5 shrink-0"
-                  ></lucide-icon>
+                  ></ng-icon>
                   <span>{{ attendanceStatusLabel(rec) }}</span>
                 </span>
               </td>
@@ -194,7 +195,7 @@
       <!-- Red header -->
       <div class="db-card-header db-card-header--red">
         <div class="db-card-header-left">
-          <lucide-icon name="alert-triangle" class="db-icon-sm"></lucide-icon>
+          <ng-icon name="heroExclamationTriangle" class="db-icon-sm"></ng-icon>
           <div>
             <h2 class="db-card-title">Exceptions</h2>
             <p class="db-card-subtitle">Requires attention</p>
@@ -209,7 +210,7 @@
       <div class="db-exc-list">
         <!-- Empty -->
         <div *ngIf="!exceptionsData?.exceptions?.length" class="db-empty-state">
-          <lucide-icon name="check-circle" class="db-empty-icon db-empty-icon--green"></lucide-icon>
+          <ng-icon name="heroCheckCircle" class="db-empty-icon db-empty-icon--green"></ng-icon>
           <p>All clear — no exceptions</p>
         </div>
 
@@ -248,19 +249,19 @@
   <div *ngIf="!isLoading && canSeeSelfServiceDashboardActions && !canSeeAdminDashboardActions"
     class="db-selfservice-grid">
     <div class="db-ss-card db-ss-card--blue" (click)="goTo('/attendance/requests-management')">
-      <lucide-icon name="file-text" class="db-icon-lg"></lucide-icon>
+      <ng-icon name="heroDocumentText" class="db-icon-lg"></ng-icon>
       <span>My Requests</span>
     </div>
     <div class="db-ss-card db-ss-card--purple" (click)="goToAttendanceDaily()">
-      <lucide-icon name="calendar" class="db-icon-lg"></lucide-icon>
+      <ng-icon name="heroCalendarDays" class="db-icon-lg"></ng-icon>
       <span>My Attendance</span>
     </div>
     <div class="db-ss-card db-ss-card--green" (click)="goTo('/attendance/leave-management')">
-      <lucide-icon name="clock" class="db-icon-lg"></lucide-icon>
+      <ng-icon name="heroClock" class="db-icon-lg"></ng-icon>
       <span>Leave Requests</span>
     </div>
     <div class="db-ss-card db-ss-card--rose" (click)="goTo('/hrm/employee-portal')">
-      <lucide-icon name="user" class="db-icon-lg"></lucide-icon>
+      <ng-icon name="heroUser" class="db-icon-lg"></ng-icon>
       <span>My Profile</span>
     </div>
   </div>
@@ -281,7 +282,7 @@
         </p>
       </div>
       <button class="db-modal-close" (click)="closeResolveModal()">
-        <lucide-icon name="x" class="db-icon-sm"></lucide-icon>
+        <ng-icon name="heroXMark" class="db-icon-sm"></ng-icon>
       </button>
     </div>
 
@@ -316,11 +317,11 @@
 
     <!-- Feedback messages -->
     <div *ngIf="resolveSuccess" class="db-modal-feedback db-modal-feedback--success">
-      <lucide-icon name="check-circle" class="db-icon-sm"></lucide-icon>
+      <ng-icon name="heroCheckCircle" class="db-icon-sm"></ng-icon>
       Exception resolved successfully!
     </div>
     <div *ngIf="resolveError" class="db-modal-feedback db-modal-feedback--error">
-      <lucide-icon name="alert-circle" class="db-icon-sm"></lucide-icon>
+      <ng-icon name="heroExclamationCircle" class="db-icon-sm"></ng-icon>
       {{ resolveError }}
     </div>
 
@@ -330,11 +331,12 @@
       <button class="db-btn-primary"
         (click)="submitResolve()"
         [disabled]="resolveLoading || resolveSuccess">
-        <lucide-icon *ngIf="resolveLoading" name="loader-circle" class="db-icon-xs db-spin"></lucide-icon>
+        <ng-icon *ngIf="resolveLoading" name="heroArrowPath" class="db-icon-xs db-spin"></ng-icon>
         {{ resolveLoading ? 'Resolving…' : 'Confirm Resolve' }}
       </button>
     </div>
 
   </div>
 </div>
+
 

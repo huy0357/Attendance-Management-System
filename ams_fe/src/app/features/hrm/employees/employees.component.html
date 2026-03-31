@@ -10,16 +10,17 @@
         type="button"
         (click)="exportEmployees()"
         [disabled]="isExporting"
-        class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
+        <ng-icon [name]="'download' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
         <span>{{ isExporting ? '...' : 'Export' }}</span>
       </button>
       <button
         *ngIf="!showAddModal && canAddEmployee"
         (click)="openAddModal()"
-        class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+        class="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
       >
-        <span>+</span>
+        <ng-icon [name]="'plus' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
         Add Employee
       </button>
     </div>
@@ -32,7 +33,7 @@
   <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
     <div class="flex flex-wrap items-center gap-4">
       <div class="relative min-w-[18rem] flex-1">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">&#128269;</span>
+        <ng-icon [name]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"></ng-icon>
         <input
           type="text"
           placeholder="Search by full name"
@@ -73,7 +74,7 @@
         <option *ngFor="let option of pageSizeOptions" [ngValue]="option">{{ option }} / page</option>
       </select>
 
-      <div class="flex items-center gap-2 rounded-lg border border-gray-200 p-1">
+      <div class="flex items-center justify-center gap-2 rounded-lg border border-gray-200 p-1">
         <button
           (click)="viewMode = 'table'"
           class="rounded px-3 py-1"
@@ -133,9 +134,10 @@
                 <button
                   type="button"
                   (click)="openDetailsModal(employee)"
-                  class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                   title="View details"
                 >
+                  <ng-icon [name]="'eye' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
                   View Details
                 </button>
               </div>
@@ -149,7 +151,7 @@
       <div class="text-sm text-gray-600">
         Showing {{ employees.length }} of {{ totalItems }} employees
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center justify-center gap-2">
         <button
           (click)="prevPage()"
           [disabled]="currentPage <= 1 || isLoading"
@@ -196,8 +198,9 @@
         <button
           type="button"
           (click)="openDetailsModal(employee)"
-          class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
+          <ng-icon [name]="'eye' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
           View Details
         </button>
       </div>
@@ -211,7 +214,7 @@
     <div class="text-sm text-gray-600">
       Showing {{ employees.length }} of {{ totalItems }} employees
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center justify-center gap-2">
       <button
         (click)="prevPage()"
         [disabled]="currentPage <= 1 || isLoading"
@@ -247,7 +250,7 @@
           </div>
         </div>
         <button type="button" (click)="closeDetailsModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100" title="Close">
-          &#10006;&#65039;
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5 text-gray-600"></ng-icon>
         </button>
       </div>
 
@@ -302,20 +305,20 @@
           *ngIf="canManageEmployees"
           type="button"
           (click)="openEditFromDetails()"
-          class="employee-details-footer__button employee-details-footer__button--edit"
+          class="employee-details-footer__button employee-details-footer__button--edit inline-flex items-center justify-center gap-2"
           title="Edit"
         >
-          <span aria-hidden="true">&#9999;&#65039;</span>
+          <ng-icon [name]="'edit-2' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
           <span>Edit</span>
         </button>
         <button
           *ngIf="canManageEmployees"
           type="button"
           (click)="openDeleteFromDetails()"
-          class="employee-details-footer__button employee-details-footer__button--delete"
+          class="employee-details-footer__button employee-details-footer__button--delete inline-flex items-center justify-center gap-2"
           title="Delete"
         >
-          <span aria-hidden="true">&#128465;&#65039;</span>
+          <ng-icon [name]="'trash-2' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
           <span>Delete</span>
         </button>
       </div>
@@ -326,7 +329,9 @@
     <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
       <div class="mb-6 flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900">Add Employee</h2>
-        <button (click)="closeAddModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100">&#10006;&#65039;</button>
+        <button (click)="closeAddModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100">
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5 text-gray-600"></ng-icon>
+        </button>
       </div>
 
       <div class="space-y-4" [formGroup]="addForm">
@@ -448,8 +453,9 @@
         </button>
         <button
           (click)="handleAddEmployee()"
-          class="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
+          class="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
         >
+          <ng-icon [name]="'plus' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
           Add Employee
         </button>
       </div>
@@ -463,7 +469,9 @@
     <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
       <div class="mb-6 flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900">Edit Employee</h2>
-        <button (click)="closeEditModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100">&#10006;&#65039;</button>
+        <button (click)="closeEditModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100">
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5 text-gray-600"></ng-icon>
+        </button>
       </div>
 
       <div class="space-y-4" [formGroup]="editForm">
@@ -608,7 +616,9 @@
   >
     <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
       <div class="mb-6 flex items-center gap-3">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100">&#9888;&#65039;</div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100">
+          <ng-icon [name]="'alert-triangle' | lucideToHeroicon" class="h-6 w-6 text-red-600"></ng-icon>
+        </div>
         <div>
           <h2 class="text-xl font-bold text-gray-900">Delete Employee</h2>
           <p class="text-sm text-gray-600">This action cannot be undone.</p>
@@ -647,7 +657,9 @@
           <h2 class="text-2xl font-bold text-gray-900">Employee Role Assignment</h2>
           <p class="text-sm text-gray-600">{{ selectedEmployee.fullName }} (Employee ID {{ selectedEmployee.id }})</p>
         </div>
-        <button (click)="closeRoleModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100">&#10006;&#65039;</button>
+        <button (click)="closeRoleModal()" class="rounded-lg p-2 transition-colors hover:bg-gray-100">
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5 text-gray-600"></ng-icon>
+        </button>
       </div>
 
       <div *ngIf="roleModalMessage" class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-green-700">
@@ -708,3 +720,5 @@
     </div>
   </div>
 </div>
+
+

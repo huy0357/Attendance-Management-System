@@ -6,7 +6,7 @@
         </div>
         <div class="flex items-center gap-3" *ngIf="!showAddModal && !showEditModal">
             <button (click)="openAddModal()"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
                 <span>+</span>
                 Add Department
             </button>
@@ -145,7 +145,7 @@
             <div class="text-sm text-gray-600">
                 Showing {{ departments.length }} of {{ totalItems }} departments
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center gap-2">
                 <button (click)="prevPage()" [disabled]="currentPage === 1 || isLoading"
                     class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
                     Prev
@@ -210,7 +210,7 @@
                 </p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center gap-2">
                 <input type="checkbox" formControlName="isActive" id="isActive"
                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 <label for="isActive" class="text-sm font-medium text-gray-700">Active Status</label>
@@ -223,7 +223,7 @@
                 Cancel
             </button>
             <button type="button" (click)="saveDepartment()" [disabled]="departmentForm.invalid"
-                class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                 {{ showEditModal ? 'Save Changes' : 'Add Department' }}
             </button>
         </div>
@@ -256,3 +256,4 @@
         </div>
     </div>
 </section>
+

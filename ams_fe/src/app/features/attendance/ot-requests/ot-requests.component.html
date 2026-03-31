@@ -30,13 +30,13 @@
           <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
           <p class="text-3xl font-bold {{ stat.color }} mt-2">{{ stat.value }}</p>
         </div>
-        <lucide-icon [name]="stat.icon" class="w-8 h-8 {{ stat.color }}"></lucide-icon>
+        <ng-icon nname]="stat.icon | lucideToHeroicon" class="w-8 h-8 {{ stat.color }}"></ng-icon>
       </div>
     </div>
   </div>
 
   <div *ngIf="requests.length > 0 && pendingCount > 0" class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
-    <lucide-icon name="alert-circle" class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1"></lucide-icon>
+    <ng-icon nname]="'alert-circle' | lucideToHeroicon" class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1"></ng-icon>
     <div>
       <h3 class="font-semibold text-yellow-900">Action Required</h3>
       <p class="text-sm text-yellow-700 mt-1">
@@ -46,9 +46,9 @@
   </div>
 
   <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <form [formGroup]="filterForm" class="flex flex-col lg:flex-row gap-4">
+    <form nformGroup]="filterForm" class="flex flex-col lg:flex-row gap-4">
       <div class="flex-1 relative">
-        <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+        <ng-icon nname]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></ng-icon>
         <input
           type="text"
           formControlName="searchQuery"
@@ -60,7 +60,7 @@
         formControlName="status"
         class="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
-        <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        <option *ngFor="let status of statuses" nvalue]="status">{{ status }}</option>
       </select>
     </form>
   </div>
@@ -111,19 +111,19 @@
             </td>
             <td class="px-6 py-4">
               <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusBadgeClass(request.status) }}">
-                <lucide-icon [name]="getStatusIcon(request.status)" class="w-4 h-4"></lucide-icon>
+                <ng-icon nname]="getStatusIcon(request.status) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                 {{ getStatusLabel(request.status) }}
               </span>
             </td>
             <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center justify-center gap-2">
                 <button
                   type="button"
                   (click)="openDetailsModal(request)"
                   class="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
                   title="View Details"
                 >
-                  <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                  <ng-icon nname]="'eye' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                 </button>
                 <ng-container *ngIf="request.canReview && canApproveRequests">
                   <button
@@ -132,7 +132,7 @@
                     class="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
                     title="Approve"
                   >
-                    <lucide-icon name="check-circle" class="w-4 h-4"></lucide-icon>
+                    <ng-icon nname]="'check-circle' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                   </button>
                   <button
                     type="button"
@@ -140,7 +140,7 @@
                     class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                     title="Reject"
                   >
-                    <lucide-icon name="x-circle" class="w-4 h-4"></lucide-icon>
+                    <ng-icon nname]="'x-circle' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                   </button>
                 </ng-container>
               </div>
@@ -154,7 +154,7 @@
 
   <ng-template #emptyOtState>
     <div class="bg-white rounded-xl border border-gray-200 text-center py-12 px-6">
-      <lucide-icon name="clock" class="w-12 h-12 text-gray-400 mx-auto mb-4"></lucide-icon>
+      <ng-icon nname]="'clock' | lucideToHeroicon" class="w-12 h-12 text-gray-400 mx-auto mb-4"></ng-icon>
       <p class="text-gray-600 font-medium">No OT requests found</p>
       <p class="text-sm text-gray-500 mt-1">Open this page with a direct <code>employeeId</code> query when that context is already known. FE does not expose manager employee lookup because backend blocks <code>/api/employees/**</code> for MANAGER.</p>
     </div>
@@ -199,7 +199,7 @@
           </div>
         </div>
 
-        <div [formGroup]="reviewForm">
+        <div nformGroup]="reviewForm">
           <label class="block text-sm font-semibold text-gray-700 mb-2">Review Notes</label>
           <textarea
             formControlName="notes"
@@ -209,9 +209,9 @@
           ></textarea>
         </div>
 
-        <div class="border rounded-lg p-3" [ngClass]="reviewAction === 'approve' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'">
-          <p class="text-sm font-semibold flex items-center gap-2">
-            <lucide-icon [name]="reviewAction === 'approve' ? 'check' : 'x'" class="w-4 h-4"></lucide-icon>
+        <div class="border rounded-lg p-3" nngClass]="reviewAction === 'approve' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'">
+          <p class="text-sm font-semibold flex items-center justify-center gap-2">
+            <ng-icon nname]="reviewAction === 'approve' ? 'check' : 'x' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
             {{ reviewAction === 'approve'
               ? 'This OT request will be approved'
               : 'This OT request will be rejected' }}
@@ -229,9 +229,9 @@
         <button
           type="button"
           (click)="handleReview()"
-          [disabled]="isReviewSaving"
+          ndisabled]="isReviewSaving"
           class="px-6 py-2.5 rounded-lg transition-colors font-semibold text-white"
-          [ngClass]="reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+          nngClass]="reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
         >
           {{ isReviewSaving ? 'Saving...' : (reviewAction === 'approve' ? 'Approve Request' : 'Reject Request') }}
         </button>
@@ -248,7 +248,7 @@
             <p class="text-gray-600">{{ selectedRequest.id }}</p>
           </div>
           <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusBadgeClass(selectedRequest.status) }}">
-            <lucide-icon [name]="getStatusIcon(selectedRequest.status)" class="w-4 h-4"></lucide-icon>
+            <ng-icon nname]="getStatusIcon(selectedRequest.status) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
             {{ getStatusLabel(selectedRequest.status) }}
           </span>
         </div>
@@ -289,7 +289,7 @@
           </div>
         </div>
 
-        <div *ngIf="selectedRequest.status !== 'pending'" class="rounded-lg p-4" [ngClass]="selectedRequest.status === 'approved' ? 'bg-green-50' : 'bg-red-50'">
+        <div *ngIf="selectedRequest.status !== 'pending'" class="rounded-lg p-4" nngClass]="selectedRequest.status === 'approved' ? 'bg-green-50' : 'bg-red-50'">
           <h3 class="text-sm font-bold text-gray-900 mb-3">Review Information</h3>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -320,3 +320,6 @@
     </div>
   </div>
 </div>
+
+
+

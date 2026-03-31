@@ -1,4 +1,4 @@
-﻿<div class="space-y-6">
+<div class="space-y-6">
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-3xl font-bold text-gray-900">KPI &amp; Performance Management</h1>
@@ -9,18 +9,18 @@
         *ngIf="isActiveTab('kpis')"
         type="button"
         (click)="toggleAddKpi()"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
       >
-        <lucide-icon name="plus" class="w-4 h-4"></lucide-icon>
+        <ng-icon [name]="'plus' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
         Add KPI
       </button>
       <button
         *ngIf="isActiveTab('reviews')"
         type="button"
         (click)="openReviewModal()"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
       >
-        <lucide-icon name="plus" class="w-4 h-4"></lucide-icon>
+        <ng-icon [name]="'plus' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
         New Review
       </button>
     </div>
@@ -31,10 +31,10 @@
       *ngFor="let tab of tabs"
       type="button"
       (click)="setActiveTab(tab.id)"
-      class="flex items-center gap-2 px-4 py-3 border-b-2 transition-colors"
+      class="flex items-center justify-center gap-2 px-4 py-3 border-b-2 transition-colors"
       [ngClass]="isActiveTab(tab.id) ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'"
     >
-      <lucide-icon [name]="tab.icon" class="w-4 h-4"></lucide-icon>
+      <ng-icon [name]="tab.icon | lucideToHeroicon" class="w-4 h-4"></ng-icon>
       {{ tab.label }}
     </button>
   </div>
@@ -134,8 +134,8 @@
           <tbody class="divide-y divide-gray-200">
             <tr *ngFor="let kpi of kpis" class="hover:bg-gray-50">
               <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
-                  <lucide-icon name="target" class="w-4 h-4 text-blue-600"></lucide-icon>
+                <div class="flex items-center justify-center gap-2">
+                  <ng-icon [name]="'target' | lucideToHeroicon" class="w-4 h-4 text-blue-600"></ng-icon>
                   <span class="font-medium text-gray-900">{{ kpi.name }}</span>
                 </div>
               </td>
@@ -148,12 +148,12 @@
               <td class="px-6 py-4 text-gray-600">{{ kpi.weight }}%</td>
               <td class="px-6 py-4 text-gray-600">{{ kpi.frequency }}</td>
               <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center justify-center gap-2">
                   <button type="button" class="p-1 hover:bg-gray-100 rounded">
-                    <lucide-icon name="edit-2" class="w-4 h-4 text-gray-600"></lucide-icon>
+                    <ng-icon [name]="'edit-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
                   </button>
                   <button type="button" class="p-1 hover:bg-red-50 rounded">
-                    <lucide-icon name="trash-2" class="w-4 h-4 text-red-600"></lucide-icon>
+                    <ng-icon [name]="'trash-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
                   </button>
                 </div>
               </td>
@@ -170,7 +170,7 @@
             <p class="text-sm text-gray-600">Total KPIs</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ kpis.length }}</p>
           </div>
-          <lucide-icon name="target" class="w-8 h-8 text-blue-600"></lucide-icon>
+          <ng-icon [name]="'target' | lucideToHeroicon" class="w-8 h-8 text-blue-600"></ng-icon>
         </div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -179,7 +179,7 @@
             <p class="text-sm text-gray-600">Categories</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ getKpiCategoryCount() }}</p>
           </div>
-          <lucide-icon name="bar-chart-3" class="w-8 h-8 text-green-600"></lucide-icon>
+          <ng-icon [name]="'bar-chart-3' | lucideToHeroicon" class="w-8 h-8 text-green-600"></ng-icon>
         </div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -188,7 +188,7 @@
             <p class="text-sm text-gray-600">Total Weight</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ getKpiTotalWeight() }}%</p>
           </div>
-          <lucide-icon name="trending-up" class="w-8 h-8 text-purple-600"></lucide-icon>
+          <ng-icon [name]="'trending-up' | lucideToHeroicon" class="w-8 h-8 text-purple-600"></ng-icon>
         </div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -197,7 +197,7 @@
             <p class="text-sm text-gray-600">Active Reviews</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ getActiveReviewCount() }}</p>
           </div>
-          <lucide-icon name="award" class="w-8 h-8 text-orange-600"></lucide-icon>
+          <ng-icon [name]="'award' | lucideToHeroicon" class="w-8 h-8 text-orange-600"></ng-icon>
         </div>
       </div>
     </div>
@@ -211,7 +211,7 @@
             <p class="text-sm text-gray-600">Completed Reviews</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ reviewStats.completed }}</p>
           </div>
-          <lucide-icon name="check" class="w-8 h-8 text-green-600"></lucide-icon>
+          <ng-icon [name]="'check' | lucideToHeroicon" class="w-8 h-8 text-green-600"></ng-icon>
         </div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -220,7 +220,7 @@
             <p class="text-sm text-gray-600">Pending Reviews</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ reviewStats.pending }}</p>
           </div>
-          <lucide-icon name="calendar" class="w-8 h-8 text-yellow-600"></lucide-icon>
+          <ng-icon [name]="'calendar' | lucideToHeroicon" class="w-8 h-8 text-yellow-600"></ng-icon>
         </div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -229,7 +229,7 @@
             <p class="text-sm text-gray-600">Avg. Score</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ reviewStats.avgScore }}</p>
           </div>
-          <lucide-icon name="star" class="w-8 h-8 text-blue-600"></lucide-icon>
+          <ng-icon [name]="'star' | lucideToHeroicon" class="w-8 h-8 text-blue-600"></ng-icon>
         </div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -238,7 +238,7 @@
             <p class="text-sm text-gray-600">Total Bonus Impact</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ getBonusImpactSummary() }}</p>
           </div>
-          <lucide-icon name="dollar-sign" class="w-8 h-8 text-green-600"></lucide-icon>
+          <ng-icon [name]="'dollar-sign' | lucideToHeroicon" class="w-8 h-8 text-green-600"></ng-icon>
         </div>
       </div>
     </div>
@@ -261,8 +261,8 @@
           <tbody class="divide-y divide-gray-200">
             <tr *ngFor="let review of reviews" class="hover:bg-gray-50">
               <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
-                  <lucide-icon name="user" class="w-4 h-4 text-gray-400"></lucide-icon>
+                <div class="flex items-center justify-center gap-2">
+                  <ng-icon [name]="'user' | lucideToHeroicon" class="w-4 h-4 text-gray-400"></ng-icon>
                   <div>
                     <div class="font-medium text-gray-900">{{ review.employeeName }}</div>
                     <div class="text-sm text-gray-500">{{ review.employeeId }}</div>
@@ -277,7 +277,7 @@
                 </span>
               </td>
               <td class="px-6 py-4">
-                <div *ngIf="review.overallScore > 0; else noScore" class="flex items-center gap-2">
+                <div *ngIf="review.overallScore > 0; else noScore" class="flex items-center justify-center gap-2">
                   <div class="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div class="h-full bg-blue-600" [style.width]="getScoreWidth(review)"></div>
                   </div>
@@ -317,9 +317,9 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div *ngFor="let template of templates" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
         <div class="flex items-start justify-between mb-4">
-          <lucide-icon name="file-text" class="w-8 h-8 text-blue-600"></lucide-icon>
+          <ng-icon [name]="'file-text' | lucideToHeroicon" class="w-8 h-8 text-blue-600"></ng-icon>
           <button type="button" class="p-1 hover:bg-gray-100 rounded">
-            <lucide-icon name="edit-2" class="w-4 h-4 text-gray-600"></lucide-icon>
+            <ng-icon [name]="'edit-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
           </button>
         </div>
         <h3 class="font-semibold text-gray-900 mb-2">{{ template.name }}</h3>
@@ -342,7 +342,7 @@
           <p class="text-gray-600 mt-1">{{ getReviewModalSubtitle() }}</p>
         </div>
         <button type="button" (click)="closeReviewModal()" class="p-2 hover:bg-gray-100 rounded-lg">
-          <lucide-icon name="x" class="w-5 h-5 text-gray-600"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="w-5 h-5 text-gray-600"></ng-icon>
         </button>
       </div>
 
@@ -373,8 +373,8 @@
           <div class="space-y-3">
             <div *ngFor="let scoreGroup of getKpiScoreControls(); let i = index" class="bg-gray-50 rounded-lg p-4">
               <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <lucide-icon name="target" class="w-4 h-4 text-blue-600"></lucide-icon>
+                <div class="flex items-center justify-center gap-2">
+                  <ng-icon [name]="'target' | lucideToHeroicon" class="w-4 h-4 text-blue-600"></ng-icon>
                   <span class="font-medium text-gray-900">{{ getReviewKpi(i)?.name }}</span>
                   <span class="text-sm text-gray-500">({{ getReviewKpi(i)?.weight }}% weight)</span>
                 </div>
@@ -420,7 +420,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm text-gray-700 mb-1">Overall Score</label>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center justify-center gap-2">
                 <input
                   type="number"
                   formControlName="overallScore"
@@ -488,4 +488,8 @@
     </div>
   </div>
 </div>
+
+
+
+
 

@@ -8,8 +8,8 @@
       </div>
       <div class="flex items-center gap-3 shrink-0">
         <button (click)="openAddUserModal()"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-          <span>+</span>
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+          <ng-icon [name]="'plus' | lucideToHeroicon" class="w-4 h-4 shrink-0"></ng-icon>
           Add User
         </button>
       </div>
@@ -43,7 +43,8 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
       <div class="flex items-center gap-4 flex-wrap sm:flex-nowrap">
         <div class="relative flex-1 min-w-0">
-          <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></lucide-icon>
+          <ng-icon [name]="'search' | lucideToHeroicon"
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></ng-icon>
           <input type="text" placeholder="Search by username..." [(ngModel)]="searchQuery" (input)="onSearchChange()"
             class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300" />
         </div>
@@ -117,13 +118,13 @@
               <td class="hidden xl:table-cell px-4 lg:px-6 py-4 text-gray-600 text-sm">{{ user.lastLogin }}</td>
               <td class="px-4 lg:px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center justify-end gap-2">
-                  <button (click)="openEditUserModal(user)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  <button (click)="openEditUserModal(user)" class="p-2 text-gray-500 hover:text-blue-600 rounded-lg transition-colors"
                     title="Edit">
-                    <lucide-icon name="edit-2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                    <ng-icon [name]="'edit-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
                   </button>
-                  <button (click)="openDeleteUserModal(user)" class="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                  <button (click)="openDeleteUserModal(user)" class="p-2 text-red-500 hover:text-red-700 rounded-lg transition-colors"
                     title="Delete">
-                    <lucide-icon name="trash-2" class="w-4 h-4 text-red-600"></lucide-icon>
+                    <ng-icon [name]="'trash-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
                   </button>
                 </div>
               </td>
@@ -131,7 +132,7 @@
             <tr *ngIf="isLoading">
               <td colspan="5" class="px-6 py-12 text-center">
                 <div class="flex flex-col items-center justify-center">
-                  <lucide-icon name="loader" class="w-8 h-8 text-blue-600 animate-spin mb-2"></lucide-icon>
+                  <ng-icon [name]="'loader' | lucideToHeroicon" class="w-8 h-8 text-blue-600 animate-spin mb-2"></ng-icon>
                   <p class="text-gray-500">Loading accounts...</p>
                 </div>
               </td>
@@ -149,7 +150,7 @@
         <div class="text-sm text-gray-600">
           Showing {{ userAccounts.length }} of {{ totalItems }} users
         </div>
-        <div class="flex items-center gap-2 pr-20 sm:pr-24">
+        <div class="flex items-center justify-center gap-2 pr-20 sm:pr-24">
           <button (click)="prevPage()" [disabled]="currentPage <= 1 || isLoading"
             class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
             Prev
@@ -169,7 +170,7 @@
       <div class="flex items-center justify-between p-6 sm:p-8 border-b border-gray-200 shrink-0">
         <h2 class="text-2xl font-bold text-gray-900">Add New User</h2>
         <button type="button" (click)="closeAddUserModal()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <lucide-icon name="x" class="w-5 h-5 text-gray-600"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="w-5 h-5 text-gray-600"></ng-icon>
         </button>
       </div>
 
@@ -230,7 +231,8 @@
           Cancel
         </button>
         <button type="button" (click)="createUser()" [disabled]="addUserForm.invalid"
-          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2">
+          <ng-icon [name]="'plus' | lucideToHeroicon" class="w-4 h-4 shrink-0"></ng-icon>
           Create User
         </button>
       </div>
@@ -242,7 +244,7 @@
       <div class="flex items-center justify-between p-6 sm:p-8 border-b border-gray-200 shrink-0">
         <h2 class="text-2xl font-bold text-gray-900">Edit User Account</h2>
         <button type="button" (click)="closeEditUserModal()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <lucide-icon name="x" class="w-5 h-5 text-gray-600"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="w-5 h-5 text-gray-600"></ng-icon>
         </button>
       </div>
 
@@ -300,7 +302,7 @@
             Cancel
           </button>
           <button type="button" (click)="saveUserEdits()" [disabled]="editUserForm.invalid"
-            class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+            class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2">
             Save Changes
           </button>
       </div>
@@ -337,3 +339,5 @@
     </div>
   </div>
 </div>
+
+

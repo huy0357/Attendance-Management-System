@@ -5,10 +5,10 @@
       <p class="text-gray-600 mt-1">Track all system changes and user activities</p>
     </div>
     <button
-      class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+      class="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
       (click)="exportLogs()"
     >
-      <lucide-icon name="download" class="w-5 h-5"></lucide-icon>
+      <ng-icon [name]="'download' | lucideToHeroicon" class="w-5 h-5 shrink-0"></ng-icon>
       Export Logs
     </button>
   </div>
@@ -20,13 +20,13 @@
           <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
           <p class="text-3xl font-bold mt-2" [ngClass]="stat.color">{{ stat.value }}</p>
         </div>
-        <lucide-icon [name]="stat.icon" class="w-8 h-8" [ngClass]="stat.color"></lucide-icon>
+        <ng-icon [name]="stat.icon | lucideToHeroicon" class="w-8 h-8" [ngClass]="stat.color"></ng-icon>
       </div>
     </div>
   </div>
 
   <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-    <lucide-icon name="shield" class="w-6 h-6 text-blue-600 flex-shrink-0 mt-1"></lucide-icon>
+    <ng-icon [name]="'shield' | lucideToHeroicon" class="w-6 h-6 text-blue-600 flex-shrink-0 mt-1"></ng-icon>
     <div>
       <h3 class="font-semibold text-blue-900">Audit Compliance</h3>
       <p class="text-sm text-blue-700 mt-1">
@@ -40,7 +40,7 @@
     <div class="space-y-4">
       <div class="flex flex-col lg:flex-row gap-4">
         <div class="flex-1 relative">
-          <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></lucide-icon>
+          <ng-icon [name]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></ng-icon>
           <input
             type="text"
             placeholder="Search by user, module, or record ID..."
@@ -118,7 +118,7 @@
                 class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
                 [ngClass]="getActionBadgeClasses(log.action)"
               >
-                <lucide-icon [name]="getActionIcon(log.action)" class="w-4 h-4"></lucide-icon>
+                <ng-icon [name]="getActionIcon(log.action) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                 {{ getActionLabel(log.action) }}
               </span>
             </td>
@@ -134,10 +134,10 @@
             <td class="px-6 py-4">
               <button
                 (click)="openDetails(log)"
-                class="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                class="p-2 text-blue-500 rounded-lg hover:text-blue-700 transition-colors"
                 title="View Details"
               >
-                <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                <ng-icon [name]="'eye' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
               </button>
             </td>
           </tr>
@@ -145,7 +145,7 @@
       </table>
 
       <div *ngIf="filteredLogs.length === 0" class="text-center py-12">
-        <lucide-icon name="shield" class="w-12 h-12 text-gray-400 mx-auto mb-4"></lucide-icon>
+        <ng-icon [name]="'shield' | lucideToHeroicon" class="w-12 h-12 text-gray-400 mx-auto mb-4"></ng-icon>
         <p class="text-gray-600 font-medium">No audit logs found</p>
         <p class="text-sm text-gray-500 mt-1">Try adjusting your filters or search query</p>
       </div>
@@ -173,7 +173,7 @@
                   class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
                   [ngClass]="getActionBadgeClasses(selectedLog.action)"
                 >
-                  <lucide-icon [name]="getActionIcon(selectedLog.action)" class="w-4 h-4"></lucide-icon>
+                  <ng-icon [name]="getActionIcon(selectedLog.action) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                   {{ getActionLabel(selectedLog.action) }}
                 </span>
               </div>
@@ -242,3 +242,5 @@
     </div>
   </div>
 </div>
+
+

@@ -4,7 +4,10 @@
       <h1 class="text-2xl font-bold text-slate-900">Requests Management</h1>
       <p class="mt-1 text-slate-600">Create and track your requests in one place.</p>
     </div>
-    <button class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" (click)="openCreate()">Create Request</button>
+    <button class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" (click)="openCreate()">
+      <ng-icon [name]="'plus' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
+      Create Request
+    </button>
   </div>
 
   <div *ngIf="successMessage" class="rounded-lg border border-green-200 bg-green-50 p-4 text-green-700">
@@ -54,7 +57,8 @@
       </div>
     </form>
     <div class="mt-3 flex justify-end">
-      <button type="button" class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" (click)="clearFilters()">
+      <button type="button" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" (click)="clearFilters()">
+        <ng-icon [name]="'filter' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
         Clear Filters
       </button>
     </div>
@@ -89,20 +93,20 @@
           <td class="px-4 py-3">{{ formatDateTime(r.submittedAt || '') }}</td>
           <td class="px-4 py-3">{{ r.status }}</td>
           <td class="space-x-2 px-4 py-3 text-right">
-            <button class="inline-flex items-center text-gray-600 hover:text-gray-800" (click)="openView(r)" title="View details">
-              <lucide-icon name="eye" class="h-4 w-4"></lucide-icon>
+            <button class="inline-flex items-center text-blue-500 hover:text-blue-700" (click)="openView(r)" title="View details">
+              <ng-icon [name]="'eye' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
             </button>
-            <button *ngIf="canEdit(r)" class="inline-flex items-center text-blue-600 hover:text-blue-700" (click)="openEdit(r)">
-              <lucide-icon name="pencil" class="h-4 w-4"></lucide-icon>
+            <button *ngIf="canEdit(r)" class="inline-flex items-center text-gray-500 hover:text-blue-600" (click)="openEdit(r)">
+              <ng-icon [name]="'pencil' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
             </button>
             <button
               *ngIf="canDelete(r)"
-              class="inline-flex items-center text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              class="inline-flex items-center text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               [disabled]="rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete'"
               (click)="deleteRequest(r)"
             >
               <span *ngIf="rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete'" class="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></span>
-              <lucide-icon *ngIf="!(rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete')" name="trash-2" class="h-4 w-4"></lucide-icon>
+              <ng-icon *ngIf="!(rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete')" [name]="'trash-2' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
             </button>
             <button
               *ngIf="r.status === 'DRAFT'"
@@ -127,7 +131,7 @@
       <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
         <h2 class="text-xl font-semibold text-gray-900">Create New Request</h2>
         <button type="button" class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700" (click)="cancelCreate()">
-          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5"></ng-icon>
         </button>
       </div>
 
@@ -189,7 +193,7 @@
       <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
         <h2 class="text-xl font-semibold text-gray-900">Edit Request</h2>
         <button type="button" class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700" (click)="cancelEdit()">
-          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5"></ng-icon>
         </button>
       </div>
       <form [formGroup]="editForm" class="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
@@ -231,7 +235,7 @@
       <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
         <h2 class="text-xl font-semibold text-gray-900">Request Details</h2>
         <button type="button" class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700" (click)="closeView()">
-          <lucide-icon name="x" class="h-5 w-5"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="h-5 w-5"></ng-icon>
         </button>
       </div>
       <div class="space-y-4 p-6">
@@ -275,3 +279,4 @@
   </div>
 
 </div>
+

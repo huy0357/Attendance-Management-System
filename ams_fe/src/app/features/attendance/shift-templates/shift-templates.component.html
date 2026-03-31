@@ -8,7 +8,7 @@
       <button
         *ngIf="canManageShiftTemplates"
         (click)="openCreate()"
-        class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+        class="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
       >
         <span>+</span>
         Add Shift Template
@@ -268,7 +268,7 @@
         </button>
         <button
           (click)="submitForm()"
-          class="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 font-medium text-white transition-colors hover:bg-blue-700 shadow-sm"
+          class="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2 font-medium text-white transition-colors hover:bg-blue-700 shadow-sm"
         >
           {{ mode === 'create' ? 'Add Template' : 'Save Changes' }}
         </button>
@@ -294,7 +294,7 @@
         <button
           (click)="confirmDelete()"
           [disabled]="isDeleting"
-          class="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+          class="flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
         >
           <span *ngIf="isDeleting" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
           Delete
@@ -303,3 +303,4 @@
     </div>
   </div>
 </div>
+

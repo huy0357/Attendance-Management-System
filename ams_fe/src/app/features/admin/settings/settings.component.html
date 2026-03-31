@@ -9,7 +9,7 @@
     </div>
 
     <button class="settings-reset" type="button" (click)="resetPreferences()">
-      <lucide-icon name="refresh-cw" class="settings-reset-icon"></lucide-icon>
+      <ng-icon [name]="'refresh-cw' | lucideToHeroicon" class="settings-reset-icon"></ng-icon>
       Reset to default
     </button>
   </div>
@@ -18,7 +18,7 @@
     <section class="settings-card settings-card--appearance">
       <div class="settings-card-header">
         <div class="settings-card-icon settings-card-icon--sunset">
-          <lucide-icon name="palette"></lucide-icon>
+          <ng-icon [name]="'palette' | lucideToHeroicon"></ng-icon>
         </div>
         <div>
           <h2>Appearance</h2>
@@ -39,7 +39,7 @@
             [class.segmented-control__option--active]="(theme$ | async) === 'light'"
             (click)="setTheme('light')"
           >
-            <lucide-icon name="sun" class="segmented-control__icon"></lucide-icon>
+            <ng-icon [name]="'sun' | lucideToHeroicon" class="segmented-control__icon"></ng-icon>
             <span>Light Mode</span>
           </button>
 
@@ -49,7 +49,7 @@
             [class.segmented-control__option--active]="(theme$ | async) === 'dark'"
             (click)="setTheme('dark')"
           >
-            <lucide-icon name="moon" class="segmented-control__icon"></lucide-icon>
+            <ng-icon [name]="'moon' | lucideToHeroicon" class="segmented-control__icon"></ng-icon>
             <span>Dark Mode</span>
           </button>
         </div>
@@ -59,7 +59,7 @@
     <section class="settings-card">
       <div class="settings-card-header">
         <div class="settings-card-icon settings-card-icon--violet">
-          <lucide-icon name="languages"></lucide-icon>
+          <ng-icon [name]="'languages' | lucideToHeroicon"></ng-icon>
         </div>
         <div>
           <h2>Language &amp; Region</h2>
@@ -96,7 +96,7 @@
           <label class="pill-option" [class.pill-option--selected]="(timeFormat$ | async) === '12h'">
             <input
               type="radio"
-              name="timeFormat"
+              [name]="'timeFormat' | lucideToHeroicon"
               value="12h"
               [checked]="(timeFormat$ | async) === '12h'"
               (change)="setTimeFormat('12h')"
@@ -108,7 +108,7 @@
           <label class="pill-option" [class.pill-option--selected]="(timeFormat$ | async) === '24h'">
             <input
               type="radio"
-              name="timeFormat"
+              [name]="'timeFormat' | lucideToHeroicon"
               value="24h"
               [checked]="(timeFormat$ | async) === '24h'"
               (change)="setTimeFormat('24h')"
@@ -123,7 +123,7 @@
     <section class="settings-card settings-card--wide">
       <div class="settings-card-header">
         <div class="settings-card-icon settings-card-icon--emerald">
-          <lucide-icon name="layout-dashboard"></lucide-icon>
+          <ng-icon [name]="'layout-dashboard' | lucideToHeroicon"></ng-icon>
         </div>
         <div>
           <h2>Layout Options</h2>
@@ -169,3 +169,4 @@
     </section>
   </div>
 </div>
+

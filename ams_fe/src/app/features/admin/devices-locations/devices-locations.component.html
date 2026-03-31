@@ -13,13 +13,13 @@
           <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
           <p class="text-3xl font-bold mt-2" [ngClass]="stat.color">{{ stat.value }}</p>
         </div>
-        <lucide-icon [name]="stat.icon" class="w-8 h-8" [ngClass]="stat.color"></lucide-icon>
+        <ng-icon [name]="stat.icon | lucideToHeroicon" class="w-8 h-8" [ngClass]="stat.color"></ng-icon>
       </div>
     </div>
   </div>
 
   <div *ngIf="offlineDeviceCount > 0" class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-    <lucide-icon name="alert-triangle" class="w-6 h-6 text-red-600 flex-shrink-0 mt-1"></lucide-icon>
+    <ng-icon [name]="'alert-triangle' | lucideToHeroicon" class="w-6 h-6 text-red-600 flex-shrink-0 mt-1"></ng-icon>
     <div>
       <h3 class="font-semibold text-red-900">Device Connectivity Issues</h3>
       <p class="text-sm text-red-700 mt-1">
@@ -36,7 +36,7 @@
         class="flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors"
         [ngClass]="activeTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-50'"
       >
-        <lucide-icon name="map-pin" class="w-5 h-5"></lucide-icon>
+        <ng-icon [name]="'map-pin' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
         Locations
       </button>
       <button
@@ -44,7 +44,7 @@
         class="flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors"
         [ngClass]="activeTab === 'devices' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-50'"
       >
-        <lucide-icon name="smartphone" class="w-5 h-5"></lucide-icon>
+        <ng-icon [name]="'smartphone' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
         Devices
       </button>
     </div>
@@ -55,9 +55,9 @@
           <p class="text-gray-600">Manage office locations and geo-fencing parameters</p>
           <button
             (click)="openAddLocationModal()"
-            class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            class="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
           >
-            <lucide-icon name="plus" class="w-5 h-5"></lucide-icon>
+            <ng-icon [name]="'plus' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
             Add Location
           </button>
         </div>
@@ -73,11 +73,11 @@
                   class="w-12 h-12 rounded-full flex items-center justify-center"
                   [ngClass]="location.enabled ? 'bg-green-100' : 'bg-gray-100'"
                 >
-                  <lucide-icon
-                    name="map-pin"
+                  <ng-icon
+                    [name]="'map-pin' | lucideToHeroicon"
                     class="w-6 h-6"
                     [ngClass]="location.enabled ? 'text-green-600' : 'text-gray-600'"
-                  ></lucide-icon>
+                  ></ng-icon>
                 </div>
                 <div>
                   <h3 class="font-bold text-gray-900">{{ location.name }}</h3>
@@ -89,30 +89,30 @@
                 class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
                 [ngClass]="location.enabled ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-700 border-gray-300'"
               >
-                <lucide-icon [name]="location.enabled ? 'check-circle' : 'x-circle'" class="w-4 h-4"></lucide-icon>
+                <ng-icon [name]="(location.enabled ? 'check-circle' : 'x-circle') | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                 {{ location.enabled ? 'Active' : 'Disabled' }}
               </button>
             </div>
 
             <div class="space-y-2 mb-4">
               <div class="flex items-start gap-2">
-                <lucide-icon name="building" class="w-4 h-4 text-gray-600 mt-0.5"></lucide-icon>
+                <ng-icon [name]="'building' | lucideToHeroicon" class="w-4 h-4 text-gray-600 mt-0.5"></ng-icon>
                 <p class="text-sm text-gray-700">{{ location.address }}</p>
               </div>
-              <div class="flex items-center gap-2">
-                <lucide-icon name="map" class="w-4 h-4 text-gray-600"></lucide-icon>
+              <div class="flex items-center justify-center gap-2">
+                <ng-icon [name]="'map' | lucideToHeroicon" class="w-4 h-4 text-gray-600"></ng-icon>
                 <p class="text-sm text-gray-700">{{ location.latitude.toFixed(4) }}, {{ location.longitude.toFixed(4) }}</p>
               </div>
-              <div class="flex items-center gap-2 text-sm">
+              <div class="flex items-center justify-center gap-2 text-sm">
                 <span class="text-gray-600">Geo-fence:</span>
                 <span class="font-semibold text-blue-600">{{ location.radius }}m radius</span>
               </div>
-              <div class="flex items-center gap-2 text-sm">
+              <div class="flex items-center justify-center gap-2 text-sm">
                 <span class="text-gray-600">Timezone:</span>
                 <span class="font-semibold text-gray-900">{{ location.timezone }}</span>
               </div>
-              <div class="flex items-center gap-2 text-sm">
-                <lucide-icon name="smartphone" class="w-4 h-4 text-gray-600"></lucide-icon>
+              <div class="flex items-center justify-center gap-2 text-sm">
+                <ng-icon [name]="'smartphone' | lucideToHeroicon" class="w-4 h-4 text-gray-600"></ng-icon>
                 <span class="font-semibold text-purple-600">{{ location.devices }} device(s)</span>
               </div>
             </div>
@@ -122,14 +122,14 @@
                 (click)="openDetails(location)"
                 class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-semibold"
               >
-                <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                <ng-icon [name]="'eye' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
                 View
               </button>
               <button
                 (click)="openDeleteLocation(location)"
                 class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-semibold"
               >
-                <lucide-icon name="trash-2" class="w-4 h-4"></lucide-icon>
+                <ng-icon [name]="'trash-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
                 Delete
               </button>
             </div>
@@ -142,9 +142,9 @@
           <p class="text-gray-600">Manage attendance capture devices and monitor connectivity</p>
           <button
             (click)="openAddDeviceModal()"
-            class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            class="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
           >
-            <lucide-icon name="plus" class="w-5 h-5"></lucide-icon>
+            <ng-icon [name]="'plus' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
             Add Device
           </button>
         </div>
@@ -190,7 +190,7 @@
                       class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border"
                       [ngClass]="getStatusBadgeClasses(device.status)"
                     >
-                      <lucide-icon [name]="getStatusIcon(device.status)" class="w-4 h-4"></lucide-icon>
+                      <ng-icon [name]="getStatusIcon(device.status) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                       {{ getStatusLabel(device.status) }}
                     </span>
                   </td>
@@ -198,21 +198,21 @@
                     <p class="text-sm text-gray-900">{{ device.lastSeen }}</p>
                   </td>
                   <td class="px-6 py-4">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center justify-center gap-2">
                       <button
                         (click)="toggleDeviceStatus(device.id)"
                         class="p-2 rounded-lg transition-colors"
                         [ngClass]="device.enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                         [title]="device.enabled ? 'Enabled' : 'Disabled'"
                       >
-                        <lucide-icon [name]="device.enabled ? 'check-circle' : 'x-circle'" class="w-4 h-4"></lucide-icon>
+                        <ng-icon [name]="(device.enabled ? 'check-circle' : 'x-circle') | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                       </button>
                       <button
                         (click)="openDeleteDevice(device)"
                         class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                         title="Delete"
                       >
-                        <lucide-icon name="trash-2" class="w-4 h-4"></lucide-icon>
+                        <ng-icon [name]="'trash-2' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
                       </button>
                     </div>
                   </td>
@@ -478,3 +478,7 @@
     </div>
   </div>
 </div>
+
+
+
+

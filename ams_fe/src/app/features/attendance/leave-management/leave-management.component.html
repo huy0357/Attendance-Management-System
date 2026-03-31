@@ -10,7 +10,7 @@
         class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
       >
         Go to Requests Management
-        <lucide-icon name="arrow-right" class="ml-2 inline-block h-4 w-4"></lucide-icon>
+        <ng-icon [name]="'arrow-right' | lucideToHeroicon" class="ml-2 inline-block h-4 w-4"></ng-icon>
       </a>
       <a
         *ngIf="canOpenReviewerFlow"
@@ -32,7 +32,7 @@
             Cancelled: {{ getTabCount('cancelled') }}
           </p>
         </div>
-        <lucide-icon [name]="stat.icon" class="h-7 w-7 {{ stat.color }}"></lucide-icon>
+        <ng-icon [name]="stat.icon | lucideToHeroicon" class="h-7 w-7 {{ stat.color }}"></ng-icon>
       </div>
     </div>
   </div>
@@ -59,7 +59,7 @@
 
       <form [formGroup]="filterForm">
         <div class="relative">
-          <lucide-icon name="search" class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"></lucide-icon>
+          <ng-icon [name]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"></ng-icon>
         <input
           type="text"
           formControlName="searchQuery"
@@ -97,7 +97,7 @@
           <tr *ngIf="!isLoading && (errorMessage || filteredRequests.length === 0)">
             <td colspan="8" class="px-6 py-14">
               <div class="mx-auto flex max-w-md flex-col items-center text-center">
-                <lucide-icon name="triangle-alert" class="mb-3 h-10 w-10 text-gray-400"></lucide-icon>
+                <ng-icon [name]="'triangle-alert' | lucideToHeroicon" class="mb-3 h-10 w-10 text-gray-400"></ng-icon>
                 <p class="text-sm font-medium text-gray-500">
                   No leave requests found. (Note: Admin accounts may not have personal leave records).
                 </p>
@@ -134,19 +134,19 @@
             </td>
             <td class="px-6 py-4">
               <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border {{ getStatusColor(request.status) }}">
-                <lucide-icon [name]="getStatusIcon(request.status)" class="w-4 h-4"></lucide-icon>
+                  <ng-icon [name]="getStatusIcon(request.status) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
                 {{ getStatusLabel(request.status) }}
               </span>
             </td>
             <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center justify-center gap-2">
                 <button
                   type="button"
                   (click)="openReviewModal(request)"
                   class="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   title="View Details"
                 >
-                  <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+                  <ng-icon [name]="'eye' | lucideToHeroicon" class="w-4 h-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
                 </button>
               </div>
             </td>
@@ -168,7 +168,7 @@
             <p class="text-gray-600 mt-1">Request ID: #{{ selectedRequest.requestId }}</p>
           </div>
           <span class="inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold border {{ getStatusColor(selectedRequest.status) }}">
-            <lucide-icon [name]="getStatusIcon(selectedRequest.status)" class="w-4 h-4"></lucide-icon>
+            <ng-icon [name]="getStatusIcon(selectedRequest.status) | lucideToHeroicon" class="w-4 h-4"></ng-icon>
             {{ getStatusLabel(selectedRequest.status) }}
           </span>
         </div>
@@ -242,3 +242,5 @@
     </div>
   </div>
 </div>
+
+

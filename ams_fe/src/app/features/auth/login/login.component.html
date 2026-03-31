@@ -39,13 +39,13 @@
         </p>
       </div>
 
-      <div *ngIf="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-        <lucide-icon name="alert-circle" class="w-4 h-4 text-red-600 flex-shrink-0"></lucide-icon>
+      <div *ngIf="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center gap-2">
+        <ng-icon [name]="'alert-circle' | lucideToHeroicon" class="w-4 h-4 text-red-600 flex-shrink-0"></ng-icon>
         <p class="text-sm text-red-700">{{ error }}</p>
       </div>
 
-      <div *ngIf="success" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-        <lucide-icon name="check-circle" class="w-4 h-4 text-green-600 flex-shrink-0"></lucide-icon>
+      <div *ngIf="success" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-center gap-2">
+        <ng-icon [name]="'check-circle' | lucideToHeroicon" class="w-4 h-4 text-green-600 flex-shrink-0"></ng-icon>
         <p class="text-sm text-green-700">{{ success }}</p>
       </div>
 
@@ -56,7 +56,7 @@
           </label>
           <div class="flex items-center w-full h-12 rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all overflow-hidden">
             <div class="flex-shrink-0 flex items-center justify-center w-12 h-full text-gray-400">
-              <lucide-icon name="mail" class="w-5 h-5"></lucide-icon>
+              <ng-icon [name]="'mail' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
             </div>
             <input
               id="username"
@@ -81,7 +81,7 @@
           </label>
           <div class="flex items-center w-full h-12 rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all overflow-hidden">
             <div class="flex-shrink-0 flex items-center justify-center w-12 h-full text-gray-400">
-              <lucide-icon name="lock" class="w-5 h-5"></lucide-icon>
+              <ng-icon [name]="'lock' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
             </div>
             <input
               id="password"
@@ -98,14 +98,17 @@
               [disabled]="isLoading"
               [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
             >
-              <lucide-icon [name]="showPassword ? 'eye-off' : 'eye'" class="w-5 h-5"></lucide-icon>
+              <ng-icon
+                [name]="(showPassword ? 'eye-off' : 'eye') | lucideToHeroicon"
+                class="w-5 h-5"
+              ></ng-icon>
             </button>
             <div *ngIf="authMode === 'verify'" class="w-4"></div>
           </div>
         </div>
 
         <div class="flex items-center justify-between" *ngIf="authMode === 'login'">
-          <label class="flex items-center gap-2 cursor-pointer">
+          <label class="flex items-center justify-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               formControlName="rememberMe"
@@ -135,7 +138,7 @@
               Signing in...
             </ng-container>
             <ng-template #signIn>
-              <lucide-icon name="check" class="w-5 h-5"></lucide-icon>
+              <ng-icon [name]="'check' | lucideToHeroicon" class="w-5 h-5"></ng-icon>
               Sign In
             </ng-template>
           </button>
@@ -185,3 +188,4 @@
     </div>
   </div>
 </div>
+

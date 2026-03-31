@@ -29,13 +29,13 @@
         class="w-full flex items-center gap-3 rounded-xl transition-all group"
         [ngClass]="[densityClass, isActive(item) ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-300 hover:bg-gray-800 hover:text-white']"
       >
-        <lucide-icon
-          [name]="item.icon"
+        <ng-icon
+          [name]="item.icon | lucideToHeroicon"
           class="w-5 h-5"
           [ngClass]="isActive(item) ? '' : 'group-hover:scale-110 transition-transform'"
-        ></lucide-icon>
+        ></ng-icon>
         <span class="ams-sidebar-copy flex-1 text-left font-medium">{{ item.label }}</span>
-        <lucide-icon *ngIf="isActive(item)" name="chevron-right" class="w-4 h-4"></lucide-icon>
+        <ng-icon *ngIf="isActive(item)" [name]="'chevron-right' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
       </a>
     </nav>
 
@@ -76,14 +76,14 @@
         (click)="navigateTo('/profile')"
         class="flex items-center gap-3 w-full py-2 px-4 text-left hover:bg-gray-100 rounded-lg"
       >
-        <lucide-icon name="user" class="w-5 h-5 text-gray-600"></lucide-icon>
+        <ng-icon [name]="'user' | lucideToHeroicon" class="w-5 h-5 text-gray-600"></ng-icon>
         <span class="text-sm font-semibold">Profile</span>
       </button>
       <button
         (click)="logout()"
         class="flex items-center gap-3 w-full py-2 px-4 text-left hover:bg-gray-100 rounded-lg"
       >
-        <lucide-icon name="log-out" class="w-5 h-5 text-gray-600"></lucide-icon>
+        <ng-icon [name]="'log-out' | lucideToHeroicon" class="w-5 h-5 text-gray-600"></ng-icon>
         <span class="text-sm font-semibold">Logout</span>
       </button>
     </div>

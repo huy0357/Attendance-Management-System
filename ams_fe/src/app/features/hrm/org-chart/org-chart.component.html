@@ -1,18 +1,18 @@
-﻿<div class="space-y-6" [ngClass]="getChartContainerClass()">
+<div class="space-y-6" [ngClass]="getChartContainerClass()">
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-3xl font-bold text-gray-900">Organization Chart</h1>
       <p class="text-gray-600 mt-1">Interactive company hierarchy visualization</p>
     </div>
     <div class="flex items-center gap-3">
-      <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1">
+      <div class="flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-1">
         <button
           type="button"
           (click)="zoomOut()"
           class="p-2 hover:bg-blue-100 rounded transition-colors"
           title="Zoom Out"
         >
-          <lucide-icon name="zoom-out" class="w-4 h-4 text-gray-600"></lucide-icon>
+          <ng-icon [name]="'zoom-out' | lucideToHeroicon" class="w-4 h-4 text-gray-600"></ng-icon>
         </button>
         <span class="px-3 text-sm font-medium text-gray-900 min-w-[60px] text-center">
           {{ zoom }}%
@@ -23,7 +23,7 @@
           class="p-2 hover:bg-blue-100 rounded transition-colors"
           title="Zoom In"
         >
-          <lucide-icon name="zoom-in" class="w-4 h-4 text-gray-600"></lucide-icon>
+          <ng-icon [name]="'zoom-in' | lucideToHeroicon" class="w-4 h-4 text-gray-600"></ng-icon>
         </button>
       </div>
       <button
@@ -32,7 +32,7 @@
         (click)="toggleFullscreen()"
         title="Fullscreen"
       >
-        <lucide-icon name="maximize-2" class="w-4 h-4 text-gray-600"></lucide-icon>
+        <ng-icon [name]="'maximize-2' | lucideToHeroicon" class="w-4 h-4 text-gray-600"></ng-icon>
       </button>
     </div>
   </div>
@@ -40,7 +40,7 @@
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
     <div class="flex items-center gap-4">
       <div class="relative flex-1 max-w-md">
-        <lucide-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></lucide-icon>
+        <ng-icon [name]="'search' | lucideToHeroicon" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></ng-icon>
         <input
           type="text"
           placeholder="Search employees..."
@@ -48,8 +48,8 @@
           [(ngModel)]="searchQuery"
         />
       </div>
-      <div class="flex items-center gap-2 text-sm text-gray-600">
-        <lucide-icon name="users" class="w-4 h-4"></lucide-icon>
+      <div class="flex items-center justify-center gap-2 text-sm text-gray-600">
+        <ng-icon [name]="'users' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
         <span>{{ employees.length }} employees</span>
       </div>
       <button
@@ -122,7 +122,7 @@
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-            <lucide-icon name="alert-triangle" class="w-6 h-6 text-yellow-600"></lucide-icon>
+            <ng-icon [name]="'alert-triangle' | lucideToHeroicon" class="w-6 h-6 text-yellow-600"></ng-icon>
           </div>
           <div>
             <h2 class="text-xl font-bold text-gray-900">Confirm Department Transfer</h2>
@@ -134,7 +134,7 @@
           (click)="cancelMove()"
           class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
-          <lucide-icon name="x" class="w-5 h-5 text-gray-600"></lucide-icon>
+          <ng-icon [name]="'x' | lucideToHeroicon" class="w-5 h-5 text-gray-600"></ng-icon>
         </button>
       </div>
 
@@ -164,9 +164,9 @@
         <button
           type="button"
           (click)="confirmMove()"
-          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
         >
-          <lucide-icon name="check" class="w-4 h-4"></lucide-icon>
+          <ng-icon [name]="'check' | lucideToHeroicon" class="w-4 h-4"></ng-icon>
           Confirm Transfer
         </button>
       </div>
@@ -208,4 +208,5 @@
     </div>
   </ng-container>
 </ng-template>
+
 
