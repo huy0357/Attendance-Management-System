@@ -13,6 +13,8 @@ services:
     command: >
       "rasa train --fixed-model-name current && rasa run --enable-api --cors \"*\" --endpoints endpoints.yml --debug"
     working_dir: /app
+    environment:
+      - TZ=Asia/Bangkok
     volumes:
       - ./rasa:/app
     ports:
@@ -23,6 +25,12 @@ services:
       context: ./rasa/actions
       dockerfile: Dockerfile
     working_dir: /app
+    env_file:
+      - .env
+    environment:
+      - AMS_BE_BASE_URL=${AMS_BE_BASE_URL:-http://host.docker.internal:8080}
+      - AMS_BE_TIMEOUT_SECONDS=${AMS_BE_TIMEOUT_SECONDS:-8}
+      - TZ=Asia/Bangkok
     volumes:
       - ./rasa/actions:/app/actions
     ports:
@@ -36,6 +44,10 @@ services:
     environment:
       - OMP_NUM_THREADS=1
       - TOKENIZERS_PARALLELISM=false
+      - TZ=Asia/Bangkok
+      - POLICIES_FILE_PATH=/app/data/policies.json
+    volumes:
+      - ./data:/app/data:ro
     ports:
       - "8088:8088"
     depends_on:
