@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import httpx
 
 from app.core.settings import settings
@@ -9,56 +12,135 @@ class AmsBackendClient:
     def __init__(self) -> None:
         self._timeout = settings.ams_be_timeout_seconds
         self._base_url = settings.ams_be_base_url.rstrip("/")
-        
+
     def _headers(self, token: str) -> dict:
         if token.startswith("Bearer "):
             return {"Authorization": token}
         return {"Authorization": f"Bearer {token}"}
 
+    def _extract_data(self, payload: dict) -> dict:
+        if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+            return payload["data"]
+        if isinstance(payload, dict):
+            return payload
+        return {}
+
+    def _to_request_type_param(self, request_type: str | None) -> str | None:
+        if not request_type:
+            return None
+        mapping = {
+            "leave": "LEAVE",
+            "ot": "OVERTIME",
+            "overtime": "OVERTIME",
+            "explanation": "EXPLANATION",
+        }
+        return mapping.get(request_type.strip().lower(), request_type.strip().upper())
+
+    def _today_local_iso(self) -> str:
+        return datetime.now(ZoneInfo(settings.app_timezone)).date().isoformat()
+
     async def get_me(self, token: str) -> dict:
-        try:
-            jwt_token = token.replace("Bearer ", "") if token.startswith("Bearer ") else token
-            import jwt
-            payload = jwt.decode(jwt_token, options={"verify_signature": False})
-            username = payload.get("sub", "real-user")
-            role = payload.get("role", "EMPLOYEE")
-            return {
-                "user_id": username,
-                "employee_id": f"EMP-{username}",
-                "role": role,
-                "department_ids": [],
-                "manager_scope": []
-            }
-        except Exception:
-            return {"user_id": "stub-user", "employee_id": "EMP001", "role": "EMPLOYEE", "department_ids": ["DEP001"]}
+        if not token or token == "anonymous":
+            raise RuntimeError("Missing Authorization token")
+
+        url = f"{self._base_url}/api/v1/profile/me"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=self._headers(token), timeout=self._timeout)
+            response.raise_for_status()
+            profile = self._extract_data(response.json())
+
+        if not profile:
+            raise RuntimeError("Profile endpoint returned empty user context")
+
+        username = profile.get("username")
+        employee_id = profile.get("employeeId")
+        role_code = profile.get("roleCode")
+
+        if not username or employee_id is None or not role_code:
+            raise RuntimeError("Profile endpoint missing required fields: username/employeeId/roleCode")
+
+        department_ids: list[str] = []
+        if profile.get("departmentId") is not None:
+            department_ids.append(str(profile.get("departmentId")))
+
+        manager_scope: list[str] = []
+        if profile.get("managerId") is not None:
+            manager_scope.append(str(profile.get("managerId")))
+
+        return {
+            "user_id": str(username),
+            "employee_id": str(employee_id),
+            "role": str(role_code),
+            "department_ids": department_ids,
+            "manager_scope": manager_scope,
+        }
 
     async def get_attendance_today(self, token: str) -> dict:
-        url = f"{self._base_url}/api/attendance/today"
-        try:
-            async with httpx.AsyncClient() as client:
-                r = await client.get(url, headers=self._headers(token), timeout=self._timeout)
-                r.raise_for_status()
-                return r.json().get("data", {})
-        except Exception:
-            return {"date": "2026-03-22", "check_in": "07:58", "check_out": None, "status": "PRESENT"}
+        today = self._today_local_iso()
+        url = f"{self._base_url}/api/attendance-daily/me"
+        params = {"from": today, "to": today, "page": 0, "size": 1}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=self._headers(token), params=params, timeout=self._timeout)
+            response.raise_for_status()
+            payload = response.json()
 
-    async def get_today_shift(self, token: str) -> dict:
-        url = f"{self._base_url}/api/schedules/today"
-        try:
-            async with httpx.AsyncClient() as client:
-                r = await client.get(url, headers=self._headers(token), timeout=self._timeout)
-                r.raise_for_status()
-                return r.json().get("data", {})
-        except Exception:
-            return {"shift_name": "Hành chính", "start": "08:00", "end": "17:30"}
+        if not isinstance(payload, dict):
+            return {}
 
-    async def get_request_status(self, token: str, request_type: str | None = None) -> dict:
-        url = f"{self._base_url}/api/requests/my-latest"
-        params = {"type": request_type} if request_type else {}
-        try:
-            async with httpx.AsyncClient() as client:
-                r = await client.get(url, headers=self._headers(token), params=params, timeout=self._timeout)
-                r.raise_for_status()
-                return r.json().get("data", {})
-        except Exception:
-            return {"request_type": request_type or "leave", "status": "SUBMITTED", "submitted_at": "2026-03-22T09:15:00"}
+        rows = payload.get("content") or []
+        if not rows:
+            return {"date": today, "check_in": None, "check_out": None, "status": "NO_RECORD"}
+
+        row = rows[0]
+        return {
+            "date": str(row.get("workDate") or today),
+            "check_in": row.get("firstInTime"),
+            "check_out": row.get("lastOutTime"),
+            "status": row.get("status") or "N/A",
+        }
+
+    async def get_today_shift(self, token: str, employee_id: str | None = None) -> dict:
+        if not employee_id:
+            raise RuntimeError("Missing employee_id for schedule lookup")
+
+        today = self._today_local_iso()
+        url = f"{self._base_url}/api/v1/schedules/by-employee/day"
+        params = {"employeeId": employee_id, "date": today}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=self._headers(token), params=params, timeout=self._timeout)
+            response.raise_for_status()
+            payload = response.json()
+
+        if isinstance(payload, list) and payload:
+            shift = payload[0]
+            return {
+                "shift_name": shift.get("shiftName") or "N/A",
+                "start": shift.get("startTime") or "?",
+                "end": shift.get("endTime") or "?",
+            }
+        return {}
+
+    async def get_request_status(self, token: str, employee_id: str | None = None, request_type: str | None = None) -> dict:
+        if not employee_id:
+            raise RuntimeError("Missing employee_id for request status lookup")
+
+        url = f"{self._base_url}/api/requests"
+        params = {"employeeId": employee_id, "page": 1, "size": 1}
+        type_param = self._to_request_type_param(request_type)
+        if type_param:
+            params["type"] = type_param
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=self._headers(token), params=params, timeout=self._timeout)
+            response.raise_for_status()
+            payload = self._extract_data(response.json())
+
+        items = payload.get("items") if isinstance(payload, dict) else None
+        if not isinstance(items, list) or not items:
+            return {"request_type": request_type or "request", "status": "NO_REQUEST"}
+
+        latest = items[0]
+        return {
+            "request_type": latest.get("requestType") or request_type or "request",
+            "status": latest.get("status") or "N/A",
+            "submitted_at": latest.get("submittedAt"),
+        }
