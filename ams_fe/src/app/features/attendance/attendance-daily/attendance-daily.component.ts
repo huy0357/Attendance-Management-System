@@ -1,10 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { finalize, switchMap } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { AttendanceService, ScheduleEmployee } from '../attendance.service';
 import { AttendanceDailyService } from './attendance-daily.service';
 import { AttendanceDailyResponse } from '../models/attendance-daily.model';
+import { SpringPage } from '../../../shared/models/page-response.model';
 
 @Component({
   standalone: false,
@@ -31,6 +33,9 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
 
   readonly pageSizeOptions = [10, 20, 50];
 
+  private static readonly ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+  private static readonly MAX_ADMIN_BATCH_RANGE_DAYS = 62;
+
   records: AttendanceDailyResponse[] = [];
   employeesMap = new Map<number, ScheduleEmployee>();
 
@@ -44,6 +49,10 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
   private summarySuccessMessageTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private isDestroyed = false;
 
+  /** Đã chạy POST run-batch cho khoảng này trong phiên admin (tránh lặp khi chỉ đổi trang). */
+  private lastSyncedAdminRange: { from: string; to: string } | null = null;
+  private lastResolvedRouteMode: 'self' | 'employee' | 'admin' | null = null;
+
   constructor(
     private readonly attendanceService: AttendanceService,
     private readonly attendanceDailyService: AttendanceDailyService,
@@ -52,15 +61,18 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const today = new Date();
-    this.to = this.formatDate(today);
-    this.from = this.formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    this.applyDefaultDateRangeToTodayLocal();
 
     this.route.data.subscribe((data) => {
-      this.mode = (data['mode'] as 'self' | 'employee' | 'admin' | undefined) ?? 'self';
+      const mode = (data['mode'] as 'self' | 'employee' | 'admin' | undefined) ?? 'self';
+      if (this.lastResolvedRouteMode !== mode) {
+        this.lastSyncedAdminRange = null;
+        this.lastResolvedRouteMode = mode;
+      }
+      this.mode = mode;
       this.isAdmin = this.mode === 'admin';
       this.activeTab = this.isAdmin ? 'all' : 'me';
-      
+
       this.loadEmployees();
       this.loadRecords();
     });
@@ -78,7 +90,7 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
     if (this.activeTab === tab) return;
     this.activeTab = tab;
     this.page = 0;
-    this.loadRecords();
+    this.loadRecords({ skipAdminBatch: true });
   }
 
   onDateChange(): void {
@@ -88,19 +100,19 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
 
   onPageSizeChange(): void {
     this.page = 0;
-    this.loadRecords();
+    this.loadRecords({ skipAdminBatch: true });
   }
 
   prevPage(): void {
     if (this.page <= 0 || this.isLoading) return;
     this.page -= 1;
-    this.loadRecords();
+    this.loadRecords({ skipAdminBatch: true });
   }
 
   nextPage(): void {
     if (this.isLastPage || this.isLoading) return;
     this.page += 1;
-    this.loadRecords();
+    this.loadRecords({ skipAdminBatch: true });
   }
 
   getEmployeeName(employeeId: number): string {
@@ -116,11 +128,40 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
     return record.attendanceId;
   }
 
-  formatDateTime(value: string | null): string {
-    if (!value) return '-';
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return value;
-    return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  /**
+   * Derives a display status from raw API fields (PRESENT + minutes flags).
+   */
+  getDisplayStatus(record: AttendanceDailyResponse): string {
+    const status = record.status;
+    if (status === 'PRESENT') {
+      const late = record.lateMinutes ?? 0;
+      if (late > 0) {
+        return 'LATE';
+      }
+      const earlyLeave = record.earlyLeaveMinutes ?? 0;
+      if (earlyLeave > 0) {
+        return 'EARLY_LEAVE';
+      }
+    }
+    return status ?? '-';
+  }
+
+  /**
+   * Shows wall-clock HH:mm from backend LocalDateTime strings (no timezone/CET parsing).
+   * Expects forms like "2026-04-01T08:00:00" or optional fractional seconds.
+   */
+  formatDateTime(timeStr: string | null | undefined): string {
+    if (timeStr == null || String(timeStr).trim() === '') {
+      return '-';
+    }
+    const s = String(timeStr).trim();
+    const t = s.indexOf('T');
+    const fragment = t >= 0 ? s.slice(t + 1) : s;
+    const match = fragment.match(/^(\d{2}):(\d{2})/);
+    if (match) {
+      return `${match[1]}:${match[2]}`;
+    }
+    return '-';
   }
 
   formatNumber(value: number | null): number {
@@ -148,30 +189,65 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadRecords(): void {
+  private loadRecords(options?: { skipAdminBatch?: boolean }): void {
     this.errorMessage = '';
 
-    if (!this.from || !this.to) {
-      this.resetState('From and To dates are required.');
+    const range = this.resolveApiDateRange();
+    if (!range) {
+      if (!String(this.from ?? '').trim() || !String(this.to ?? '').trim()) {
+        this.resetState('From and To dates are required.');
+        return;
+      }
+      this.resetState('From and To must be valid calendar dates (YYYY-MM-DD).');
       return;
     }
 
-    if (this.to < this.from) {
+    if (range.to < range.from) {
       this.resetState('To date must be on or after From date.');
       return;
     }
 
+    const skipAdminBatch = options?.skipAdminBatch === true;
+    const needsAdminBatch =
+      this.isAdmin &&
+      !skipAdminBatch &&
+      (this.lastSyncedAdminRange === null ||
+        this.lastSyncedAdminRange.from !== range.from ||
+        this.lastSyncedAdminRange.to !== range.to);
+
+    if (needsAdminBatch) {
+      const dayCount = this.attendanceDailyService.countInclusiveDays(range.from, range.to);
+      if (dayCount > AttendanceDailyComponent.MAX_ADMIN_BATCH_RANGE_DAYS) {
+        this.resetState(
+          `Khoảng ngày quá lớn để chạy đồng bộ batch (tối đa ${AttendanceDailyComponent.MAX_ADMIN_BATCH_RANGE_DAYS} ngày). Thu hẹp From/To hoặc tách nhiều lần xem.`,
+        );
+        return;
+      }
+    }
+
     this.isLoading = true;
 
-    const request$ = this.activeTab === 'all' 
-      ? this.attendanceDailyService.getAttendanceDailyAdmin(this.from, this.to, this.page, this.size)
-      : this.attendanceDailyService.getMyAttendanceDaily(this.from, this.to, this.page, this.size);
+    const page$: Observable<SpringPage<AttendanceDailyResponse>> =
+      this.activeTab === 'all'
+        ? this.attendanceDailyService.getAttendanceDailyAdmin(range.from, range.to, this.page, this.size)
+        : this.attendanceDailyService.getMyAttendanceDaily(range.from, range.to, this.page, this.size);
 
-    request$
-      .pipe(finalize(() => {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }))
+    const pipeline$ = needsAdminBatch
+      ? this.attendanceDailyService.runAttendanceBatchForDateRange(range.from, range.to).pipe(
+          switchMap(() => {
+            this.lastSyncedAdminRange = { from: range.from, to: range.to };
+            return page$;
+          }),
+        )
+      : page$;
+
+    pipeline$
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }),
+      )
       .subscribe({
         next: (response) => {
           this.records = response.content ?? [];
@@ -195,17 +271,118 @@ export class AttendanceDailyComponent implements OnInit, OnDestroy {
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      const fromBody = this.stringifyHttpErrorBody(error);
+      if (fromBody) {
+        return this.interpretBackendFailureMessage(fromBody, fallback);
+      }
+    }
     const message =
       (error as { error?: { message?: string }; message?: string })?.error?.message ||
       (error as { message?: string })?.message;
-    return message || fallback;
+    const text = typeof message === 'string' ? message : '';
+    return text.trim() ? this.interpretBackendFailureMessage(text, fallback) : fallback;
   }
 
+  private stringifyHttpErrorBody(res: HttpErrorResponse): string {
+    const body = res.error;
+    if (body == null) {
+      return res.message || '';
+    }
+    if (typeof body === 'string') {
+      return body;
+    }
+    if (typeof body === 'object') {
+      const msg = (body as { message?: string }).message;
+      if (typeof msg === 'string' && msg.trim()) {
+        return msg;
+      }
+      try {
+        return JSON.stringify(body);
+      } catch {
+        return String(body);
+      }
+    }
+    return String(body);
+  }
+
+  /**
+   * Chuẩn hóa lỗi từ Spring (HTML stack trace, Handler dispatch failed, v.v.).
+   */
+  private interpretBackendFailureMessage(raw: string, fallback: string): string {
+    const flat = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const needle = flat.toLowerCase();
+
+    if (
+      needle.includes('noclassdeffounderror') &&
+      needle.includes('attendancebatchservice')
+    ) {
+      return (
+        'Backend thiếu hoặc lệch file class batch (AttendanceBatchService). ' +
+        'Đây là lỗi JVM khi chạy Spring, không sửa được bằng frontend. ' +
+        'Trong thư mục ams_be hãy chạy: mvn clean package -DskipTests, sau đó khởi động lại đúng bản JAR/ứng dụng vừa build (tránh chạy artifact cũ hoặc classpath thiếu AttendanceBatchService$1.class).'
+      );
+    }
+
+    if (needle.includes('handler dispatch failed')) {
+      const short = flat.length > 400 ? `${flat.slice(0, 400)}…` : flat;
+      return `${short} (xem log server để biết nguyên nhân gốc).`;
+    }
+
+    if (flat.length > 0) {
+      return flat.length > 500 ? `${flat.slice(0, 500)}…` : flat;
+    }
+    return fallback;
+  }
+
+  /** Calendar day in the user's local timezone (same as native date inputs), always YYYY-MM-DD. */
   private formatDate(date: Date): string {
     const year = date.getFullYear();
     const month = `${date.getMonth() + 1}`.padStart(2, '0');
     const day = `${date.getDate()}`.padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private applyDefaultDateRangeToTodayLocal(): void {
+    const today = new Date();
+    this.to = this.formatDate(today);
+    this.from = this.formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  }
+
+  /**
+   * Uses only the date segment from API/local strings so display stays a calendar day (no Date parsing / TZ shift).
+   */
+  formatWorkDateForDisplay(value: string | null | undefined): string {
+    if (value == null || String(value).trim() === '') {
+      return '-';
+    }
+    const s = String(value).trim();
+    const isoPrefix = s.slice(0, 10);
+    if (AttendanceDailyComponent.ISO_DATE.test(isoPrefix)) {
+      return isoPrefix;
+    }
+    return s;
+  }
+
+  private resolveApiDateRange(): { from: string; to: string } | null {
+    const from = this.normalizeDateInput(this.from);
+    const to = this.normalizeDateInput(this.to);
+    if (!from || !to) {
+      return null;
+    }
+    return { from, to };
+  }
+
+  private normalizeDateInput(value: string): string | null {
+    const trimmed = String(value ?? '').trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (AttendanceDailyComponent.ISO_DATE.test(trimmed)) {
+      return trimmed;
+    }
+    const prefix = trimmed.slice(0, 10);
+    return AttendanceDailyComponent.ISO_DATE.test(prefix) ? prefix : null;
   }
 
   // --- Monthly Summary Modal Logic ---
