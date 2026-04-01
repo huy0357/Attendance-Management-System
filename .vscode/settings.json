@@ -2,5 +2,6 @@
     "python.analysis.extraPaths": [
         "./ams_chatbot/chatbot_service",
         "./ams_chatbot/rasa"
-    ]
+    ],
+    "java.compile.nullAnalysis.mode": "automatic"
 }
