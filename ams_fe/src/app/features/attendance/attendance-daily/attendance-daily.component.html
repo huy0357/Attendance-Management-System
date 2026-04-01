@@ -91,7 +91,7 @@
           <!-- Data Rows -->
           <ng-container *ngIf="!isLoading && records.length > 0">
             <tr *ngFor="let record of records; trackBy: trackByAttendanceId">
-              <td class="cell-date font-medium">{{ record.workDate }}</td>
+              <td class="cell-date font-medium">{{ formatWorkDateForDisplay(record.workDate) }}</td>
               <td class="cell-employee">
                 <div class="employee-info">
                   <div class="avatar">{{ getEmployeeInitial(record.employeeId) }}</div>
@@ -105,14 +105,28 @@
               <td class="cell-time">{{ formatDateTime(record.lastOutTime) }}</td>
               <td class="cell-duration font-medium">{{ formatHours(record.workMinutes) }}</td>
               <td class="cell-status">
-                <span class="status-badge" [ngClass]="{
-                   'status-present': record.status === 'PRESENT',
-                   'status-late': record.status === 'LATE' || record.status === 'LATE_IN',
-                   'status-absent': record.status === 'ABSENT',
-                   'status-leave': record.status === 'LEAVE' || record.status === 'DAY_OFF'
-                }">
-                  {{ record.status || '-' }}
-                </span>
+                <div class="cell-status-inner">
+                  <span
+                    class="status-badge"
+                    [ngClass]="{
+                      'status-present': getDisplayStatus(record) === 'PRESENT',
+                      'status-late':
+                        getDisplayStatus(record) === 'LATE' || getDisplayStatus(record) === 'EARLY_LEAVE',
+                      'status-absent': getDisplayStatus(record) === 'ABSENT',
+                      'status-leave': getDisplayStatus(record) === 'LEAVE'
+                    }"
+                  >
+                    {{ getDisplayStatus(record) }}
+                  </span>
+                  <span
+                    *ngIf="(record.lateMinutes ?? 0) > 0"
+                    class="text-xs text-red-500 block mt-1"
+                  >Đi muộn {{ record.lateMinutes }}p</span>
+                  <span
+                    *ngIf="(record.earlyLeaveMinutes ?? 0) > 0"
+                    class="text-xs text-red-500 block mt-1"
+                  >Về sớm {{ record.earlyLeaveMinutes }}p</span>
+                </div>
               </td>
             </tr>
           </ng-container>
