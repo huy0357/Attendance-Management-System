@@ -24,6 +24,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/login",
                                 "/api/auth/refresh",
@@ -35,14 +36,34 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/api/accounts").permitAll()
 
-                        .requestMatchers("/api/attendance-daily/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/attendance-daily/employee/**").authenticated()
-                        .requestMatchers("/api/admin/attendance/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers("/api/employees/**").hasAnyRole("EMPLOYEE", "ADMIN")
-
                         .requestMatchers("/error").permitAll()
+
+                        // Admin only
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/employees/**").hasRole("ADMIN")
+                        .requestMatchers("/api/accounts/**").hasRole("ADMIN")
+                        .requestMatchers("/api/departments/**").hasRole("ADMIN")
+                        .requestMatchers("/api/roles/**").hasRole("ADMIN")
+                        .requestMatchers("/api/shift-templates/**").hasRole("ADMIN")
+                        .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
+                        .requestMatchers("/api/attendance-daily/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/attendance-monthly-summary/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/employee-export/**").hasRole("ADMIN")
+                        .requestMatchers("/api/attendance-export/**").hasRole("ADMIN")
+
+                        // Manager and Admin
+                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/requests/manager-queue/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/requests/*/approval").hasAnyRole("MANAGER", "ADMIN")
+
+                        // Employee, Manager, Admin
+                        .requestMatchers("/api/attendance-daily/employee/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/attendance-daily/me").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/requests/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/profile/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/employee-schedules/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+
+                        // All authenticated users
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
