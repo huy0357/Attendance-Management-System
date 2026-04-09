@@ -4,7 +4,7 @@
       <h1 class="text-2xl font-bold text-slate-900">Requests Management</h1>
       <p class="mt-1 text-slate-600">Create and track your requests in one place.</p>
     </div>
-    <button class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" (click)="openCreate()">
+    <button *ngIf="!canApproveRequests" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" (click)="openCreate()">
       <ng-icon [name]="'plus' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
       Create Request
     </button>
@@ -96,11 +96,11 @@
             <button class="inline-flex items-center text-blue-500 hover:text-blue-700" (click)="openView(r)" title="View details">
               <ng-icon [name]="'eye' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-blue-500 hover:text-blue-700"></ng-icon>
             </button>
-            <button *ngIf="canEdit(r)" class="inline-flex items-center text-gray-500 hover:text-blue-600" (click)="openEdit(r)">
+            <button *ngIf="canEdit(r) && !canApproveRequests" class="inline-flex items-center text-gray-500 hover:text-blue-600" (click)="openEdit(r)">
               <ng-icon [name]="'pencil' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-gray-500 hover:text-blue-600"></ng-icon>
             </button>
             <button
-              *ngIf="canDelete(r)"
+              *ngIf="canDelete(r) && !canApproveRequests"
               class="inline-flex items-center text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               [disabled]="rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete'"
               (click)="deleteRequest(r)"
@@ -109,13 +109,33 @@
               <ng-icon *ngIf="!(rowLoadingRequestId === r.requestId && rowLoadingAction === 'delete')" [name]="'trash-2' | lucideToHeroicon" class="h-4 w-4 shrink-0 text-red-500 hover:text-red-700"></ng-icon>
             </button>
             <button
-              *ngIf="r.status === 'DRAFT'"
+              *ngIf="r.status === 'DRAFT' && !canApproveRequests"
               class="inline-flex items-center text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
               [disabled]="submittingRequestId === r.requestId || (rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit')"
               (click)="submitRequest(r)"
             >
               <span *ngIf="rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit'" class="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></span>
               <span *ngIf="!(rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit')">Submit</span>
+            </button>
+
+            <!-- Manager/Admin Approval Actions -->
+            <button
+              *ngIf="canReview(r)"
+              class="inline-flex items-center text-emerald-600 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit'"
+              (click)="approveRequest(r, 'APPROVED')"
+              title="Approve"
+            >
+              <ng-icon [name]="'check-circle' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
+            </button>
+            <button
+              *ngIf="canReview(r)"
+              class="inline-flex items-center text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="rowLoadingRequestId === r.requestId && rowLoadingAction === 'submit'"
+              (click)="approveRequest(r, 'REJECTED')"
+              title="Reject"
+            >
+              <ng-icon [name]="'x-circle' | lucideToHeroicon" class="h-4 w-4 shrink-0"></ng-icon>
             </button>
           </td>
         </tr>

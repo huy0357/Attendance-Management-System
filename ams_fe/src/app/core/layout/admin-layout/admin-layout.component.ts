@@ -32,28 +32,33 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
 
   navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: 'layout-dashboard' },
-    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN', 'HR'] },
-    { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
-    { label: 'Departments', path: '/hrm/departments', icon: 'building', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar', requiredRoles: ['ADMIN'] },
+    { label: 'Employee Portal', path: '/hrm/employee-portal', icon: 'user', requiredRoles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+
     {
       label: 'Attendance Daily',
       path: '/attendance/attendance-daily',
       icon: 'clock',
-      requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'],
+      requiredRoles: ['ADMIN', 'MANAGER', 'EMPLOYEE'],
       activeMatchPaths: [
         '/attendance/attendance-daily',
         '/attendance/attendance-daily/admin',
         '/attendance/attendance-daily/employee',
       ],
     },
+    { label: 'Requests', path: '/attendance/requests-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
 
-    { label: 'Shift Templates', path: '/attendance/shift-templates', icon: 'calendar', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Attendance Email', path: '/attendance/attendance-email', icon: 'mail', requiredRoles: ['ADMIN', 'HR', 'MANAGER'] },
-    { label: 'Leave Requests', path: '/attendance/leave-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
-    { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'clock', requiredRoles: ['MANAGER'] },
-    { label: 'Requests', path: '/attendance/requests-management', icon: 'clipboard-check', requiredRoles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    // HR & Management
+    { label: 'Employees', path: '/hrm/employees', icon: 'users', requiredRoles: ['ADMIN'] },
+    { label: 'Departments', path: '/hrm/departments', icon: 'building', requiredRoles: ['ADMIN'] },
+    { label: 'Scheduling', path: '/attendance/scheduling', icon: 'calendar', requiredRoles: ['ADMIN'] },
+    { label: 'Shift Templates', path: '/attendance/shift-templates', icon: 'calendar', requiredRoles: ['ADMIN'] },
+
+    { label: 'Attendance Email', path: '/attendance/attendance-email', icon: 'mail', requiredRoles: ['ADMIN'] },
+    { label: 'OT Requests', path: '/attendance/ot-requests', icon: 'clock', requiredRoles: ['MANAGER', 'ADMIN'] },
+
+    // System Administration
     { label: 'Accounts', path: '/admin/account-management', icon: 'users', requiredRoles: ['ADMIN'] },
+
     { label: 'Audit Logs', path: '/admin/audit-log', icon: 'clipboard-list', requiredRoles: ['ADMIN'] },
     { label: 'Settings', path: '/admin/settings', icon: 'settings', requiredRoles: ['ADMIN'] },
   ];
@@ -91,8 +96,6 @@ export class AdminLayoutComponent implements AfterViewInit, OnDestroy {
     switch (role) {
       case 'ADMIN':
         return 'System Administrator';
-      case 'HR':
-        return 'HR';
       case 'MANAGER':
         return 'Manager';
       case 'EMPLOYEE':

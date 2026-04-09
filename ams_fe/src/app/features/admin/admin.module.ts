@@ -7,6 +7,10 @@ import { BackupRestoreComponent } from './backup-restore/backup-restore.componen
 import { DevicesLocationsComponent } from './devices-locations/devices-locations.component';
 import { SettingsComponent } from './settings/settings.component';
 
+import { RoleManagementComponent } from './role-management/role-management.component';
+import { DataExportsComponent } from './data-exports/data-exports.component';
+import { BatchProcessingComponent } from './batch-processing/batch-processing.component';
+
 @NgModule({
   declarations: [
     AccountManagementComponent,
@@ -14,6 +18,9 @@ import { SettingsComponent } from './settings/settings.component';
     BackupRestoreComponent,
     DevicesLocationsComponent,
     SettingsComponent,
+    RoleManagementComponent,
+    DataExportsComponent,
+    BatchProcessingComponent,
   ],
   imports: [SharedModule, AdminRoutingModule],
 })

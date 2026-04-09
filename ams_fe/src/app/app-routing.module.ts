@@ -26,7 +26,8 @@ const routes: Routes = [
         path: 'hrm',
         loadChildren: () => import('./features/hrm/hrm.module').then(m => m.HrmModule),
         canActivate: [RoleGuard],
-        data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+        // BE: HR role không tồn tại trong SecurityConfig. Roles hợp lệ: ADMIN, MANAGER, EMPLOYEE.
+        data: { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
       },
       {
         path: 'attendance',

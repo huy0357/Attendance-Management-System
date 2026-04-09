@@ -108,7 +108,7 @@ export class RequestsManagementComponent implements OnInit, OnDestroy {
   }
 
   loadRequests(): void {
-    if (!this.currentEmployeeId) {
+    if (!this.currentEmployeeId && !this.authService.hasRole('ADMIN')) {
       this.requests = [];
       this.filteredRequests = [];
       this.errorMessage = 'Missing employeeId in auth context for loading requests.';
@@ -117,7 +117,19 @@ export class RequestsManagementComponent implements OnInit, OnDestroy {
 
     this.isLoading = true;
     this.errorMessage = '';
-    this.requestsService.getRequestsByEmployee(this.currentEmployeeId)
+
+    let requestObservable;
+    if (this.authService.hasRole('ADMIN')) {
+      requestObservable = this.requestsService.getAllGlobal();
+    } else if (this.authService.hasRole('MANAGER') && this.currentEmployeeId) {
+      requestObservable = this.requestsService.getManagerQueue(this.currentEmployeeId);
+    } else if (this.currentEmployeeId) {
+      requestObservable = this.requestsService.getRequestsByEmployee(this.currentEmployeeId);
+    } else {
+      requestObservable = this.requestsService.getAllGlobal();
+    }
+
+    requestObservable
       .pipe(finalize(() => {
         this.isLoading = false;
         this.cdr.detectChanges();
@@ -362,6 +374,41 @@ export class RequestsManagementComponent implements OnInit, OnDestroy {
         this.rowLoadingAction = null;
         this.cdr.detectChanges();
       },
+    });
+  }
+
+  approveRequest(request: RequestsResponse, status: 'APPROVED' | 'REJECTED'): void {
+    const note = prompt(status === 'APPROVED' ? 'Enter approval note (optional):' : 'Enter rejection note (required):');
+    if (note === null) return;
+    if (status === 'REJECTED' && !note.trim()) {
+      alert('A rejection note is required.');
+      return;
+    }
+    if (!this.currentEmployeeId) return;
+
+    this.rowLoadingRequestId = request.requestId;
+    this.rowLoadingAction = 'submit';
+
+    const payload = {
+      approverId: this.currentEmployeeId,
+      status: status,
+      decisionNote: note
+    };
+
+    this.requestsService.approveOrReject(request.requestId, payload).pipe(
+      finalize(() => {
+        this.rowLoadingRequestId = null;
+        this.rowLoadingAction = null;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: () => {
+        this.successMessage = `Request ${request.requestId} ${status.toLowerCase()} successfully.`;
+        this.loadRequests();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.handleError(error, `Unable to ${status.toLowerCase()} request.`);
+      }
     });
   }
 

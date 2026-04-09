@@ -11,13 +11,15 @@ const routes: Routes = [
     path: 'employees',
     component: EmployeesComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR'] },
+    // BE: /api/employees/** → hasRole('ADMIN') only. HR không tồn tại trong BE.
+    data: { roles: ['ADMIN'] },
   },
   {
     path: 'employee-portal',
     component: EmployeePortalComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    // BE: /api/profile/** → hasAnyRole('EMPLOYEE','MANAGER','ADMIN'). Bỏ HR phantom.
+    data: { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
   },
   // Legacy redirects for removed mock-only HRM screens.
   { path: 'contracts', redirectTo: '', pathMatch: 'full' },
@@ -28,7 +30,8 @@ const routes: Routes = [
     path: 'departments',
     component: DepartmentListComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+    // BE: /api/departments/** → hasRole('ADMIN') only.
+    data: { roles: ['ADMIN'] },
   },
   { path: '', component: HrmLandingComponent },
 ];

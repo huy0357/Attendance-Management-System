@@ -20,6 +20,8 @@ interface OtRequest {
   reviewedBy?: string;
   reviewNotes?: string;
   canReview: boolean;
+  formattedDate: string;
+  formattedSubmittedDate: string;
 }
 
 @Component({
@@ -35,8 +37,10 @@ export class OtRequestsComponent implements OnInit {
   errorMessage: string | null = null;
   helperMessage = '';
   selectedEmployeeId: number | null = null;
-  isLoading = false;
+  isLoading = true;
   isReviewSaving = false;
+  statsArray: Array<{ label: string; value: string | number; color: string; bg: string; icon: string }> = [];
+  pendingCountValue = 0;
 
   filterForm: FormGroup;
   reviewForm: FormGroup;
@@ -68,7 +72,7 @@ export class OtRequestsComponent implements OnInit {
   ngOnInit(): void {
     this.canApproveRequests = this.getNormalizedRole() === 'MANAGER';
 
-    this.helperMessage = 'This page only renders OT fields backed by /api/requests. Employee lookup is intentionally hidden because backend does not expose a manager-safe /api/employees lookup flow.';
+    this.helperMessage = '';
 
     this.filterForm.get('searchQuery')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -84,29 +88,27 @@ export class OtRequestsComponent implements OnInit {
           ? routeEmployeeId
           : null;
 
-        if (nextEmployeeId === this.selectedEmployeeId) {
-          return;
+        if (nextEmployeeId !== null) {
+          if (nextEmployeeId === this.selectedEmployeeId) {
+            return;
+          }
+          this.selectedEmployeeId = nextEmployeeId;
+          this.loadRequests(this.selectedEmployeeId);
+        } else {
+          this.selectedEmployeeId = null;
+          this.loadRequests(null);
         }
-
-        this.selectedEmployeeId = nextEmployeeId;
-
-        if (!this.selectedEmployeeId) {
-          this.requests = [];
-          this.filteredRequests = [];
-          this.errorMessage = null;
-          return;
-        }
-
-        this.loadRequests(this.selectedEmployeeId);
       });
   }
 
-  get stats(): Array<{ label: string; value: string | number; color: string; bg: string; icon: string }> {
+  updateStats(): void {
     const approvedHours = this.requests
       .filter((r) => r.status === 'approved')
       .reduce((sum, r) => sum + r.hours, 0);
 
-    return [
+    this.pendingCountValue = this.requests.filter((r) => r.status === 'pending').length;
+
+    this.statsArray = [
       {
         label: 'Total Requests',
         value: this.requests.length,
@@ -116,7 +118,7 @@ export class OtRequestsComponent implements OnInit {
       },
       {
         label: 'Pending Review',
-        value: this.requests.filter((r) => r.status === 'pending').length,
+        value: this.pendingCountValue,
         color: 'text-yellow-600',
         bg: 'bg-yellow-50',
         icon: 'clock',
@@ -136,10 +138,6 @@ export class OtRequestsComponent implements OnInit {
         icon: 'timer',
       },
     ];
-  }
-
-  get pendingCount(): number {
-    return this.requests.filter((r) => r.status === 'pending').length;
   }
 
   get currentEmployeeId(): number | null {
@@ -221,9 +219,9 @@ export class OtRequestsComponent implements OnInit {
 
   getStatusBadgeClass(status: OtRequest['status']): string {
     const styles: Record<OtRequest['status'], string> = {
-      pending: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-      approved: 'bg-green-100 text-green-700 border-green-300',
-      rejected: 'bg-red-100 text-red-700 border-red-300',
+      pending: 'bg-yellow-100 text-yellow-700',
+      approved: 'bg-green-100 text-green-700',
+      rejected: 'bg-red-100 text-red-700',
     };
     return styles[status];
   }
@@ -259,18 +257,34 @@ export class OtRequestsComponent implements OnInit {
     return stat.label;
   }
 
-  private loadRequests(employeeId: number, afterLoad?: () => void): void {
+  private loadRequests(employeeId: number | null, afterLoad?: () => void): void {
     this.requests = [];
     this.filteredRequests = [];
     this.errorMessage = null;
     this.isLoading = true;
 
-    this.requestsService.getRequestsByEmployee(employeeId).subscribe({
+    let requestObservable;
+    if (this.canApproveRequests && typeof employeeId === 'number') {
+        requestObservable = this.requestsService.getRequestsByEmployee(employeeId);
+    } else if (this.getNormalizedRole() === 'ADMIN') {
+        requestObservable = this.requestsService.getAllGlobal();
+    } else if (this.canApproveRequests && this.currentEmployeeId) {
+        requestObservable = this.requestsService.getManagerQueue(this.currentEmployeeId);
+    } else if (employeeId) {
+        requestObservable = this.requestsService.getRequestsByEmployee(employeeId);
+    } else if (this.currentEmployeeId) {
+        requestObservable = this.requestsService.getRequestsByEmployee(this.currentEmployeeId);
+    } else {
+        requestObservable = this.requestsService.getAllGlobal();
+    }
+
+    requestObservable.subscribe({
       next: (data) => {
         this.isLoading = false;
         this.requests = data
           .filter((request) => request.requestType === 'OVERTIME')
           .map((request) => this.mapRequestToOt(request));
+        this.updateStats();
         this.applyFilters();
         if (afterLoad) {
           afterLoad();
@@ -305,6 +319,8 @@ export class OtRequestsComponent implements OnInit {
       reviewedBy: request.approverName ?? undefined,
       reviewNotes: request.decisionNote ?? undefined,
       canReview: request.status === 'SUBMITTED' && this.canApproveRequests,
+      formattedDate: this.formatDate(request.startDatetime ?? request.endDatetime ?? request.submittedAt ?? ''),
+      formattedSubmittedDate: this.formatDate(request.submittedAt ?? request.startDatetime ?? ''),
     };
   }
 

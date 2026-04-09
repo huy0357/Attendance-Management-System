@@ -7,6 +7,8 @@ import { RequestsManagementComponent } from './requests-management/requests-mana
 import { AttendanceDailyComponent } from './attendance-daily/attendance-daily.component';
 import { AttendanceEmailComponent } from './attendance-email/attendance-email.component';
 import { OtRequestsComponent } from './ot-requests/ot-requests.component';
+import { MonthlySummaryComponent } from './monthly-summary/monthly-summary.component';
+import { MyScheduleComponent } from './my-schedule/my-schedule.component';
 import { RoleGuard } from '../../core/auth/role.guard';
 import { AttendanceLandingComponent } from './attendance-landing.component';
 
@@ -15,7 +17,8 @@ const routes: Routes = [
     path: 'attendance-daily',
     component: AttendanceDailyComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'], mode: 'self' },
+    // BE: /api/attendance-daily/me + /employee/** → hasAnyRole('EMPLOYEE','MANAGER','ADMIN')
+    data: { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'], mode: 'self' },
   },
   {
     path: 'attendance-daily/admin',
@@ -27,11 +30,24 @@ const routes: Routes = [
     path: 'attendance-daily/employee/:employeeId',
     component: AttendanceDailyComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER'], mode: 'employee' },
+    data: { roles: ['ADMIN', 'MANAGER'], mode: 'employee' },
   },
   {
     path: 'scheduling',
     component: SchedulingComponent,
+    canActivate: [RoleGuard],
+    // BE: /api/employee-schedules/** → hasAnyRole('EMPLOYEE','MANAGER','ADMIN')
+    data: { roles: ['ADMIN'] },
+  },
+  {
+    path: 'my-schedule',
+    component: MyScheduleComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+  },
+  {
+    path: 'monthly-summary',
+    component: MonthlySummaryComponent,
     canActivate: [RoleGuard],
     data: { roles: ['ADMIN'] },
   },
@@ -39,32 +55,35 @@ const routes: Routes = [
     path: 'shift-templates',
     component: ShiftTemplatesComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+    // BE: /api/shift-templates/** → hasRole('ADMIN') only.
+    data: { roles: ['ADMIN'] },
   },
   {
     path: 'leave-management',
     component: LeaveManagementComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    data: { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
   },
   {
     path: 'requests-management',
     component: RequestsManagementComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    data: { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
   },
   {
     path: 'ot-requests',
     component: OtRequestsComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['MANAGER'] },
+    // BE: /api/requests/manager-queue/** → hasAnyRole('MANAGER','ADMIN')
+    data: { roles: ['MANAGER', 'ADMIN'] },
   },
 
   {
     path: 'attendance-email',
     component: AttendanceEmailComponent,
     canActivate: [RoleGuard],
-    data: { roles: ['ADMIN', 'HR', 'MANAGER'] },
+    // BE: /api/attendance-emails/** → anyRequest().authenticated() - FE restricts further to ADMIN only.
+    data: { roles: ['ADMIN'] },
   },
   { path: '', component: AttendanceLandingComponent },
 ];

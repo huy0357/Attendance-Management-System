@@ -76,6 +76,31 @@ export class RequestsService {
     return this.getMyRequests(employeeId, status, requestType);
   }
 
+  getManagerQueue(
+    managerId: number,
+    status?: RequestsResponse['status'] | '',
+    requestType?: RequestsResponse['requestType'] | '',
+  ): Observable<RequestsResponse[]> {
+    let params = new HttpParams().set('managerId', managerId.toString());
+    if (status) params = params.set('status', status);
+    if (requestType) params = params.set('type', requestType);
+    return this.http.get<RequestsResponse[] | PageResponse<RequestsResponse> | SpringPage<RequestsResponse>>(`${this.baseUrl}/manager-queue`, { params }).pipe(
+      map((response) => this.normalizeRequestsList(response)),
+    );
+  }
+
+  getAllGlobal(
+    status?: RequestsResponse['status'] | '',
+    requestType?: RequestsResponse['requestType'] | '',
+  ): Observable<RequestsResponse[]> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (requestType) params = params.set('type', requestType);
+    return this.http.get<RequestsResponse[] | PageResponse<RequestsResponse> | SpringPage<RequestsResponse>>(`${this.baseUrl}/all`, { params }).pipe(
+      map((response) => this.normalizeRequestsList(response)),
+    );
+  }
+
   getOvertimeRequests(employeeId: number): Observable<RequestsResponse[]> {
     return this.getMyRequests(employeeId).pipe(
       map((requests) => requests.filter((request) => request.requestType === 'OVERTIME')),
