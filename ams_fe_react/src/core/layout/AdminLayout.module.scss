@@ -1,0 +1,477 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AdminLayout — Neumorphism Shell
+   All shadows derived from surface=#E7E5E4 per neumorphism-SKILL.md
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── App Shell ────────────────────────────────────────────────────────────── */
+.ams-shell {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background: var(--nm-surface);
+  font-family: var(--font-primary);
+  overflow: hidden;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+.ams-sidebar {
+  width: 256px;
+  min-width: 256px;
+  display: flex;
+  flex-direction: column;
+  background: var(--nm-surface);
+  /* Extruded sidebar panel — casts shadow to the right */
+  box-shadow: var(--nm-shadow-right);
+  z-index: var(--nm-z-above);
+  transition:
+    width 240ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    min-width 240ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  overflow: hidden;
+}
+
+.ams-sidebar--compact {
+  width: 72px;
+  min-width: 72px;
+}
+
+/* ── Brand / Logo Area ────────────────────────────────────────────────────── */
+.ams-brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--nm-space-5);
+  flex-shrink: 0;
+  /* Inset bottom divider effect */
+  box-shadow: 0 4px 8px -4px var(--nm-dark), 0 -1px 0 var(--nm-light) inset;
+}
+
+.ams-brand-title {
+  font-family: var(--font-primary);
+  font-size: 1.375rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.03em;
+  color: var(--nm-text);
+  white-space: nowrap;
+  margin: 0;
+
+  span {
+    color: var(--nm-primary);
+  }
+}
+
+/* ── Nav Section Label ────────────────────────────────────────────────────── */
+.ams-nav-section-label {
+  font-family: var(--font-primary);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  color: var(--nm-text-muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: var(--nm-space-5) var(--nm-space-5) var(--nm-space-2);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ── Navigation ───────────────────────────────────────────────────────────── */
+.ams-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--nm-space-2) var(--nm-space-3) var(--nm-space-10);
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--nm-scrollbar-thumb);
+    border-radius: var(--nm-radius-full);
+  }
+}
+
+/* ── Nav Link ─────────────────────────────────────────────────────────────── */
+.ams-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nm-space-3);
+  padding: 10px var(--nm-space-4);
+  border-radius: var(--nm-radius-sm);
+  font-family: var(--font-primary);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  color: var(--nm-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  /* Flat on surface by default — no shadow until hover */
+  box-shadow: none;
+  background: transparent;
+  transition:
+    box-shadow 220ms ease,
+    color 180ms ease,
+    background 180ms ease;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ams-nav-link:hover {
+  color: var(--nm-primary);
+  background: transparent;
+  /* Lift: extruded shadow on hover */
+  box-shadow: var(--nm-shadow-sm);
+}
+
+/* Active nav link — pressed INTO surface */
+.ams-nav-link--active {
+  color: var(--nm-primary) !important;
+  font-weight: var(--fw-bold);
+  /* Inset: appears pressed/embedded */
+  box-shadow: var(--nm-shadow-active) !important;
+  background: var(--nm-surface-deep);
+}
+
+.ams-nav-icon {
+  flex-shrink: 0;
+  transition: color 180ms ease;
+  color: var(--nm-text-muted);
+}
+
+.ams-nav-link:hover .ams-nav-icon,
+.ams-nav-link--active .ams-nav-icon {
+  color: var(--nm-primary);
+}
+
+.ams-nav-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ams-nav-chevron {
+  flex-shrink: 0;
+  color: var(--nm-primary);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.ams-nav-link--active .ams-nav-chevron {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Compact sidebar — hide text labels */
+.ams-sidebar--compact .ams-nav-label,
+.ams-sidebar--compact .ams-nav-chevron,
+.ams-sidebar--compact .ams-nav-section-label,
+.ams-sidebar--compact .ams-brand-title span {
+  display: none;
+}
+
+.ams-sidebar--compact .ams-brand-title {
+  letter-spacing: 0;
+}
+
+.ams-sidebar--compact .ams-nav-link {
+  justify-content: center;
+  padding: 10px;
+}
+
+/* ── Header Bar ───────────────────────────────────────────────────────────── */
+.ams-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--nm-space-6);
+  background: var(--nm-surface);
+  /* Extruded header — casts shadow downward */
+  box-shadow:
+    0 6px 14px var(--nm-dark),
+    0 -2px 6px var(--nm-light);
+  position: sticky;
+  top: 0;
+  z-index: var(--nm-z-overlay);
+  flex-shrink: 0;
+}
+
+.ams-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--nm-space-4);
+}
+
+.ams-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--nm-space-3);
+}
+
+/* Menu toggle button */
+.ams-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--nm-radius-sm);
+  background: var(--nm-surface);
+  color: var(--nm-text-secondary);
+  cursor: pointer;
+  box-shadow: var(--nm-shadow-sm);
+  transition: var(--nm-transition);
+
+  &:hover {
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-out);
+  }
+
+  &:active {
+    box-shadow: var(--nm-shadow-active);
+    transform: translateY(1px);
+  }
+}
+
+/* ── Search Bar — Inset (lõm vào bề mặt) ─────────────────────────────────── */
+.ams-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--nm-space-2);
+  height: 36px;
+  padding: 0 var(--nm-space-3);
+  border-radius: var(--nm-radius-sm);
+  background: var(--nm-surface);
+  /* Inset shadow — search bar pressed into surface */
+  box-shadow: var(--nm-shadow-in);
+  transition: var(--nm-transition);
+  min-width: 0;
+  width: 220px;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+}
+
+.ams-search-wrap:focus-within {
+  box-shadow:
+    inset 4px 4px 10px var(--nm-dark),
+    inset -4px -4px 10px var(--nm-light),
+    0 0 0 2px rgba(0, 102, 102, 0.22);
+}
+
+.ams-search-icon {
+  color: var(--nm-text-muted);
+  flex-shrink: 0;
+}
+
+.ams-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text);
+  min-width: 0;
+
+  &::placeholder {
+    color: var(--nm-text-muted);
+  }
+}
+
+/* ── Notification Bell ────────────────────────────────────────────────────── */
+.ams-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--nm-radius-sm);
+  background: var(--nm-surface);
+  color: var(--nm-text-secondary);
+  cursor: pointer;
+  box-shadow: var(--nm-shadow-sm);
+  transition: var(--nm-transition);
+
+  &:hover {
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-out);
+  }
+
+  &:active {
+    box-shadow: var(--nm-shadow-active);
+  }
+}
+
+.ams-notif-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  background: var(--nm-danger);
+  border-radius: 50%;
+  animation: nm-pulse 2s infinite;
+  border: 2px solid var(--nm-surface);
+}
+
+/* ── Avatar Button ────────────────────────────────────────────────────────── */
+.ams-avatar-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--nm-space-2);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--nm-radius-sm);
+  transition: var(--nm-transition);
+
+  &:focus-visible {
+    outline: 2px solid var(--nm-primary);
+    outline-offset: 2px;
+  }
+}
+
+.ams-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--nm-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Circular extruded disc */
+  box-shadow:
+    3px 3px 8px var(--nm-dark),
+    -3px -3px 8px var(--nm-light),
+    inset 1px 1px 3px rgba(0, 150, 150, 0.3);
+  transition: box-shadow 200ms ease;
+}
+
+.ams-avatar:hover {
+  box-shadow:
+    5px 5px 12px var(--nm-dark),
+    -5px -5px 12px var(--nm-light),
+    inset 1px 1px 3px rgba(0, 150, 150, 0.3);
+}
+
+.ams-avatar-initials {
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--nm-text-invert);
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+/* ── User Dropdown Menu ───────────────────────────────────────────────────── */
+.ams-user-menu {
+  position: absolute;
+  top: calc(64px + 4px);
+  right: var(--nm-space-6);
+  width: 220px;
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius);
+  /* Floating extruded card */
+  box-shadow: var(--nm-shadow-lg);
+  z-index: var(--nm-z-modal);
+  overflow: hidden;
+  animation: nm-fade-in 180ms ease;
+}
+
+.ams-user-menu-header {
+  padding: var(--nm-space-3) var(--nm-space-4);
+  /* Inset header panel inside menu */
+  box-shadow:
+    inset 2px 2px 6px var(--nm-dark),
+    inset -2px -2px 6px var(--nm-light);
+  background: var(--nm-surface-deep);
+}
+
+.ams-user-menu-name {
+  font-family: var(--font-primary);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
+  color: var(--nm-text);
+  margin: 0;
+}
+
+.ams-user-menu-role {
+  font-family: var(--font-primary);
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  color: var(--nm-primary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.ams-user-menu-body {
+  padding: var(--nm-space-2);
+}
+
+.ams-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--nm-space-3);
+  width: 100%;
+  padding: var(--nm-space-2) var(--nm-space-3);
+  border: none;
+  background: transparent;
+  border-radius: var(--nm-radius-xs);
+  font-family: var(--font-primary);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  color: var(--nm-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: var(--nm-transition);
+
+  &:hover {
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-sm);
+    background: var(--nm-surface);
+  }
+
+  &:active {
+    box-shadow: var(--nm-shadow-active);
+  }
+}
+
+/* ── Main Content Area ────────────────────────────────────────────────────── */
+.ams-content-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--nm-surface);
+}
+
+.ams-main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--nm-space-6);
+  background: var(--nm-surface);
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--nm-scrollbar-thumb);
+    border-radius: var(--nm-radius-full);
+  }
+}
+
+/* ── Page Spinner ─────────────────────────────────────────────────────────── */
+.ams-page-spinner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}

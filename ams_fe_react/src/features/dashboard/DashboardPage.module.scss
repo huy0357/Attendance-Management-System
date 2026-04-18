@@ -1,0 +1,103 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DashboardPage — Neumorphism Styles
+   neumorphism-SKILL.md: surface=#E7E5E4, primary=#006666
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pageContainer {
+  min-height: calc(100vh - 64px);
+  padding: var(--nm-space-6);
+  background: var(--nm-surface);
+
+  @media (min-width: 640px) {
+    padding: var(--nm-space-6);
+  }
+}
+
+/* ── KPI / Data Cards — extruded Neumorphism ─────────────────────────────── */
+.glassCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--nm-radius);
+  background: var(--nm-surface);
+  /* Extruded card */
+  box-shadow: var(--nm-shadow-out);
+  transition: box-shadow 250ms ease, transform 250ms ease;
+
+  &:hover {
+    box-shadow: var(--nm-shadow-lg);
+    transform: translateY(-2px);
+  }
+}
+
+/* ── Live dot — pulsing green indicator ──────────────────────────────────── */
+.liveDot {
+  position: relative;
+  display: flex;
+  height: 12px;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.liveDotInner {
+  position: relative;
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--nm-success);
+}
+
+.liveDotPing {
+  position: absolute;
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(0, 166, 61, 0.5);
+  animation: nm-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Pulse table wrapper — inset panel ──────────────────────────────────── */
+.pulseTableWrapper {
+  width: 100%;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--nm-scrollbar-thumb);
+    border-radius: var(--nm-radius-full);
+  }
+}
+
+/* ── Exception hover row ─────────────────────────────────────────────────── */
+.exceptionHoverRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nm-space-3);
+  border-radius: var(--nm-radius-sm);
+  padding: var(--nm-space-3);
+  transition: var(--nm-transition);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--nm-surface-deep);
+    box-shadow: var(--nm-shadow-sm);
+  }
+
+  &:active {
+    box-shadow: var(--nm-shadow-active);
+  }
+}
+
+/* ── Avatar gradient fallback ────────────────────────────────────────────── */
+.avatarGradient {
+  background: linear-gradient(135deg, var(--nm-primary), var(--nm-primary-dark));
+}

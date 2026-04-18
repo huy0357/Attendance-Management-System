@@ -1,0 +1,384 @@
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Download, Shield, Search, Eye, Plus, Edit2, Trash2, LogIn, LogOut, Check, X, Lock, Unlock, AlertCircle } from 'lucide-react';
+import { adminApi, AuditLog, AuditLogAction } from '../api/admin.api';
+import styles from './AuditLogPage.module.scss';
+import { cn } from '../../../shared/utils/cn';
+
+const getActionBadgeClasses = (action: AuditLogAction) => {
+  switch (action) {
+    case 'create':
+    case 'approve':
+      return { background: 'var(--nm-surface)', color: 'var(--nm-success)' };
+    case 'update':
+    case 'login':
+    case 'logout':
+      return { background: 'var(--nm-surface)', color: 'var(--nm-info)' };
+    case 'delete':
+    case 'reject':
+      return { background: 'var(--nm-surface)', color: 'var(--nm-danger)' };
+    case 'lock':
+    case 'unlock':
+    default:
+      return { background: 'var(--nm-surface)', color: 'var(--nm-text-muted)' };
+  }
+};
+
+const getActionIcon = (action: AuditLogAction) => {
+  switch (action) {
+    case 'create': return Plus;
+    case 'update': return Edit2;
+    case 'delete': return Trash2;
+    case 'login': return LogIn;
+    case 'logout': return LogOut;
+    case 'approve': return Check;
+    case 'reject': return X;
+    case 'lock': return Lock;
+    case 'unlock': return Unlock;
+    default: return AlertCircle;
+  }
+};
+
+const getActionLabel = (action: AuditLogAction) => {
+  const lbl = String(action);
+  return lbl.charAt(0).toUpperCase() + lbl.slice(1).toLowerCase();
+};
+
+const formatJsonDisplay = (val: unknown) => {
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return val;
+    }
+  }
+  return JSON.stringify(val, null, 2);
+};
+
+const AuditLogPage: React.FC = () => {
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterModule, setFilterModule] = useState('All Modules');
+  const [filterAction, setFilterAction] = useState('All Actions');
+  const [filterUser, setFilterUser] = useState('All Users');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['auditLogs', page, filterModule, filterAction],
+    queryFn: () => adminApi.getAuditLogs(page, 10, filterModule, filterAction)
+  });
+
+  const logs = pageData?.items || [];
+  const totalPages = pageData?.totalPages || 1;
+
+  const modules = ['All Modules', 'Employee', 'Department', 'Contract', 'Leave', 'OT']; 
+  const actions = ['All Actions', 'create', 'update', 'delete', 'login', 'logout', 'approve', 'reject'];
+  const users = ['All Users']; 
+
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const filteredLogs = useMemo(() => {
+    let res = logs;
+    // Note: module & action are already filtered by backend query params
+    if (filterUser !== 'All Users') res = res.filter(r => r.userName === filterUser);
+    
+    if (startDate) res = res.filter(r => r.timestamp >= startDate);
+    if (endDate) res = res.filter(r => r.timestamp.slice(0, 10) <= endDate);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      res = res.filter(r => 
+        r.userName.toLowerCase().includes(q) ||
+        r.module.toLowerCase().includes(q) ||
+        r.recordId.toLowerCase().includes(q)
+      );
+    }
+    return res;
+  }, [logs, filterUser, startDate, endDate, searchQuery]);
+
+  const stats = [
+    { label: 'Total Logs', value: logs.length, color: 'var(--nm-primary)', icon: 'shield' },
+    { label: 'Critical Events', value: logs.filter(l => l.action === 'delete').length, color: 'var(--nm-danger)', icon: 'alert-circle' },
+    { label: 'Login Events', value: logs.filter(l => l.action === 'login' || l.action === 'logout').length, color: 'var(--nm-info)', icon: 'log-in' },
+    { label: 'Modifications', value: logs.filter(l => l.action === 'create' || l.action === 'update').length, color: 'var(--nm-success)', icon: 'edit-2' },
+  ];
+
+  const exportLogs = () => {
+    alert('Exporting audit logs functionality will be implemented here.');
+  };
+
+  return (
+    <div className="space-y-6 pb-6">
+      {/* HEADER */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 className={styles.pageTitle}>Audit Log</h1>
+          <p className={styles.pageSubtitle}>Track all system changes and user activities</p>
+        </div>
+        <button className={styles.nmBtnPrimary} onClick={exportLogs}>
+          <Download className="w-5 h-5 shrink-0" /> Export Logs
+        </button>
+      </div>
+
+      {/* STATS */}
+      <div className={styles.kpiGrid}>
+        {stats.map((stat, idx) => (
+          <div key={idx} className={styles.kpiCard}>
+             <div className={styles.kpiHeader}>
+                <p className={styles.kpiLabel}>{stat.label}</p>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--nm-surface-deep)', boxShadow: 'var(--nm-shadow-in)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+                  {stat.icon === 'shield' && <Shield className="w-4 h-4" />}
+                  {stat.icon === 'alert-circle' && <AlertCircle className="w-4 h-4" />}
+                  {stat.icon === 'log-in' && <LogIn className="w-4 h-4" />}
+                  {stat.icon === 'edit-2' && <Edit2 className="w-4 h-4" />}
+                </div>
+             </div>
+             <p className={styles.kpiValue} style={{ color: stat.color }}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.infoBar}>
+        <div style={{ padding: '8px', background: 'var(--nm-surface)', borderRadius: '50%', boxShadow: 'var(--nm-shadow-out)', color: 'var(--nm-info)' }}>
+          <Shield className="w-6 h-6" />
+        </div>
+        <div>
+          <h3>Audit Compliance</h3>
+          <p>
+            All system activities are logged with full traceability. Logs include user identity, timestamp, IP address,
+            before/after values, and are tamper-proof for compliance and security auditing.
+          </p>
+        </div>
+      </div>
+
+      {/* FILTERS */}
+      <div className={styles.filterBar}>
+        <div className={styles.filterRow}>
+          <div className={styles.searchWrapper}>
+            <Search className="h-4 w-4" />
+            <input type="text" placeholder="Search by user, module, or record ID..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={styles.nmInput} />
+          </div>
+          <select value={filterModule} onChange={e => setFilterModule(e.target.value)} className={styles.nmInput} style={{ width: '160px' }}>
+            {modules.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <select value={filterAction} onChange={e => setFilterAction(e.target.value)} className={styles.nmInput} style={{ width: '160px' }}>
+            {actions.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <select value={filterUser} onChange={e => setFilterUser(e.target.value)} className={styles.nmInput} style={{ width: '160px' }}>
+            {users.map(u => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+        <div className={styles.filterRow}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--nm-text-muted)' }}>Start Date</span>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={styles.nmInput} />
+          </div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--nm-text-muted)' }}>End Date</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={styles.nmInput} />
+          </div>
+        </div>
+      </div>
+
+      {/* CONSOLE TABLE (Deep Inset) */}
+      <div className={styles.auditConsole}>
+        <div className={styles.nmTableWrapper}>
+          <table className={styles.nmTable}>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Module</th>
+                <th>Record ID</th>
+                <th>IP Address</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLogs.map(log => {
+                const Icon = getActionIcon(log.action);
+                const badgeStyle = getActionBadgeClasses(log.action);
+                
+                return (
+                  <tr key={log.id}>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{log.timestamp}</td>
+                    <td>
+                      <div>
+                        <p style={{ fontWeight: 'bold' }}>{log.userName}</p>
+                        <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>{log.userRole}</p>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={styles.nmBadge} style={badgeStyle}>
+                        <Icon />
+                        {getActionLabel(log.action)}
+                      </span>
+                    </td>
+                    <td>{log.module}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{log.recordId}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{log.ipAddress}</td>
+                    <td>
+                      <button onClick={() => { setSelectedLog(log); setShowDetailsModal(true); }} className={styles.nmBtnIcon} title="View Details">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filteredLogs.length === 0 && !isLoading && (
+            <div style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
+              <Shield className="w-12 h-12 mx-auto mb-4" />
+              <p style={{ fontWeight: 'bold' }}>No audit logs found</p>
+              <p style={{ fontSize: '12px' }}>Try adjusting your filters or search query</p>
+            </div>
+          )}
+          {isLoading && (
+            <div style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
+              <p style={{ fontWeight: 'bold', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>Loading logs...</p>
+            </div>
+          )}
+        </div>
+
+        {totalPages > 1 && (
+           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', marginTop: '16px' }}>
+             <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--nm-text-muted)' }}>
+               Page {page} of {totalPages}
+             </span>
+             <button 
+               className={styles.nmBtnPrimary} 
+               disabled={page === 1} 
+               onClick={() => setPage(p => Math.max(1, p - 1))}
+               style={{ padding: '6px 12px', fontSize: '14px' }}
+             >
+               Prev
+             </button>
+             <button 
+               className={styles.nmBtnPrimary} 
+               disabled={page >= totalPages} 
+               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+               style={{ padding: '6px 12px', fontSize: '14px' }}
+             >
+               Next
+             </button>
+           </div>
+        )}
+      </div>
+
+      {/* DETAILS MODAL */}
+      {showDetailsModal && selectedLog && (
+        <div className={styles.modalBackdrop} onClick={() => setShowDetailsModal(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2>Audit Log Details</h2>
+                <p>{selectedLog.id}</p>
+              </div>
+              <button onClick={() => setShowDetailsModal(false)} className={styles.nmBtnIcon}>
+                 <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className={styles.detailsGrid}>
+              <div className={cn(styles.detailsBlock, styles.col2)}>
+                <h3 className={styles.detailsLabel} style={{ marginBottom: '12px' }}>Event Information</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <p className={styles.detailsLabel}>Timestamp</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{selectedLog.timestamp}</p>
+                  </div>
+                  <div>
+                    <p className={styles.detailsLabel}>Action</p>
+                    <div style={{ marginTop: '2px' }}>
+                      <span className={styles.nmBadge} style={getActionBadgeClasses(selectedLog.action)}>
+                         {(() => {
+                           const Icon = getActionIcon(selectedLog.action);
+                           return <Icon />;
+                         })()}
+                         {getActionLabel(selectedLog.action)}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className={styles.detailsLabel}>Module</p>
+                    <p style={{ fontWeight: 'bold' }}>{selectedLog.module}</p>
+                  </div>
+                  <div>
+                    <p className={styles.detailsLabel}>Record ID</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{selectedLog.recordId}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={cn(styles.detailsBlock, styles.col2)}>
+                <h3 className={styles.detailsLabel} style={{ marginBottom: '12px' }}>User Information</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <p className={styles.detailsLabel}>User ID</p>
+                    <p style={{ fontWeight: 'bold' }}>{selectedLog.userId}</p>
+                  </div>
+                  <div>
+                    <p className={styles.detailsLabel}>User Name</p>
+                    <p style={{ fontWeight: 'bold' }}>{selectedLog.userName}</p>
+                  </div>
+                  <div>
+                    <p className={styles.detailsLabel}>Role</p>
+                    <p style={{ fontWeight: 'bold' }}>{selectedLog.userRole}</p>
+                  </div>
+                  <div>
+                    <p className={styles.detailsLabel}>IP Address</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{selectedLog.ipAddress}</p>
+                  </div>
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                  <p className={styles.detailsLabel}>User Agent</p>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{selectedLog.userAgent}</p>
+                </div>
+              </div>
+
+              {selectedLog.beforeValue != null && (
+                <div className={styles.detailsBlock}>
+                   <h3 className={styles.detailsLabel}>Before Value</h3>
+                   <div className={styles.preBlock}>
+                      <pre><code>{formatJsonDisplay(selectedLog.beforeValue)}</code></pre>
+                   </div>
+                </div>
+              )}
+              {selectedLog.afterValue != null && (
+                <div className={styles.detailsBlock}>
+                   <h3 className={styles.detailsLabel}>After Value</h3>
+                   <div className={styles.preBlock}>
+                      <pre><code>{formatJsonDisplay(selectedLog.afterValue)}</code></pre>
+                   </div>
+                </div>
+              )}
+
+              {selectedLog.notes && (
+                <div className={cn(styles.detailsBlock, styles.col2)}>
+                  <h3 className={styles.detailsLabel}>Notes</h3>
+                  <p>{selectedLog.notes}</p>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className={styles.nmBtnPrimary}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AuditLogPage;
