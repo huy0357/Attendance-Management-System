@@ -102,12 +102,14 @@ const chartDataWarn = Array.from({ length: 7 }).map((_, i) => ({ value: 80 - Mat
 
 // ── Main Page ──────────────────────────────────────────────────────────
 const DashboardPage: React.FC = () => {
-  const { hasRole } = useAuth();
+  const { hasRole, hasAnyRole } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const canSeeAdminDashboardActions = hasRole('ADMIN');
-  const canSeeSelfServiceDashboardActions = hasRole('EMPLOYEE');
+  // MANAGER also needs team-level KPI visibility (attendance overview, live pulse)
+  const canSeeAdminDashboardActions = hasAnyRole(['ADMIN', 'MANAGER']);
+  // Self-service cards only for pure EMPLOYEE role
+  const canSeeSelfServiceDashboardActions = hasRole('EMPLOYEE') && !hasRole('ADMIN') && !hasRole('MANAGER');
 
   // Strict UI requirements: Keep state & queries EXACTLY as they were
   const [selectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -206,7 +208,11 @@ const DashboardPage: React.FC = () => {
             Overview
           </h1>
           <p className="text-sm font-medium text-slate-500">
-            Real-time telemetry across all branches and kiosks.
+            {hasRole('ADMIN')
+              ? 'Real-time telemetry across all branches and kiosks.'
+              : hasRole('MANAGER')
+              ? 'Team attendance overview and exception tracking.'
+              : 'Welcome back. Use the shortcuts below to navigate.'}
           </p>
         </div>
 
@@ -220,13 +226,16 @@ const DashboardPage: React.FC = () => {
             <option>This Week</option>
             <option>This Month</option>
           </select>
-          <button
-            onClick={() => navigate('/attendance/monthly-summary')}
-            className="group relative inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95"
-          >
-            <Download className="h-4 w-4 text-slate-300 transition-transform group-hover:-translate-y-0.5" />
-            <span className="mt-0.5">Export</span>
-          </button>
+          {/* Monthly Summary Export — ADMIN only */}
+          {hasRole('ADMIN') && (
+            <button
+              onClick={() => navigate('/attendance/monthly-summary')}
+              className="group relative inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95"
+            >
+              <Download className="h-4 w-4 text-slate-300 transition-transform group-hover:-translate-y-0.5" />
+              <span className="mt-0.5">Export</span>
+            </button>
+          )}
         </div>
       </motion.div>
 

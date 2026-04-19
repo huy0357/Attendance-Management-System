@@ -7,11 +7,15 @@ import styles from './RequestsManagementPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
 
 const RequestsManagementPage: React.FC = () => {
-  const { hasRole, user, getEmployeeId } = useAuth();
-  const isAdmin = hasRole('ADMIN');
+  const { hasRole, getEmployeeId } = useAuth();
   const queryClient = useQueryClient();
 
-  const canApproveRequests = isAdmin; // Only admins can approve
+  const isAdmin = hasRole('ADMIN');
+  const isManager = hasRole('MANAGER');
+  // ADMIN and MANAGER can both approve/reject — matches BE @PreAuthorize("hasRole('MANAGER')")
+  const canApproveRequests = isAdmin || isManager;
+  // EVERYONE can create a request
+  const canCreateRequest = true;
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,15 +43,24 @@ const RequestsManagementPage: React.FC = () => {
   const [formTouched, setFormTouched] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const currentEmployeeId = getEmployeeId() ?? undefined;
+  const currentEmployeeId = getEmployeeId() ?? null;
 
   // Requests Data Query
+  // ADMIN sees all via /requests/all
+  // MANAGER sees team queue via /requests/manager-queue
+  // EMPLOYEE sees only their own via /requests?employeeId=
   const { data: requests = [], isLoading } = useQuery({
-    queryKey: ['requestsTable', isAdmin ? 'all' : currentEmployeeId],
-    queryFn: () => isAdmin 
-       ? requestApi.getAllGlobal() 
-       : requestApi.getMyRequests(currentEmployeeId!),
-    enabled: isAdmin || !!currentEmployeeId,
+    queryKey: ['requestsTable', isAdmin ? 'all' : isManager ? `manager-${currentEmployeeId}` : currentEmployeeId],
+    queryFn: () => {
+      if (isAdmin) {
+        return requestApi.getAllGlobal();
+      } else if (isManager && currentEmployeeId) {
+        return requestApi.getManagerQueue(currentEmployeeId);
+      } else {
+        return requestApi.getMyRequests(currentEmployeeId!);
+      }
+    },
+    enabled: !!currentEmployeeId || isAdmin,
   });
 
   // Filtered requests
@@ -60,7 +73,8 @@ const RequestsManagementPage: React.FC = () => {
       result = result.filter(r => 
         (r.title || '').toLowerCase().includes(q) ||
         (r.reason || '').toLowerCase().includes(q) ||
-        String(r.requestId).includes(q)
+        String(r.requestId).includes(q) ||
+        (canApproveRequests && (r.employeeName || '').toLowerCase().includes(q))
       );
     }
     return result;
@@ -78,7 +92,7 @@ const RequestsManagementPage: React.FC = () => {
   });
 
   const submitMutation = useMutation({
-    mutationFn: (id: number) => requestApi.submitRequestByEmployee(id, currentEmployeeId),
+    mutationFn: (id: number) => requestApi.submitRequestByEmployee(id, currentEmployeeId!),
     onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
        setSuccessMessage('Request submitted successfully.');
@@ -98,7 +112,7 @@ const RequestsManagementPage: React.FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => requestApi.deleteRequest(id, currentEmployeeId),
+    mutationFn: (id: number) => requestApi.deleteRequest(id, currentEmployeeId!),
     onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
        setSuccessMessage(`Request deleted successfully.`);
@@ -108,7 +122,7 @@ const RequestsManagementPage: React.FC = () => {
 
   const approveMutation = useMutation({
     mutationFn: ({ id, status, note }: { id: number, status: 'APPROVED' | 'REJECTED', note?: string }) => 
-        requestApi.approveOrReject(id, { approverId: currentEmployeeId, status, decisionNote: note }),
+        requestApi.approveOrReject(id, { approverId: currentEmployeeId!, status, decisionNote: note }),
     onSuccess: (updated) => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
        setSuccessMessage(`Request ${updated.requestId} ${updated.status.toLowerCase()} successfully.`);
@@ -164,7 +178,7 @@ const RequestsManagementPage: React.FC = () => {
     if (err) { setFormError(err); return; }
 
     const payload: RequestsUpsertRequest = {
-      employeeId: currentEmployeeId,
+      employeeId: currentEmployeeId!,
       requestType: formData.requestType,
       title: formData.title,
       reason: formData.reason,
@@ -189,7 +203,7 @@ const RequestsManagementPage: React.FC = () => {
     if (err) { setFormError(err); return; }
 
     const payload: RequestsUpsertRequest = {
-      employeeId: currentEmployeeId,
+      employeeId: currentEmployeeId!,
       requestType: formData.requestType,
       title: formData.title,
       reason: formData.reason,
@@ -231,9 +245,15 @@ const RequestsManagementPage: React.FC = () => {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className={styles.pageTitle}>Requests Management</h1>
-          <p className={styles.pageSubtitle}>Create and track your requests in one place.</p>
+          <p className={styles.pageSubtitle}>
+            {isAdmin
+              ? 'Review and manage all employee requests.'
+              : isManager
+              ? 'Review and manage your team requests.'
+              : 'Create and track your requests in one place.'}
+          </p>
         </div>
-        {!canApproveRequests && (
+        {canCreateRequest && (
           <button onClick={openCreate} className={styles.nmBtnPrimary}>
             <Plus className="h-4 w-4 shrink-0" /> Create Request
           </button>
@@ -272,7 +292,7 @@ const RequestsManagementPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by title, reason, or request ID..."
+              placeholder={canApproveRequests ? "Search by title, reason, request ID, or employee name..." : "Search by title, reason, or request ID..."}
               className={styles.nmInput}
             />
           </div>
@@ -310,7 +330,7 @@ const RequestsManagementPage: React.FC = () => {
           <thead>
             <tr>
               <th>Request ID</th>
-              <th>Employee</th>
+              {canApproveRequests && <th>Employee</th>}
               <th>Type</th>
               <th>Title</th>
               <th>Reason</th>
@@ -328,7 +348,7 @@ const RequestsManagementPage: React.FC = () => {
             {!isLoading && filteredRequests.map(r => (
               <tr key={r.requestId}>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{r.requestId}</td>
-                <td style={{ fontWeight: 'bold' }}>{r.employeeName || `ID: ${r.employeeId}`}</td>
+                {canApproveRequests && <td style={{ fontWeight: 'bold' }}>{r.employeeName || `ID: ${r.employeeId}`}</td>}
                 <td>{r.requestType}</td>
                 <td style={{ fontWeight: 'bold' }}>{r.title}</td>
                 <td style={{ maxWidth: '200px' }}>
@@ -356,23 +376,22 @@ const RequestsManagementPage: React.FC = () => {
                         <Eye className="h-4 w-4 text-blue-500 hover:text-blue-700" />
                       </button>
                       
-                      {r.status === 'DRAFT' && !canApproveRequests && (
-                        <button onClick={() => openEdit(r)} className={styles.nmBtnIcon} title="Edit">
-                          <Pencil className="h-4 w-4 text-gray-500 hover:text-blue-600" />
-                        </button>
-                      )}
-                      {r.status === 'DRAFT' && !canApproveRequests && (
-                        <button onClick={() => handleDelete(r)} className={styles.nmBtnIcon} title="Delete">
-                           <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                        </button>
-                      )}
-                      {r.status === 'DRAFT' && !canApproveRequests && (
-                        <button onClick={() => handleDirectSubmit(r)} className={styles.nmBtnSecondary} style={{ padding: '6px 12px', fontSize: 'var(--fs-xs)' }}>
-                           Submit
-                        </button>
+                      {/* Owner Actions */}
+                      {r.status === 'DRAFT' && r.employeeId === currentEmployeeId && (
+                        <>
+                          <button onClick={() => openEdit(r)} className={styles.nmBtnIcon} title="Edit">
+                            <Pencil className="h-4 w-4 text-gray-500 hover:text-blue-600" />
+                          </button>
+                          <button onClick={() => handleDelete(r)} className={styles.nmBtnIcon} title="Delete">
+                             <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                          </button>
+                          <button onClick={() => handleDirectSubmit(r)} className={styles.nmBtnSecondary} style={{ padding: '6px 12px', fontSize: 'var(--fs-xs)' }}>
+                             Submit
+                          </button>
+                        </>
                       )}
                       
-                      {/* ADMIN APPROVAL */}
+                      {/* ADMIN & MANAGER APPROVAL — matches BE @PreAuthorize("hasRole('MANAGER')") */}
                       {canApproveRequests && r.status === 'SUBMITTED' && (
                          <>
                             <button onClick={() => handleApproveAction(r, 'APPROVED')} className={styles.nmBtnIcon} title="Approve">

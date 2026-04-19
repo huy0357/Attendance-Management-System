@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { reportsApi } from './reports.api';
 import { Calendar, DollarSign, Users, Database, FileText, Play, AlertCircle, Loader2 } from 'lucide-react';
-import { useAuth } from '../../core/auth/AuthContext';
 import styles from './ReportsPage.module.scss';
 import clsx from 'clsx';
 
@@ -17,8 +16,6 @@ const getIcon = (iconName: string) => {
 };
 
 const ReportsPage: React.FC = () => {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('ADMIN');
   const [downloadMsg, setDownloadMsg] = useState('');
 
   const { data: reports = [], isLoading } = useQuery({
@@ -42,13 +39,8 @@ const ReportsPage: React.FC = () => {
     }
   });
 
-  if (!isAdmin) {
-    return (
-      <div className={styles.unauthorizedBox}>
-         Unauthorized access. Reports are for administrators only.
-      </div>
-    );
-  }
+  // Route is already protected by RoleRoute allowedRoles={['ADMIN']} in AppRouter
+  // No inline access check needed
 
   return (
     <div className={styles.pageContainer}>

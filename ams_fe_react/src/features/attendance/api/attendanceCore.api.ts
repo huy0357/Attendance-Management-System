@@ -295,6 +295,14 @@ export const requestApi = {
     const res = await axiosInstance.get(`/requests/all`, { params });
     return extractArray(res);
   },
+  // MANAGER: xem hàng đợi đơn của team mình — BE: GET /api/requests/manager-queue?managerId={id}
+  getManagerQueue: async (managerId: number, status?: string, type?: string): Promise<RequestsResponse[]> => {
+    const params = new URLSearchParams({ managerId: managerId.toString() });
+    if (status) params.set('status', status);
+    if (type) params.set('type', type);
+    const res = await axiosInstance.get(`/requests/manager-queue`, { params });
+    return extractArray(res);
+  },
   updateRequest: async (id: number, payload: RequestsUpsertRequest): Promise<RequestsResponse> => {
     const params = new URLSearchParams({ employeeId: payload.employeeId.toString() });
     const res = await axiosInstance.put(`/requests/${id}`, payload, { params });

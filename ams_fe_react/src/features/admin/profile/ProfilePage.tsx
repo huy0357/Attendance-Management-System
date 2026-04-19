@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Shield, Key, Mail, Building2, Save, Lock } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Shield, Key, Mail, Building2, Save, Lock, Camera, Edit2, Phone, Calendar, X, CheckCircle } from 'lucide-react';
 import { profileApi } from '../../hrm/api/hrm.api';
 import axiosInstance from '../../../core/api/axiosInstance';
 import { useAuth } from '../../../core/auth/AuthContext';
@@ -17,6 +17,17 @@ const ProfilePage: React.FC = () => {
   });
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+  
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    phone: '',
+    dob: '',
+    gender: ''
+  });
 
   const { data: profile, isLoading, isError, error } = useQuery({
     queryKey: ['myProfile'],
@@ -42,6 +53,43 @@ const ProfilePage: React.FC = () => {
       setPasswordSuccess('');
     }
   });
+
+  const avatarMutation = useMutation({
+    mutationFn: profileApi.uploadMyAvatar,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+    }
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: profileApi.updateMyProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+      setIsEditMode(false);
+    }
+  });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      avatarMutation.mutate(e.target.files[0]);
+    }
+  };
+
+  const openEditMode = () => {
+    if (profile) {
+      setEditForm({
+        fullName: profile.fullName || username || '',
+        phone: profile.phone || '',
+        dob: profile.dob || '',
+        gender: profile.gender || ''
+      });
+      setIsEditMode(true);
+    }
+  };
+
+  const handleUpdateProfile = () => {
+    updateProfileMutation.mutate(editForm as any);
+  };
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,7 +174,7 @@ const ProfilePage: React.FC = () => {
         <div className={styles.leftCol}>
           <div className={styles.nmCard}>
             <div className={styles.avatarSection}>
-              <div className={styles.avatarWrapper}>
+              <div className={styles.avatarWrapper} style={{ position: 'relative' }}>
                 {profile.avatarUrl ? (
                   <img src={profile.avatarUrl} alt="Avatar" className={styles.avatarImage} />
                 ) : (
@@ -134,6 +182,17 @@ const ProfilePage: React.FC = () => {
                     {profile.avatarLabel || getNormalizedRole()?.charAt(0) || 'U'}
                   </div>
                 )}
+                {/* Feature Gap Fix: Avatar Upload Button */}
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarMutation.isPending}
+                  className={styles.nmBtnIcon}
+                  style={{ position: 'absolute', bottom: '-5px', right: '-5px', background: 'var(--nm-surface)', padding: '6px' }}
+                  title="Change Avatar"
+                >
+                  <Camera className="w-4 h-4 text-[var(--nm-primary)]" />
+                </button>
+                <input type="file" ref={fileInputRef} hidden onChange={handleAvatarChange} accept="image/*" />
               </div>
               <h2 className={styles.userName}>{profile.fullName || username}</h2>
               <div className={styles.roleBadge}>
@@ -147,6 +206,13 @@ const ProfilePage: React.FC = () => {
                 <div>
                   <p className={styles.infoLabel}>Email</p>
                   <p className={styles.infoValue}>{profile.email || '-'}</p>
+                </div>
+              </div>
+              <div className={styles.infoItem}>
+                <Phone className="w-5 h-5" />
+                <div>
+                  <p className={styles.infoLabel}>Phone</p>
+                  <p className={styles.infoValue}>{profile.phone || '-'}</p>
                 </div>
               </div>
               <div className={styles.infoItem}>
@@ -171,9 +237,16 @@ const ProfilePage: React.FC = () => {
 
         {/* RIGHT COLUMN: Details & Change Password */}
         <div className={styles.rightCol}>
-          {/* Details Form (Read Only) */}
+          {/* Details Form (Read Only / Edit Mode) */}
           <div className={styles.nmCard}>
-            <h2 className={styles.cardTitle}>Account Details</h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+               <h2 className={styles.cardTitle} style={{ marginBottom: 0 }}>Account Details</h2>
+               {!isEditMode && (
+                 <button onClick={openEditMode} className={styles.nmBtnSecondary} style={{ fontSize: '12px', padding: '6px 12px' }}>
+                   <Edit2 className="w-3 h-3 mr-1" /> Edit Profile
+                 </button>
+               )}
+            </div>
             <div className={styles.formGrid}>
               <div className={styles.fieldGroup}>
                 <label>Employee Code</label>
@@ -197,6 +270,18 @@ const ProfilePage: React.FC = () => {
                 <label>Hire Date</label>
                 <div className={styles.nmInputReadonly}>
                   {profile.hireDate ? profile.hireDate.slice(0, 10) : '-'}
+                </div>
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Date of Birth</label>
+                <div className={styles.nmInputReadonly}>
+                  {profile.dob ? profile.dob.slice(0, 10) : '-'}
+                </div>
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Gender</label>
+                <div className={styles.nmInputReadonly}>
+                  {profile.gender || '-'}
                 </div>
               </div>
             </div>
@@ -281,6 +366,50 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {isEditMode && (
+        <div className={styles.modalBackdrop} onClick={() => setIsEditMode(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2>Edit Profile</h2>
+                <p>Update your personal information</p>
+              </div>
+              <button onClick={() => setIsEditMode(false)} className={styles.nmBtnIcon}>
+                 <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className={styles.formGrid}>
+              <div className={styles.fieldGroup}>
+                <label>Full Name</label>
+                <input type="text" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} className={styles.nmInput} />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Phone Number</label>
+                <input type="text" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className={styles.nmInput} />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Date of Birth</label>
+                <input type="date" value={editForm.dob ? editForm.dob.slice(0, 10) : ''} onChange={e => setEditForm({...editForm, dob: e.target.value})} className={styles.nmInput} />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Gender</label>
+                <select value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value})} className={styles.nmInput}>
+                  <option value="">Unknown</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button onClick={() => setIsEditMode(false)} className={styles.nmBtnSecondary}>Cancel</button>
+              <button onClick={handleUpdateProfile} disabled={updateProfileMutation.isPending} className={styles.nmBtnPrimary}>
+                {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

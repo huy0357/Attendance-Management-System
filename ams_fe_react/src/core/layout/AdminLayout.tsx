@@ -28,30 +28,40 @@ interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
+  /** If omitted → visible to all authenticated users */
   requiredRoles?: string[];
   activeMatchPaths?: string[];
+  /** Visual section divider label shown above this item */
+  sectionLabel?: string;
 }
 
 const ICON_SIZE = { size: 17, strokeWidth: 2 } as const;
 
-// Mirrors admin-layout.component.ts navItems[] exactly
+/**
+ * RBAC-aware nav items.
+ * Sections:
+ *   [ALL]      → Dashboard, Employee Portal, Attendance Daily, Requests, My Schedule, Leave
+ *   [MGR+ADM]  → OT Requests
+ *   [ADMIN]    → HRM management, Payroll, Reports, Admin panel
+ */
 const NAV_ITEMS: NavItem[] = [
+  // ── Visible to ALL authenticated roles ──────────────────────────────────────
   {
     label: 'Dashboard',
     path: '/dashboard',
     icon: <LayoutDashboard {...ICON_SIZE} />,
+    requiredRoles: ['ADMIN', 'MANAGER'],
+    sectionLabel: 'Main',
   },
   {
     label: 'Employee Portal',
     path: '/hrm/employee-portal',
     icon: <User {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN', 'MANAGER', 'EMPLOYEE'],
   },
   {
     label: 'Attendance Daily',
     path: '/attendance/attendance-daily',
     icon: <Clock {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN', 'MANAGER', 'EMPLOYEE'],
     activeMatchPaths: [
       '/attendance/attendance-daily',
       '/attendance/attendance-daily/admin',
@@ -59,16 +69,37 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    label: 'My Schedule',
+    path: '/attendance/my-schedule',
+    icon: <Calendar {...ICON_SIZE} />,
+  },
+  {
     label: 'Requests',
     path: '/attendance/requests-management',
     icon: <ClipboardCheck {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN', 'MANAGER', 'EMPLOYEE'],
   },
+  {
+    label: 'Leave Management',
+    path: '/attendance/leave-management',
+    icon: <ClipboardList {...ICON_SIZE} />,
+  },
+
+  // ── MANAGER + ADMIN ──────────────────────────────────────────────────────────
+  {
+    label: 'OT Requests',
+    path: '/attendance/ot-requests',
+    icon: <Clock {...ICON_SIZE} />,
+    requiredRoles: ['MANAGER', 'ADMIN'],
+    sectionLabel: 'Team',
+  },
+
+  // ── ADMIN ONLY — HRM ─────────────────────────────────────────────────────────
   {
     label: 'Employees',
     path: '/hrm/employees',
     icon: <Users {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
+    sectionLabel: 'HRM',
   },
   {
     label: 'Departments',
@@ -82,17 +113,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: <ClipboardCheck {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
-  {
-    label: 'Payroll',
-    path: '/payroll',
-    icon: <ClipboardList {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
-  },
+
+  // ── ADMIN ONLY — Attendance Management ───────────────────────────────────────
   {
     label: 'Scheduling',
     path: '/attendance/scheduling',
     icon: <Calendar {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
+    sectionLabel: 'Attendance Mgmt',
   },
   {
     label: 'Shift Templates',
@@ -101,28 +129,40 @@ const NAV_ITEMS: NavItem[] = [
     requiredRoles: ['ADMIN'],
   },
   {
+    label: 'Monthly Summary',
+    path: '/attendance/monthly-summary',
+    icon: <ClipboardList {...ICON_SIZE} />,
+    requiredRoles: ['ADMIN'],
+  },
+  {
     label: 'Attend. Email',
     path: '/attendance/attendance-email',
     icon: <Mail {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
+
+  // ── ADMIN ONLY — Finance ──────────────────────────────────────────────────────
   {
-    label: 'OT Requests',
-    path: '/attendance/ot-requests',
-    icon: <Clock {...ICON_SIZE} />,
-    requiredRoles: ['MANAGER', 'ADMIN'],
-  },
-  {
-    label: 'Accounts',
-    path: '/admin/account-management',
-    icon: <Users {...ICON_SIZE} />,
+    label: 'Payroll',
+    path: '/payroll',
+    icon: <ClipboardList {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
+    sectionLabel: 'Finance',
   },
   {
     label: 'Reports',
     path: '/reports',
     icon: <ClipboardList {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
+  },
+
+  // ── ADMIN ONLY — System ───────────────────────────────────────────────────────
+  {
+    label: 'Accounts',
+    path: '/admin/account-management',
+    icon: <Users {...ICON_SIZE} />,
+    requiredRoles: ['ADMIN'],
+    sectionLabel: 'System',
   },
   {
     label: 'Audit Logs',
@@ -253,33 +293,35 @@ const AdminLayout: React.FC = () => {
           </h1>
         </div>
 
-        {/* Section label */}
-        <span className={styles['ams-nav-section-label']}>Navigation</span>
-
         {/* Nav */}
         <nav ref={navRef} className={styles['ams-nav']}>
           {visibleNavItems.map((item) => {
             const active = isActive(item);
             return (
-              <NavLink
-                key={item.path}
-                to={resolveNavPath(item)}
-                className={cn(
-                  styles['ams-nav-link'],
-                  active ? styles['ams-nav-link--active'] : '',
+              <React.Fragment key={item.path}>
+                {/* Section divider label */}
+                {item.sectionLabel && !compactSidebar && (
+                  <span className={styles['ams-nav-section-label']}>{item.sectionLabel}</span>
                 )}
-                aria-current={active ? 'page' : undefined}
-              >
-                <span className={styles['ams-nav-icon']}>{item.icon}</span>
-                <span className={styles['ams-nav-label']}>{item.label}</span>
-                {active && (
-                  <ChevronRight
-                    size={13}
-                    strokeWidth={3}
-                    className={styles['ams-nav-chevron']}
-                  />
-                )}
-              </NavLink>
+                <NavLink
+                  to={resolveNavPath(item)}
+                  className={cn(
+                    styles['ams-nav-link'],
+                    active ? styles['ams-nav-link--active'] : '',
+                  )}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <span className={styles['ams-nav-icon']}>{item.icon}</span>
+                  <span className={styles['ams-nav-label']}>{item.label}</span>
+                  {active && (
+                    <ChevronRight
+                      size={13}
+                      strokeWidth={3}
+                      className={styles['ams-nav-chevron']}
+                    />
+                  )}
+                </NavLink>
+              </React.Fragment>
             );
           })}
         </nav>

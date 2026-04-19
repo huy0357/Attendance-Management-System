@@ -161,11 +161,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async (): Promise<void> => {
     const refreshToken = tokenStorage.getRefreshToken();
+    
+    // 1. Clear explicit token storage
     tokenStorage.clear();
+    
+    // 2. XÓA SẠCH STORAGE: Clear all memory in browser storages to prevent state contamination
+    localStorage.clear();
+    sessionStorage.clear();
+    
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    
+    // 3. RESET STATE TOÀN CỤC
     setIsAuthenticated(false);
     setUsername(null);
     setRole(null);
+    
     if (refreshToken) {
       try {
         await axiosInstance.post('/auth/logout', { refreshToken });
@@ -173,6 +183,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Ignore — already cleared local state
       }
     }
+
+    // 4. XÓA CACHE TẬN GỐC & RELOAD: 
+    // Force a hard reload to completely wipe TanStack Query cache from memory
+    window.location.href = '/login';
   }, []);
 
   const forgotPassword = useCallback(async (email: string): Promise<ApiMessageResponse> => {

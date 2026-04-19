@@ -35,6 +35,20 @@ $shadow-dark: #c4c2c1;
   }
 }
 
+.chatbot-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39; /* Just below chatbot-window (40) */
+  background: rgba(30, 41, 56, 0.3);
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .chatbot-window {
   position: fixed;
   bottom: 5.5rem;
@@ -59,6 +73,25 @@ $shadow-dark: #c4c2c1;
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0) scale(1);
+  }
+
+  &--maximized {
+    width: 60vw;
+    height: 80vh;
+    max-height: 80vh;
+  }
+
+  &--fullscreen {
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    transform: translateY(0) scale(1) !important;
+    z-index: 9999 !important;
   }
 }
 
@@ -112,23 +145,59 @@ $shadow-dark: #c4c2c1;
     animation: pulse 2s infinite;
   }
 
-  &__close {
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: var(--nm-space-2);
+  }
+
+  &__control-btn {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: var(--nm-radius-sm);
     border: none;
-    background: $surface;
-    color: $text-light;
+    background: var(--nm-surface);
+    color: var(--nm-text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 3px 3px 6px $shadow-dark, -3px -3px 6px $shadow-light;
-    transition: all 0.2s;
+    box-shadow: var(--nm-shadow-sm);
+    transition: var(--nm-transition);
 
     &:hover {
-      color: #ef4444;
-      box-shadow: inset 2px 2px 4px $shadow-dark, inset -2px -2px 4px $shadow-light;
+      color: var(--nm-primary);
+      box-shadow: var(--nm-shadow-in);
+      transform: translateY(1px);
+    }
+
+    &:active {
+      box-shadow: var(--nm-shadow-active);
+    }
+  }
+
+  &__close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--nm-surface);
+    color: var(--nm-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--nm-shadow-out);
+    transition: var(--nm-transition);
+
+    &:hover {
+      color: var(--nm-danger);
+      box-shadow: var(--nm-shadow-in);
+      transform: translateY(1px);
+    }
+
+    &:active {
+      box-shadow: var(--nm-shadow-active);
     }
   }
 }

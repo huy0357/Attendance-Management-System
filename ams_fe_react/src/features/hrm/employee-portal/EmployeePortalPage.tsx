@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Camera, Edit2, Save, X, Mail, Phone, Calendar, MapPin, Building2, Briefcase, Clock, Shield } from 'lucide-react';
 import { profileApi } from '../api/hrm.api';
+import { useAuth } from '../../../core/auth/AuthContext';
 import styles from './EmployeePortalPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
 
 const EmployeePortalPage: React.FC = () => {
+  const { hasRole } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -219,46 +221,48 @@ const EmployeePortalPage: React.FC = () => {
           </div>
 
           {/* EMPLOYMENT INFO */}
-          <div className={styles.nmCard}>
-            <h2 className={styles.cardTitle}>Employment Details</h2>
-            <div className={styles.personalGrid}>
-              <div className={styles.contactItem} style={{ marginBottom: 0 }}>
-                <Building2 className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
-                <div>
-                  <p className={styles.label}>Department</p>
-                  <p className={styles.value}>{profile.departmentId ? `Dept ID: ${profile.departmentId}` : 'Not assigned'}</p>
+          {hasRole('ADMIN') && (
+            <div className={styles.nmCard}>
+              <h2 className={styles.cardTitle}>Employment Details (Admin View)</h2>
+              <div className={styles.personalGrid}>
+                <div className={styles.contactItem} style={{ marginBottom: 0 }}>
+                  <Building2 className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
+                  <div>
+                    <p className={styles.label}>Department</p>
+                    <p className={styles.value}>{profile.departmentId ? `Dept ID: ${profile.departmentId}` : 'Not assigned'}</p>
+                  </div>
+                </div>
+                <div className={styles.contactItem} style={{ marginBottom: 0 }}>
+                  <Briefcase className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
+                  <div>
+                    <p className={styles.label}>Manager</p>
+                    <p className={styles.value}>{profile.managerId ? `Manager ID: ${profile.managerId}` : 'Direct Report to Admin'}</p>
+                  </div>
+                </div>
+                <div className={styles.contactItem} style={{ marginBottom: 0 }}>
+                  <Calendar className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
+                  <div>
+                    <p className={styles.label}>Hire Date</p>
+                    <p className={styles.value}>{profile.hireDate ? profile.hireDate.slice(0,10) : '-'}</p>
+                  </div>
+                </div>
+                <div className={styles.contactItem} style={{ marginBottom: 0 }}>
+                  <Clock className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
+                  <div>
+                    <p className={styles.label}>Status</p>
+                    <span className={cn(styles.employmentBadge, profile.status === 'ACTIVE' ? 'active' : 'inactive')} style={{ marginTop: '4px' }}>
+                      {profile.status || 'Unknown'}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className={styles.contactItem} style={{ marginBottom: 0 }}>
-                <Briefcase className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
-                <div>
-                  <p className={styles.label}>Manager</p>
-                  <p className={styles.value}>{profile.managerId ? `Manager ID: ${profile.managerId}` : 'Direct Report to Admin'}</p>
-                </div>
-              </div>
-              <div className={styles.contactItem} style={{ marginBottom: 0 }}>
-                <Calendar className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
-                <div>
-                  <p className={styles.label}>Hire Date</p>
-                  <p className={styles.value}>{profile.hireDate ? profile.hireDate.slice(0,10) : '-'}</p>
-                </div>
-              </div>
-              <div className={styles.contactItem} style={{ marginBottom: 0 }}>
-                <Clock className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
-                <div>
-                  <p className={styles.label}>Status</p>
-                  <span className={cn(styles.employmentBadge, profile.status === 'ACTIVE' ? 'active' : 'inactive')} style={{ marginTop: '4px' }}>
-                    {profile.status || 'Unknown'}
-                  </span>
-                </div>
+              <div className={styles.noticeBox}>
+                <p>
+                  Notice: Employment details are managed by HR. If you see any discrepancies, please contact your administrator.
+                </p>
               </div>
             </div>
-            <div className={styles.noticeBox}>
-              <p>
-                Notice: Employment details are managed by HR. If you see any discrepancies, please contact your administrator.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

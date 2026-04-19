@@ -61,11 +61,6 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
       config.headers = new axios.AxiosHeaders();
     }
     config.headers.set('Authorization', `Bearer ${token}`);
-    
-    // Log for debugging if needed
-    console.log(`[API Request] JWT Attached to ${config.url}`);
-  } else {
-    console.error(`[API Request] NO TOKEN FOUND for ${config.url}`);
   }
   return config;
 });

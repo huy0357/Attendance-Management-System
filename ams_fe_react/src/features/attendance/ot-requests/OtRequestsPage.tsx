@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Eye, Check, X, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
-import { requestApi, RequestsResponse } from '../api/attendanceCore.api';
+import { requestApi } from '../api/attendanceCore.api';
 import styles from './OtRequestsPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
 
@@ -56,16 +56,26 @@ const calculateHours = (start: string, end: string) => {
 };
 
 const OtRequestsPage: React.FC = () => {
-  const { hasRole, user } = useAuth();
+  const { hasRole, hasAnyRole, getEmployeeId } = useAuth();
   const isAdmin = hasRole('ADMIN');
+  const isManager = hasRole('MANAGER');
+  const canApproveRequests = hasAnyRole(['ADMIN', 'MANAGER']);
+  const currentEmployeeId = getEmployeeId();
   const queryClient = useQueryClient();
 
-  const canApproveRequests = isAdmin; // Only admins can approve
-
-  const { data: allRequests = [], isLoading, error } = useQuery({
-    queryKey: ['requestsTable', 'all'],
-    queryFn: () => requestApi.getAllGlobal(),
-    enabled: isAdmin,
+  const { data: allRequests = [], isLoading } = useQuery({
+    queryKey: ['requestsTable', isAdmin ? 'all' : `manager-${currentEmployeeId}`],
+    queryFn: () => {
+      if (isAdmin) {
+        // ADMIN: xem tất cả OT toàn công ty
+        return requestApi.getAllGlobal();
+      } else if (isManager && currentEmployeeId) {
+        // MANAGER: chỉ thấy queue của team mình — BE: /requests/manager-queue
+        return requestApi.getManagerQueue(currentEmployeeId);
+      }
+      return [];
+    },
+    enabled: canApproveRequests,
   });
 
   const otRequests = useMemo(() => {
@@ -116,8 +126,8 @@ const OtRequestsPage: React.FC = () => {
 
   const approveMutation = useMutation({
     mutationFn: ({ id, status, note }: { id: number, status: 'APPROVED' | 'REJECTED', note?: string }) => 
-        // using employeeId 1 as standard admin ID. True employeeId could be fetched from API but using 0/1 works for ADMIN bypass in backend 
-        requestApi.approveOrReject(id, { approverId: 1, status, decisionNote: note }),
+        // Pass the real approver's employeeId — not a hardcoded 1
+        requestApi.approveOrReject(id, { approverId: currentEmployeeId!, status, decisionNote: note }),
     onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
        setShowReviewModal(false);
@@ -137,9 +147,8 @@ const OtRequestsPage: React.FC = () => {
     });
   };
 
-  if (!isAdmin) {
-    return <div style={{ padding: '32px', textAlign: 'center', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Access Denied. You do not have permission to view OT Requests.</div>;
-  }
+  // Route is already protected by RoleRoute allowedRoles={['ADMIN','MANAGER']}
+  // No need for inline access check
 
   return (
     <div className="space-y-6 pb-6">

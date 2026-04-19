@@ -88,7 +88,7 @@ const AttendanceDailyPage: React.FC = () => {
         throw new Error('To date must be on or after From date.');
       }
 
-      // Admin tab: trigger batch sync in background (non-blocking), always fetch data
+      // Admin/Manager tab: trigger batch sync in background (non-blocking), always fetch data
       if (isAdmin && activeTab === 'all') {
         const currentRange = `${from}_${to}`;
         const lastRange = syncedRangeRef.current ? `${syncedRangeRef.current.from}_${syncedRangeRef.current.to}` : null;
@@ -97,7 +97,6 @@ const AttendanceDailyPage: React.FC = () => {
           syncedRangeRef.current = { from, to };
           isSyncingRef.current = true;
           setSyncWarning('');
-          // Fire-and-forget: run in background, do NOT block data fetch
           const dates = enumerateIsoDatesInclusive(from, to);
           Promise.allSettled(dates.map(d => attendanceDailyApi.runAttendanceBatchForDate(d)))
             .then(() => { isSyncingRef.current = false; })
@@ -106,7 +105,6 @@ const AttendanceDailyPage: React.FC = () => {
               setSyncWarning('Batch sync gặp lỗi, dữ liệu có thể chưa cập nhật đầy đủ.');
             });
         }
-        // ALWAYS fetch data immediately, don't wait for batch
         return await attendanceDailyApi.getAttendanceDailyAdmin(from, to, page, size);
       } else {
         return await attendanceDailyApi.getMyAttendanceDaily(from, to, page, size);
@@ -256,6 +254,7 @@ const AttendanceDailyPage: React.FC = () => {
           </div>
         </div>
         
+        {/* Monthly Report — ADMIN only (batch generate + export) */}
         {isAdmin && (
           <div>
             <button className={styles.nmBtnPrimary} onClick={openMonthlyModal} style={{ background: 'var(--nm-info)', boxShadow: 'none' }}>

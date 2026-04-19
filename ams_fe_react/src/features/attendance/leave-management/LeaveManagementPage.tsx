@@ -57,8 +57,8 @@ const calculateDays = (start: string, end: string) => {
 };
 
 const LeaveManagementPage: React.FC = () => {
-  const { hasRole, user, getEmployeeId } = useAuth();
-  const isAdmin = hasRole('ADMIN');
+  const { hasAnyRole, getEmployeeId } = useAuth();
+  const isAdminOrManager = hasAnyRole(['ADMIN', 'MANAGER']);
 
   const currentEmployeeId = getEmployeeId() ?? undefined;
 
@@ -101,9 +101,9 @@ const LeaveManagementPage: React.FC = () => {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(r => 
         String(r.requestId).includes(q) ||
-        (r.employeeName || '').toLowerCase().includes(q) ||
         (r.title || '').toLowerCase().includes(q) ||
-        (r.reason || '').toLowerCase().includes(q)
+        (r.reason || '').toLowerCase().includes(q) ||
+        (isAdminOrManager && (r.employeeName || '').toLowerCase().includes(q))
       );
     }
     return result;
@@ -128,7 +128,7 @@ const LeaveManagementPage: React.FC = () => {
             Go to Requests Management
             <ArrowRight className="h-4 w-4" />
           </NavLink>
-          {isAdmin && (
+          {isAdminOrManager && (
             <NavLink to="/attendance/requests" className={styles.nmBtnPrimary} style={{ background: 'var(--nm-warning)', fontSize: '12px', boxShadow: 'none', color: 'var(--nm-text)' }}>
               Review Submitted Requests
             </NavLink>
@@ -171,7 +171,7 @@ const LeaveManagementPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search by request ID, employee name, title, or reason..."
+            placeholder={isAdminOrManager ? "Search by request ID, employee name, title, or reason..." : "Search by request ID, title, or reason..."}
             className={styles.nmInput}
           />
         </div>
@@ -181,7 +181,7 @@ const LeaveManagementPage: React.FC = () => {
             <thead>
               <tr>
                 <th>Request ID</th>
-                <th>Employee</th>
+                {isAdminOrManager && <th>Employee</th>}
                 <th>Title</th>
                 <th>Dates</th>
                 <th>Days</th>
@@ -220,12 +220,14 @@ const LeaveManagementPage: React.FC = () => {
                 return (
                   <tr key={request.requestId}>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>#{request.requestId}</td>
-                    <td>
-                      <div>
-                        <p style={{ fontWeight: 'bold' }}>{request.employeeName || 'Employee #' + request.employeeId}</p>
-                        <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>Employee ID: {request.employeeId}</p>
-                      </div>
-                    </td>
+                    {isAdminOrManager && (
+                      <td>
+                        <div>
+                          <p style={{ fontWeight: 'bold' }}>{request.employeeName || 'Employee #' + request.employeeId}</p>
+                          <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>Employee ID: {request.employeeId}</p>
+                        </div>
+                      </td>
+                    )}
                     <td>
                       <span className={styles.nmBadge} style={{ background: 'var(--nm-surface)', color: 'var(--nm-primary)', boxShadow: 'var(--nm-shadow-out)' }}>{request.title}</span>
                     </td>

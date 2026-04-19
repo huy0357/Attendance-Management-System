@@ -50,6 +50,15 @@ const PageSpinner = () => (
   </div>
 );
 
+// ── Home Redirect Component ───────────────────────────────────────────────────
+const HomeRedirect = () => {
+  const { hasAnyRole } = useAuth();
+  if (hasAnyRole(['ADMIN', 'MANAGER'])) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Navigate to="/hrm/employee-portal" replace />;
+};
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 const AppRouter: React.FC = () => (
   <Suspense fallback={<PageSpinner />}>
@@ -57,49 +66,45 @@ const AppRouter: React.FC = () => (
       {/* Public */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected — requires authentication (mirrors canActivate: [AuthGuard]) */}
+      {/* Protected — requires authentication */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route index element={<HomeRedirect />} />
 
-          {/* Profile — accessible to all authenticated users */}
+          {/* ── ALL authenticated roles ─────────────────────────────────── */}
           <Route path="/profile" element={<ProfilePage />} />
-
-          {/* HRM — all roles */}
-          {/* HRM — all roles */}
           <Route path="/hrm/employee-portal" element={<EmployeePortalPage />} />
-          <Route path="/hrm/employees" element={<EmployeesPage />} />
-          <Route path="/hrm/departments" element={<DepartmentsPage />} />
-
-          {/* HRM — admin only */}
-          <Route element={<RoleRoute allowedRoles={['ADMIN']} />}>
-            <Route path="/hrm/contracts" element={<ContractsPage />} />
-          </Route>
-
-          {/* Attendance — all roles */}
           <Route path="/attendance/attendance-daily" element={<AttendanceDailyPage />} />
           <Route path="/attendance/my-schedule" element={<MySchedulePage />} />
           <Route path="/attendance/requests-management" element={<RequestsManagementPage />} />
           <Route path="/attendance/leave-management" element={<LeaveManagementPage />} />
 
-          {/* Attendance — admin only */}
-          <Route element={<RoleRoute allowedRoles={['ADMIN']} />}>
-            <Route path="/attendance/attendance-daily/employee/:employeeId" element={<AttendanceDailyPage />} />
+          {/* ── MANAGER + ADMIN ──────────────────────────────────────────── */}
+          <Route element={<RoleRoute allowedRoles={['ADMIN', 'MANAGER']} redirectTo="/hrm/employee-portal" />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/attendance/ot-requests" element={<OtRequestsPage />} />
           </Route>
 
-          {/* Attendance — admin only */}
-          <Route element={<RoleRoute allowedRoles={['ADMIN']} />}>
+          {/* ── ADMIN ONLY ───────────────────────────────────────────────── */}
+          <Route element={<RoleRoute allowedRoles={['ADMIN']} redirectTo="/hrm/employee-portal" />}>
+            {/* HRM */}
+            <Route path="/hrm/employees" element={<EmployeesPage />} />
+            <Route path="/hrm/departments" element={<DepartmentsPage />} />
+            <Route path="/hrm/contracts" element={<ContractsPage />} />
+
+            {/* Attendance - admin views */}
             <Route path="/attendance/attendance-daily/admin" element={<AttendanceDailyPage />} />
+            <Route path="/attendance/attendance-daily/employee/:employeeId" element={<AttendanceDailyPage />} />
             <Route path="/attendance/scheduling" element={<SchedulingPage />} />
             <Route path="/attendance/shift-templates" element={<ShiftTemplatesPage />} />
             <Route path="/attendance/attendance-email" element={<AttendanceEmailPage />} />
             <Route path="/attendance/monthly-summary" element={<MonthlySummaryPage />} />
-          </Route>
 
-          {/* Admin panel — admin only (mirrors canActivate: [RoleGuard], data: {roles: ['ADMIN']}) */}
-          <Route element={<RoleRoute allowedRoles={['ADMIN']} />}>
+            {/* Payroll & Reports */}
+            <Route path="/payroll" element={<PayrollPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+
+            {/* Admin panel */}
             <Route path="/admin/account-management" element={<AccountManagementPage />} />
             <Route path="/admin/audit-log" element={<AuditLogPage />} />
             <Route path="/admin/settings" element={<SettingsPage />} />
@@ -107,15 +112,10 @@ const AppRouter: React.FC = () => (
             <Route path="/admin/role-management" element={<RoleManagementPage />} />
             <Route path="/admin/data-exports" element={<DataExportsPage />} />
             <Route path="/admin/batch-processing" element={<BatchProcessingPage />} />
-            
-            <Route path="/payroll" element={<PayrollPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
           </Route>
 
           {/* Error Pages */}
           <Route path="/500" element={<ServerErrorPage />} />
-
-          {/* Catch-all */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>

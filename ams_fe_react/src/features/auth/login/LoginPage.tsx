@@ -58,8 +58,13 @@ const LoginPage: React.FC = () => {
     clearMessages();
     setIsLoading(true);
     try {
-      await login({ username: values.username.trim(), password: values.password });
-      navigate('/dashboard');
+      const authData = await login({ username: values.username.trim(), password: values.password });
+      const role = authData.role?.toUpperCase().replace(/^ROLE_/, '') || '';
+      if (role === 'ADMIN' || role === 'MANAGER') {
+        navigate('/dashboard');
+      } else {
+        navigate('/hrm/employee-portal');
+      }
     } catch {
       setError('Login failed. Please check your credentials.');
     } finally {

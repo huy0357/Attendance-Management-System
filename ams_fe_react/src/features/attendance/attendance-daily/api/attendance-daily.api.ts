@@ -24,13 +24,18 @@ const API_BASE = '';
 
 export const attendanceDailyApi = {
   getAttendanceDailyAdmin: async (from: string, to: string, page: number, size: number): Promise<SpringPage<AttendanceDailyResponse>> => {
-    const params = new URLSearchParams({
-      from, to, page: page.toString(), size: size.toString()
-    });
-    const res = await axiosInstance.get<SpringPage<AttendanceDailyResponse>>(`${API_BASE}/attendance-daily/admin`, { params });
-    // SpringPage structure usually is returned directly or wrapped in standard ApiResponse
-    // Handling Both cases safely:
-    return (res.data as any).data || res.data; 
+    try {
+      const params = new URLSearchParams({
+        from, to, page: page.toString(), size: size.toString()
+      });
+      const res = await axiosInstance.get<SpringPage<AttendanceDailyResponse>>(`${API_BASE}/attendance-daily/admin`, { params });
+      return (res.data as any).data || res.data; 
+    } catch (error: any) {
+      if (error.response && error.response.status === 403) {
+        throw new Error("Bạn không có quyền truy cập dữ liệu này.");
+      }
+      throw error;
+    }
   },
 
   getMyAttendanceDaily: async (from: string, to: string, page: number, size: number): Promise<SpringPage<AttendanceDailyResponse>> => {
