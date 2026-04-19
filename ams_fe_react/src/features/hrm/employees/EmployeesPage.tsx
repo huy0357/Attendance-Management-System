@@ -58,12 +58,12 @@ const EmployeesPage: React.FC = () => {
   const [roleModalError, setRoleModalError] = useState('');
   const [roleModalMessage, setRoleModalMessage] = useState('');
 
-  // Debounce search
+  // Debounce search 500ms
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchQuery);
       setPage(1);
-    }, 400);
+    }, 500);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
@@ -254,10 +254,12 @@ const EmployeesPage: React.FC = () => {
     onError: () => alert('Unable to export employees. Please try again.')
   });
 
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   // Submit Handlers
   const handleAddSubmit = () => {
     setFormTouched(true);
-    if (!formData.fullName) return;
+    if (!formData.fullName || (formData.email && !isValidEmail(formData.email))) return;
     createMutation.mutate({
       ...formData,
       departmentId: formData.departmentId ? Number(formData.departmentId) : undefined,
@@ -268,7 +270,7 @@ const EmployeesPage: React.FC = () => {
 
   const handleEditSubmit = () => {
     setFormTouched(true);
-    if (!formData.fullName) return;
+    if (!formData.fullName || (formData.email && !isValidEmail(formData.email))) return;
     updateMutation.mutate({
       ...formData,
       departmentId: formData.departmentId ? Number(formData.departmentId) : undefined,
@@ -433,7 +435,19 @@ const EmployeesPage: React.FC = () => {
                 </tr>
               ))}
               {isLoading && (
-                 <tr><td colSpan={4} style={{ textAlign: 'center' }}>Loading...</td></tr>
+                 <tr>
+                    <td colSpan={4} style={{ padding: '16px' }}>
+                      <style>{`
+                        @keyframes nm-pulse-skeleton {
+                          0%, 100% { opacity: 1; }
+                          50% { opacity: 0.5; }
+                        }
+                      `}</style>
+                      {[1, 2, 3].map(i => (
+                        <div key={i} style={{ height: '48px', background: 'var(--nm-surface)', boxShadow: 'var(--nm-shadow-in)', borderRadius: 'var(--nm-radius-md)', marginBottom: '8px', animation: 'nm-pulse-skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+                      ))}
+                    </td>
+                 </tr>
               )}
               {!isLoading && employees.length === 0 && (
                  <tr><td colSpan={4} style={{ textAlign: 'center' }}>No employees found.</td></tr>

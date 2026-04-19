@@ -209,7 +209,7 @@ function getRoleLabel(normalizedRole: string | null): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 const AdminLayout: React.FC = () => {
   const { username, hasAnyRole, getNormalizedRole, logout, isAuthenticated } = useAuth();
-  const { compactSidebar } = useSettings();
+  const { compactSidebar, setCompactSidebar } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -332,11 +332,12 @@ const AdminLayout: React.FC = () => {
         {/* Header */}
         <header className={styles['ams-header']}>
           <div className={styles['ams-header-left']}>
-            {/* Mobile menu toggle (visual only — compact mode handled by useSettings) */}
+            {/* Sidebar toggle using useSettings */}
             <button
               className={styles['ams-menu-toggle']}
               aria-label="Toggle navigation"
               type="button"
+              onClick={() => setCompactSidebar(!compactSidebar)}
             >
               <Menu size={18} />
             </button>

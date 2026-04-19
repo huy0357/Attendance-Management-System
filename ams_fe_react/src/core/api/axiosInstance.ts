@@ -67,17 +67,15 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // ── Response interceptor: handle 401 & token refresh ─────────────────────────
 let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (value: string) => void;
-  reject: (reason: unknown) => void;
-}> = [];
+let refreshSubscribers: ((token: string) => void)[] = [];
 
-const processQueue = (error: unknown, token: string | null = null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (error) reject(error);
-    else resolve(token!);
-  });
-  failedQueue = [];
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+};
+
+const addRefreshSubscriber = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb);
 };
 
 interface ApiResponse<T> {
@@ -106,14 +104,12 @@ axiosInstance.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint(originalRequest.url)) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
+        return new Promise((resolve) => {
+          addRefreshSubscriber((token: string) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
-            return axiosInstance(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
+            resolve(axiosInstance(originalRequest));
+          });
+        });
       }
 
       originalRequest._retry = true;
@@ -133,11 +129,11 @@ axiosInstance.interceptors.response.use(
         );
         const authData = data.data;
         tokenStorage.store(authData);
-        processQueue(null, authData.accessToken);
         originalRequest.headers.Authorization = `Bearer ${authData.accessToken}`;
+        onRefreshed(authData.accessToken);
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
+        // Only clear state and redirect if the refresh token ITSELF fails
         tokenStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);

@@ -23,13 +23,13 @@ export interface CreateAccountRequest {
   username: string;
   password: string;
   employeeId: number;
-  roleCode: string;
+  roleId: number;
+  isActive?: boolean;
 }
 
 export interface UpdateAccountRequest {
   username?: string;
-  password?: string;
-  roleCode?: string;
+  roleId?: number;
   isActive?: boolean;
 }
 

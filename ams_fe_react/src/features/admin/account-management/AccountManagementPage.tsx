@@ -11,6 +11,7 @@ const AccountManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   
@@ -32,15 +33,22 @@ const AccountManagementPage: React.FC = () => {
     status: 'active'
   });
 
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const { data: pageData, isLoading, isError } = useQuery({
-    queryKey: ['accountsPage', currentPage, pageSize, sortBy, sortDir, filterStatus, searchQuery],
+    queryKey: ['accountsPage', currentPage, pageSize, sortBy, sortDir, filterStatus, debouncedSearch],
     queryFn: () => {
       let isActive: boolean | undefined = undefined;
       if (filterStatus === 'active') isActive = true;
       if (filterStatus === 'inactive') isActive = false;
 
-      if (searchQuery.trim()) {
-         return adminApi.searchAccounts(searchQuery, currentPage, pageSize, sortBy, sortDir);
+      if (debouncedSearch.trim()) {
+         return adminApi.searchAccounts(debouncedSearch.trim(), currentPage, pageSize, sortBy, sortDir);
       }
       return adminApi.getAccountsPage(currentPage, pageSize, sortBy, sortDir, isActive);
     }
@@ -131,7 +139,7 @@ const AccountManagementPage: React.FC = () => {
       employeeId: Number(employeeId),
       username: username.trim(),
       password,
-      roleCode: roles.find(r => r.id === Number(roleId))?.code || 'ROLE_EMPLOYEE',
+      roleId: Number(roleId),
       isActive: status === 'active'
     });
   };
@@ -155,11 +163,38 @@ const AccountManagementPage: React.FC = () => {
       id: Number(selectedUser.id),
       req: {
         username: username.trim(),
-        roleCode: roles.find(r => r.id === Number(roleId))?.code || 'ROLE_EMPLOYEE',
+        roleId: Number(roleId),
         isActive: status === 'active'
       }
     });
   };
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, req }: { id: number, req: UpdateAccountRequest }) => adminApi.updateAccount(id, req),
+    onMutate: async ({ id, req }) => {
+      await queryClient.cancelQueries({ queryKey: ['accountsPage'] });
+      const previousPageData = queryClient.getQueryData(['accountsPage', currentPage, pageSize, sortBy, sortDir, filterStatus, debouncedSearch]);
+      
+      queryClient.setQueryData(['accountsPage', currentPage, pageSize, sortBy, sortDir, filterStatus, debouncedSearch], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((item: any) => 
+            item.accountId === id ? { ...item, isActive: req.isActive } : item
+          )
+        };
+      });
+
+      return { previousPageData };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['accountsPage', currentPage, pageSize, sortBy, sortDir, filterStatus, debouncedSearch], context?.previousPageData);
+    },
+    onSettled: () => {
+       queryClient.invalidateQueries({ queryKey: ['accountsPage'] });
+       queryClient.invalidateQueries({ queryKey: ['allAccounts'] });
+    }
+  });
 
   const confirmDelete = () => {
     if (selectedUser) deleteMutation.mutate(Number(selectedUser.id));
@@ -272,7 +307,17 @@ const AccountManagementPage: React.FC = () => {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '32px', opacity: 0.6, fontWeight: 'bold' }}>Loading accounts...</td>
+                <td colSpan={5} style={{ padding: '16px' }}>
+                  <style>{`
+                    @keyframes nm-pulse-skeleton {
+                      0%, 100% { opacity: 1; }
+                      50% { opacity: 0.5; }
+                    }
+                  `}</style>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{ height: '48px', background: 'var(--nm-surface)', boxShadow: 'var(--nm-shadow-in)', borderRadius: 'var(--nm-radius-md)', marginBottom: '8px', animation: 'nm-pulse-skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+                  ))}
+                </td>
               </tr>
             )}
             {!isLoading && filteredUsers.length === 0 && (
@@ -301,9 +346,30 @@ const AccountManagementPage: React.FC = () => {
                   </span>
                 </td>
                 <td>
-                  <span className={cn(styles.nmBadge, user.status === 'active' ? styles.nmBadgeActive : styles.nmBadgeInactive)}>
-                    {user.status.toUpperCase()}
-                  </span>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <div style={{
+                      width: '36px', height: '20px', borderRadius: '10px',
+                      background: user.status === 'active' ? 'var(--nm-success)' : 'var(--nm-surface-deep)',
+                      boxShadow: 'var(--nm-shadow-in)',
+                      position: 'relative',
+                      transition: 'background 0.3s'
+                    }}>
+                      <div style={{
+                         width: '16px', height: '16px', borderRadius: '50%', background: 'var(--nm-surface)',
+                         position: 'absolute', top: '2px', left: user.status === 'active' ? '18px' : '2px',
+                         transition: 'left 0.3s', boxShadow: 'var(--nm-shadow-out)'
+                      }} />
+                    </div>
+                    <input type="checkbox" hidden checked={user.status === 'active'} disabled={toggleStatusMutation.isPending}
+                      onChange={() => toggleStatusMutation.mutate({ 
+                        id: Number(user.id), 
+                        req: { roleId: user.roleId, isActive: user.status !== 'active' }
+                      })} 
+                    />
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', marginLeft: '8px', color: user.status === 'active' ? 'var(--nm-success)' : 'var(--nm-text-muted)' }}>
+                      {user.status.toUpperCase()}
+                    </span>
+                  </label>
                 </td>
                 <td style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>
                   {user.lastLogin}
