@@ -96,7 +96,7 @@ export interface RequestsResponse {
   employeeId: number;
   employeeName: string;
   title: string;
-  requestType: 'LEAVE' | 'OVERTIME' | 'OTHER' | string;
+  requestType: 'LEAVE' | 'OVERTIME' | 'REMOTE' | 'LATE_EARLY' | string;
   status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | string;
   startDatetime: string;
   endDatetime: string;

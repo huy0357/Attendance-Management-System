@@ -71,8 +71,9 @@ const Chatbot: React.FC = () => {
   };
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
     if (isOpen) {
-      setTimeout(scrollToBottom, 50);
+      timeoutId = setTimeout(scrollToBottom, 50);
       
       // Smart positioning based on FAB placement
       if (fabRef.current && !isFullscreen) {
@@ -108,6 +109,9 @@ const Chatbot: React.FC = () => {
         }
       }
     }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [isOpen, position, isFullscreen, isMaximized]);
 
   const { mutate: sendMessageMutation, isPending: isTyping } = useMutation({

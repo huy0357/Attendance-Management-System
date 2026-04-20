@@ -122,8 +122,8 @@
   --nm-z-base:    0;
   --nm-z-above:   10;
   --nm-z-overlay: 50;
-  --nm-z-modal:   100;
-  --nm-z-toast:   200;
+  --nm-z-modal:   9999;   /* Must exceed Header (50) + Sidebar (10) */
+  --nm-z-toast:   10000;
 
   /* ── Status Badge Colors ─────────────────────────────────────────────────── */
   --nm-badge-success-bg:   rgba(0, 166, 61, 0.12);

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Download, Shield, Search, Eye, Plus, Edit2, Trash2, LogIn, LogOut, Check, X, Lock, Unlock, AlertCircle } from 'lucide-react';
 import { adminApi, AuditLog, AuditLogAction } from '../api/admin.api';
 import styles from './AuditLogPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const getActionBadgeClasses = (action: AuditLogAction) => {
@@ -272,7 +273,7 @@ const AuditLogPage: React.FC = () => {
 
       {/* DETAILS MODAL */}
       {showDetailsModal && selectedLog && (
-        <div className={styles.modalBackdrop} onClick={() => setShowDetailsModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowDetailsModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -375,7 +376,7 @@ const AuditLogPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

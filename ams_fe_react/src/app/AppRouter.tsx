@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../core/auth/ProtectedRoute';
 import RoleRoute from '../core/auth/RoleRoute';
 import AdminLayout from '../core/layout/AdminLayout';
+import { useAuth } from '../core/auth/AuthContext';
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 const LoginPage = lazy(() => import('../features/auth/login/LoginPage'));

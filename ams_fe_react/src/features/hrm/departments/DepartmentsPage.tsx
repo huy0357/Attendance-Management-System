@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Network, Plus, Search, Edit2, Trash2, X, AlertTriangle, CheckCircle2, XCircle, LayoutTemplate } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { departmentApi, DepartmentDto, DepartmentRequest } from '../api/hrm.api';
 import styles from './DepartmentsPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 // Recursive Tree Node Component
@@ -163,11 +164,35 @@ const DepartmentsPage: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: (data: DepartmentRequest) => departmentApi.update(selectedDept!.departmentId, data),
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-      closeEdit(); 
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['departments', debouncedSearch, page, pageSize] });
+      await queryClient.cancelQueries({ queryKey: ['departments', 'tree'] });
+      
+      const prevListData = queryClient.getQueryData(['departments', debouncedSearch, page, pageSize]);
+      
+      if (prevListData) {
+        queryClient.setQueryData(['departments', debouncedSearch, page, pageSize], (old: any) => {
+          if (!old || !old.items) return old;
+          return {
+            ...old,
+            items: old.items.map((d: DepartmentDto) => 
+              d.departmentId === selectedDept?.departmentId ? { ...d, ...newData } : d
+            )
+          };
+        });
+      }
+      closeEdit();
+      return { prevListData };
     },
-    onError: () => alert('Unable to update department.')
+    onError: (err, newData, context: any) => {
+      if (context?.prevListData) {
+        queryClient.setQueryData(['departments', debouncedSearch, page, pageSize], context.prevListData);
+      }
+      alert('Unable to update department.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+    }
   });
 
   const deleteMutation = useMutation({
@@ -176,7 +201,14 @@ const DepartmentsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       closeDelete(); 
     },
-    onError: () => alert('Unable to delete department. It might have child departments or employees.')
+    onError: (error: any) => {
+      const status = error?.response?.status;
+      if (status === 400 || status === 409 || status === 500) {
+        alert('Không thể xóa phòng ban đang có nhân viên hoạt động hoặc có phòng ban con. Vui lòng chuyển nhân sự trước khi xóa!');
+      } else {
+        alert('Unable to delete department.');
+      }
+    }
   });
 
   // Submit Handlers
@@ -396,7 +428,7 @@ const DepartmentsPage: React.FC = () => {
 
       {/* --- ADD MODAL --- */}
       {showAddModal && (
-        <div className={styles.modalBackdrop} onClick={closeAdd}>
+        <ModalPortal onBackdropClick={closeAdd}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -466,12 +498,12 @@ const DepartmentsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* --- EDIT MODAL --- */}
       {showEditModal && selectedDept && (
-        <div className={styles.modalBackdrop} onClick={closeEdit}>
+        <ModalPortal onBackdropClick={closeEdit}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -541,12 +573,12 @@ const DepartmentsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* --- DELETE MODAL --- */}
       {showDeleteModal && selectedDept && (
-        <div className={styles.modalBackdrop} onClick={closeDelete}>
+        <ModalPortal onBackdropClick={closeDelete}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className={styles.modalHeader} style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -581,7 +613,7 @@ const DepartmentsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

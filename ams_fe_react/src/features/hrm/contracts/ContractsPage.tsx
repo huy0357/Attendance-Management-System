@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Eye, Edit2, Trash2, X, AlertTriangle, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { contractsApi, ContractRecord, ContractType, ContractStatus } from './contracts.api';
 import styles from './ContractsPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const CONTRACT_TYPES = ['All Types', 'Permanent', 'Contract', 'Probation', 'Intern', 'Part-time'];
@@ -332,7 +333,7 @@ const ContractsPage: React.FC = () => {
 
       {/* --- ADD/EDIT MODAL --- */}
       {(showAddModal || showEditModal) && (
-        <div className={styles.modalBackdrop} onClick={showAddModal ? closeAddModal : closeEditModal}>
+        <ModalPortal onBackdropClick={showAddModal ? closeAddModal : closeEditModal}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -405,12 +406,12 @@ const ContractsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* DETAILS MODAL */}
       {showDetailsModal && selectedContract && (
-        <div className={styles.modalBackdrop} onClick={closeDetailsModal}>
+        <ModalPortal onBackdropClick={closeDetailsModal}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <div className={styles.modalHeader}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -495,12 +496,12 @@ const ContractsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* DELETE MODAL */}
       {showDeleteModal && selectedContract && (
-        <div className={styles.modalBackdrop} onClick={closeDeleteModal}>
+        <ModalPortal onBackdropClick={closeDeleteModal}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className={styles.modalHeader} style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -527,7 +528,7 @@ const ContractsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

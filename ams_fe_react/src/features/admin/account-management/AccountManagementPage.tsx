@@ -4,6 +4,7 @@ import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Users, CheckCircle, Shie
 import { adminApi, UserAccountRecord } from '../api/admin.api';
 import { employeeApi } from '../../hrm/api/hrm.api';
 import { CreateAccountRequest, UpdateAccountRequest } from '../../../shared/models/account.model';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import styles from './AccountManagementPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
 
@@ -25,10 +26,11 @@ const AccountManagementPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserAccountRecord | null>(null);
 
+  const [formTouched, setFormTouched] = useState(false);
   const [formData, setFormData] = useState({
-    employeeId: '',
+    employeeId: '' as string | number,
     username: '',
-    roleId: '',
+    roleId: 0 as number,
     password: '',
     status: 'active'
   });
@@ -120,19 +122,21 @@ const AccountManagementPage: React.FC = () => {
   });
 
   const openAddUser = () => {
-    const defaultRoleId = roles.find(r => r.code === 'ROLE_EMPLOYEE')?.id || roles[0]?.id || '';
+    const defaultRoleId = roles.find((r: any) => r.roleCode === 'ROLE_EMPLOYEE')?.roleId || roles[0]?.roleId || 0;
     const defaultEmpId = availableEmployees[0]?.employeeId || '';
     setFormData({
-      employeeId: String(defaultEmpId),
+      employeeId: defaultEmpId,
       username: '',
-      roleId: String(defaultRoleId),
+      roleId: Number(defaultRoleId),
       password: '',
       status: 'active'
     });
+    setFormTouched(false);
     setShowAddUser(true);
   };
 
   const submitAddUser = () => {
+    setFormTouched(true);
     const { employeeId, username, roleId, password, status } = formData;
     if (!employeeId || !username.trim() || !roleId || password.length < 6) return;
     createMutation.mutate({
@@ -147,16 +151,18 @@ const AccountManagementPage: React.FC = () => {
   const openEditUser = (user: UserAccountRecord) => {
     setSelectedUser(user);
     setFormData({
-      employeeId: String(user.employeeId),
+      employeeId: user.employeeId,
       username: user.username,
-      roleId: String(user.roleId || roles[0]?.id),
+      roleId: Number(user.roleId || roles[0]?.roleId || 0),
       password: '',
       status: user.status
     });
+    setFormTouched(false);
     setShowEditUser(true);
   };
 
   const submitEditUser = () => {
+    setFormTouched(true);
     const { username, roleId, status } = formData;
     if (!username.trim() || !roleId || !selectedUser) return;
     updateMutation.mutate({
@@ -308,14 +314,8 @@ const AccountManagementPage: React.FC = () => {
             {isLoading && (
               <tr>
                 <td colSpan={5} style={{ padding: '16px' }}>
-                  <style>{`
-                    @keyframes nm-pulse-skeleton {
-                      0%, 100% { opacity: 1; }
-                      50% { opacity: 0.5; }
-                    }
-                  `}</style>
                   {[1, 2, 3].map(i => (
-                    <div key={i} style={{ height: '48px', background: 'var(--nm-surface)', boxShadow: 'var(--nm-shadow-in)', borderRadius: 'var(--nm-radius-md)', marginBottom: '8px', animation: 'nm-pulse-skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+                    <div key={i} className={styles.skeletonRow}></div>
                   ))}
                 </td>
               </tr>
@@ -414,7 +414,7 @@ const AccountManagementPage: React.FC = () => {
 
       {/* --- ADD MODAL --- */}
       {showAddUser && (
-        <div className={styles.modalBackdrop} onClick={() => setShowAddUser(false)}>
+        <ModalPortal onBackdropClick={() => setShowAddUser(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -441,10 +441,10 @@ const AccountManagementPage: React.FC = () => {
                 <input type="text" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} placeholder="e.g. john.doe" className={styles.nmInput} />
               </div>
               <div className={styles.fieldGroup}>
-                <label>Role</label>
-                <select value={formData.roleId} onChange={e => setFormData({...formData, roleId: e.target.value})} className={styles.nmInput}>
-                  <option value="">Select role</option>
-                  {roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
+                <label>Role {formTouched && (!formData.roleId || formData.roleId === 0) && <span style={{ color: 'var(--nm-danger)', fontSize: '11px', fontWeight: 'bold' }}>(Role is required)</span>}</label>
+                <select value={formData.roleId || 0} onChange={e => setFormData({...formData, roleId: Number(e.target.value)})} className={styles.nmInput}>
+                  <option value={0}>Select role</option>
+                  {roles.map((role: any) => <option key={role.roleId} value={role.roleId}>{role.roleName}</option>)}
                 </select>
               </div>
               <div className={styles.fieldGroup}>
@@ -469,12 +469,10 @@ const AccountManagementPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
-
-      {/* --- EDIT MODAL --- */}
       {showEditUser && selectedUser && (
-        <div className={styles.modalBackdrop} onClick={() => setShowEditUser(false)}>
+        <ModalPortal onBackdropClick={() => setShowEditUser(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -496,9 +494,10 @@ const AccountManagementPage: React.FC = () => {
                 <input type="text" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className={styles.nmInput} />
               </div>
               <div className={styles.fieldGroup}>
-                <label>Role</label>
-                <select value={formData.roleId} onChange={e => setFormData({...formData, roleId: e.target.value})} className={styles.nmInput}>
-                  {roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
+                <label>Role {formTouched && (!formData.roleId || formData.roleId === 0) && <span style={{ color: 'var(--nm-danger)', fontSize: '11px', fontWeight: 'bold' }}>(Role is required)</span>}</label>
+                <select value={formData.roleId || 0} onChange={e => setFormData({...formData, roleId: Number(e.target.value)})} className={styles.nmInput}>
+                  <option value={0}>Select role</option>
+                  {roles.map((role: any) => <option key={role.roleId} value={role.roleId}>{role.roleName}</option>)}
                 </select>
               </div>
               <div className={styles.fieldGroup}>
@@ -519,12 +518,12 @@ const AccountManagementPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* --- DELETE MODAL --- */}
       {showDeleteModal && selectedUser && (
-        <div className={styles.modalBackdrop} onClick={() => setShowDeleteModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowDeleteModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className={styles.modalHeader} style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -551,7 +550,7 @@ const AccountManagementPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

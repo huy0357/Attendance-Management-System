@@ -490,3 +490,18 @@
     color: var(--nm-text);
   }
 }
+
+/* ── Skeleton Row (replaces inline style injection) ──────────────────────── */
+@keyframes nm-pulse-skeleton {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.skeletonRow {
+  height: 48px;
+  background: var(--nm-surface);
+  box-shadow: var(--nm-shadow-in);
+  border-radius: var(--nm-radius-md);
+  margin-bottom: 8px;
+  animation: nm-pulse-skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

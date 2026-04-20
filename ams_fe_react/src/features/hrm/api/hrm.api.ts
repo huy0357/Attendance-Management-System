@@ -1,7 +1,7 @@
 import axiosInstance from '../../../core/api/axiosInstance';
 import { PageResponse } from '../../../shared/models/page-response.model';
-import { RoleResponse } from '../../../shared/models/account.model';
 import { ProfileDto, UpdateProfileRequest } from '../../../shared/models/profile.model';
+
 
 export interface EmployeeDto {
   employeeId: number;
@@ -13,7 +13,6 @@ export interface EmployeeDto {
   email: string | null;
   status: string | null;
   departmentId: number | null;
-  positionId: number | null;
   managerId: number | null;
   hireDate: string | null;
   terminatedDate: string | null;
@@ -30,7 +29,6 @@ export interface EmployeeRequest {
   phone?: string;
   email?: string;
   departmentId?: number;
-  positionId?: number;
   managerId?: number;
   hireDate?: string;
 }
@@ -52,10 +50,7 @@ export interface DepartmentRequest {
   isActive?: boolean;
 }
 
-export interface PositionDto {
-  positionId: number;
-  positionName: string;
-}
+
 
 const API_BASE = '';
 
@@ -78,11 +73,7 @@ export const employeeApi = {
     const res = await axiosInstance.get(`${API_BASE}/employees`);
     return extractArray(res);
   },
-  getPositions: async (): Promise<PositionDto[]> => {
-    const params = new URLSearchParams({ page: '0', size: '1000', sort: 'positionId,asc' });
-    const res = await axiosInstance.get(`${API_BASE}/positions`, { params });
-    return extractArray(res);
-  },
+
   getDepartments: async (): Promise<DepartmentDto[]> => {
     const params = new URLSearchParams({ page: '0', size: '1000', sort: 'departmentId,asc' });
     const res = await axiosInstance.get(`${API_BASE}/departments`, { params });
@@ -137,27 +128,14 @@ export const employeeApi = {
       hasPrev: data.hasPrev ?? (!data.first)
     };
   },
+  // ✅ BE: GET /api/exports/employees — EmployeeExportController.java
   exportEmployees: async (): Promise<Blob> => {
     const res = await axiosInstance.get(`${API_BASE}/exports/employees`, { responseType: 'blob' });
     return res.data;
   },
-  getAllRoles: async (): Promise<RoleResponse[]> => {
-    const res = await axiosInstance.get(`${API_BASE}/roles`);
-    return extractArray(res);
-  },
-  getEmployeeRoles: async (employeeId: number): Promise<RoleResponse[]> => {
-    const res = await axiosInstance.get(`${API_BASE}/employees/${employeeId}/roles`);
-    return extractArray(res);
-  },
-  assignRoleToEmployee: async (employeeId: number, roleId: number): Promise<{ message: string }> => {
-    const res = await axiosInstance.post(`${API_BASE}/employees/${employeeId}/roles`, { roleId });
-    return res.data?.data || res.data;
-  },
-  removeRoleFromEmployee: async (employeeId: number, roleId: number): Promise<{ message: string }> => {
-    const res = await axiosInstance.delete(`${API_BASE}/employees/${employeeId}/roles/${roleId}`);
-    return res.data?.data || res.data;
-  }
 };
+
+
 
 export const departmentApi = {
   getAll: async (page: number, size: number, keyword: string, sortBy: string, sortDir: string): Promise<PageResponse<DepartmentDto>> => {

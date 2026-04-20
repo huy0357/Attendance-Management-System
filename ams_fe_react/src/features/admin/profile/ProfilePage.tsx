@@ -5,6 +5,7 @@ import { profileApi } from '../../hrm/api/hrm.api';
 import axiosInstance from '../../../core/api/axiosInstance';
 import { useAuth } from '../../../core/auth/AuthContext';
 import styles from './ProfilePage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const ProfilePage: React.FC = () => {
@@ -368,7 +369,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {isEditMode && (
-        <div className={styles.modalBackdrop} onClick={() => setIsEditMode(false)}>
+        <ModalPortal onBackdropClick={() => setIsEditMode(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -408,7 +409,7 @@ const ProfilePage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

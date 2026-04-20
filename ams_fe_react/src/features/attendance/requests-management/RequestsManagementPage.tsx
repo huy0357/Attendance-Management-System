@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Filter, Eye, Pencil, Trash2, CheckCircle, XCircle, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { requestApi, RequestsResponse, RequestsUpsertRequest } from '../api/attendanceCore.api';
 import styles from './RequestsManagementPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const RequestsManagementPage: React.FC = () => {
@@ -123,11 +124,38 @@ const RequestsManagementPage: React.FC = () => {
   const approveMutation = useMutation({
     mutationFn: ({ id, status, note }: { id: number, status: 'APPROVED' | 'REJECTED', note?: string }) => 
         requestApi.approveOrReject(id, { approverId: currentEmployeeId!, status, decisionNote: note }),
-    onSuccess: (updated) => {
-       queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
-       setSuccessMessage(`Request ${updated.requestId} ${updated.status.toLowerCase()} successfully.`);
+    onMutate: async ({ id, status, note }) => {
+      const queryKeyContext = isAdmin ? 'all' : isManager ? `manager-${currentEmployeeId}` : currentEmployeeId;
+      const exactQueryKey = ['requestsTable', queryKeyContext];
+      
+      await queryClient.cancelQueries({ queryKey: exactQueryKey });
+      const prevData = queryClient.getQueryData(exactQueryKey);
+      
+      if (prevData) {
+        queryClient.setQueryData(exactQueryKey, (old: any) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((r: any) => r.requestId === id ? { 
+            ...r, 
+            status: status, 
+            approverName: isManager ? 'Manager' : 'Admin', 
+            decisionNote: note 
+          } : r);
+        });
+      }
+      return { prevData, exactQueryKey };
     },
-    onError: () => setErrorMessage('Unable to perform approval action.')
+    onError: (err, val, context: any) => {
+      if (context?.prevData) {
+         queryClient.setQueryData(context.exactQueryKey, context.prevData);
+      }
+      setErrorMessage('Unable to perform approval action.');
+    },
+    onSettled: (data, error, variables, context: any) => {
+       queryClient.invalidateQueries({ queryKey: context?.exactQueryKey || ['requestsTable'] });
+       if (!error && data) {
+         setSuccessMessage(`Request ${data.requestId} ${data.status.toLowerCase()} successfully.`);
+       }
+    }
   });
 
   // Actions
@@ -170,6 +198,14 @@ const RequestsManagementPage: React.FC = () => {
     const end = new Date(formData.endDatetime).getTime();
     if (start > end) return 'End must be on or after start.';
     return null;
+  };
+
+  const calculateTotalHours = (startStr: string, endStr: string) => {
+    if(!startStr || !endStr) return 0;
+    const s = new Date(startStr).getTime();
+    const e = new Date(endStr).getTime();
+    if(isNaN(s) || isNaN(e) || e < s) return 0;
+    return ((e - s) / (1000 * 60 * 60)).toFixed(1);
   };
 
   const handleCreate = (submitAndCreate: boolean) => {
@@ -391,14 +427,21 @@ const RequestsManagementPage: React.FC = () => {
                         </>
                       )}
                       
+                      {/* Cancel Action (Only for DRAFT or PENDING/SUBMITTED) */}
+                      {(r.status === 'DRAFT' || r.status === 'SUBMITTED' || r.status === 'PENDING') && r.employeeId === currentEmployeeId && r.status !== 'DRAFT' && (
+                        <button onClick={() => handleDelete(r)} className={styles.nmBtnIcon} title="Cancel Request">
+                           <XCircle className="h-4 w-4 text-orange-500 hover:text-orange-700" />
+                        </button>
+                      )}
+                      
                       {/* ADMIN & MANAGER APPROVAL — matches BE @PreAuthorize("hasRole('MANAGER')") */}
                       {canApproveRequests && r.status === 'SUBMITTED' && (
                          <>
-                            <button onClick={() => handleApproveAction(r, 'APPROVED')} className={styles.nmBtnIcon} title="Approve">
-                              <CheckCircle className="h-4 w-4 text-green-500 hover:text-green-700" />
+                            <button onClick={() => handleApproveAction(r, 'APPROVED')} disabled={approveMutation.isPending} className={styles.nmBtnIcon} title="Approve">
+                              {approveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin text-green-500" /> : <CheckCircle className="h-4 w-4 text-green-500 hover:text-green-700" />}
                             </button>
-                            <button onClick={() => handleApproveAction(r, 'REJECTED')} className={styles.nmBtnIcon} title="Reject">
-                              <XCircle className="h-4 w-4 text-red-500 hover:text-red-700" />
+                            <button onClick={() => handleApproveAction(r, 'REJECTED')} disabled={approveMutation.isPending} className={styles.nmBtnIcon} title="Reject">
+                              {approveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin text-red-500" /> : <XCircle className="h-4 w-4 text-red-500 hover:text-red-700" />}
                             </button>
                          </>
                       )}
@@ -414,7 +457,7 @@ const RequestsManagementPage: React.FC = () => {
       </div>
 
       {showCreateForm && (
-        <div className={styles.modalBackdrop} onClick={() => setShowCreateForm(false)}>
+        <ModalPortal onBackdropClick={() => setShowCreateForm(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Create New Request</h2>
@@ -460,11 +503,11 @@ const RequestsManagementPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {showEditForm && (
-        <div className={styles.modalBackdrop} onClick={() => setShowEditForm(false)}>
+        <ModalPortal onBackdropClick={() => setShowEditForm(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Edit Request</h2>
@@ -507,11 +550,11 @@ const RequestsManagementPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {showViewModal && viewRequest && (
-        <div className={styles.modalBackdrop} onClick={() => setShowViewModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowViewModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Request Details</h2>
@@ -528,6 +571,12 @@ const RequestsManagementPage: React.FC = () => {
                      {viewRequest.status}
                   </span>
                 </p></div>
+                {(viewRequest.status === 'APPROVED' || viewRequest.status === 'REJECTED') && (
+                  <div className={styles.detailsBlock}>
+                    <p className={styles.detailsLabel}>Action By</p>
+                    <p className={styles.detailsValue}>{viewRequest.approverName ? `Approved by: ${viewRequest.approverName}` : (viewRequest as any).approverId ? `Approved by ID: ${(viewRequest as any).approverId}` : 'Manager / Admin'}</p>
+                  </div>
+                )}
                 <div className={cn(styles.detailsBlock, styles['full-width'])}><p className={styles.detailsLabel}>Title</p><p className={styles.detailsValue}>{viewRequest.title}</p></div>
               </div>
               
@@ -553,7 +602,7 @@ const RequestsManagementPage: React.FC = () => {
               <button onClick={() => setShowViewModal(false)} className={styles.nmBtnSecondary}>Close</button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

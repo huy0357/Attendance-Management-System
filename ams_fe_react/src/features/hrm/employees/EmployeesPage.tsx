@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Search, Eye, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { employeeApi, EmployeeDto, EmployeeRequest } from '../api/hrm.api';
 import styles from './EmployeesPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 // Types for UI mapping
@@ -32,7 +33,6 @@ const EmployeesPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showRoleModal, setShowRoleModal] = useState(false);
 
   // Selected Employee
   const [selectedEmployee, setSelectedEmployee] = useState<UiEmployee | null>(null);
@@ -46,17 +46,11 @@ const EmployeesPage: React.FC = () => {
     dob: '',
     gender: '',
     departmentId: undefined,
-    positionId: undefined,
     managerId: undefined,
     hireDate: ''
   };
   const [formData, setFormData] = useState<EmployeeRequest>(defaultFormState);
   const [formTouched, setFormTouched] = useState(false);
-
-  // Role Form States
-  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-  const [roleModalError, setRoleModalError] = useState('');
-  const [roleModalMessage, setRoleModalMessage] = useState('');
 
   // Debounce search 500ms
   useEffect(() => {
@@ -74,11 +68,7 @@ const EmployeesPage: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: positions = [] } = useQuery({
-    queryKey: ['positions'],
-    queryFn: () => employeeApi.getPositions(),
-    staleTime: 5 * 60 * 1000,
-  });
+
 
   const { data: pageData, isLoading, isError } = useQuery({
     queryKey: ['employees', debouncedSearch, page, pageSize, sortBy, sortDir],
@@ -91,18 +81,9 @@ const EmployeesPage: React.FC = () => {
     refetchOnWindowFocus: false,
   });
 
-  const { data: allRoles = [] } = useQuery({
-    queryKey: ['roles'],
-    queryFn: () => employeeApi.getAllRoles(),
-    enabled: showRoleModal && isAdmin,
-  });
-
-  const { data: employeeRoles = [], isFetching: isRoleLoading, refetch: refetchEmployeeRoles } = useQuery({
-    queryKey: ['employeeRoles', selectedEmployee?.id],
-    queryFn: () => employeeApi.getEmployeeRoles(Number(selectedEmployee?.id)),
-    enabled: showRoleModal && !!selectedEmployee?.id && isAdmin,
-    retry: false,
-  });
+  // NOTE: Role management via /employees/{id}/roles endpoint was removed —
+  // that endpoint does not exist in BE (EmployeeController). Role is managed
+  // through AccountManagement (assign roleId when creating account).
 
   // Derived UI Data
   const employees: UiEmployee[] = useMemo(() => {
@@ -140,7 +121,19 @@ const EmployeesPage: React.FC = () => {
     return status || 'Unknown';
   };
 
-  const formatDate = (date?: string | null) => date ? date.slice(0, 10) : '-';
+  const formatDate = (date?: string | null) => {
+    if (!date) return '-';
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return date;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return date;
+    }
+  };
 
   // Modal Handlers
   const openAdd = () => {
@@ -170,7 +163,6 @@ const EmployeesPage: React.FC = () => {
       dob: emp.dob || '',
       gender: emp.gender || '',
       departmentId: emp.departmentId || undefined,
-      positionId: emp.positionId || undefined,
       managerId: emp.managerId || undefined,
       hireDate: emp.hireDate || ''
     });
@@ -194,19 +186,7 @@ const EmployeesPage: React.FC = () => {
     setSelectedEmployee(null);
   };
 
-  const openRole = (emp: UiEmployee | null) => {
-    if (!emp) return;
-    setSelectedEmployee(emp);
-    setRoleModalError('');
-    setRoleModalMessage('');
-    setSelectedRoleId(null);
-    setShowRoleModal(true);
-    setShowDetailsModal(false);
-  };
-  const closeRole = () => {
-    setShowRoleModal(false);
-    setSelectedEmployee(null);
-  };
+
 
   // Mutations
   const createMutation = useMutation({
@@ -227,17 +207,7 @@ const EmployeesPage: React.FC = () => {
     onError: () => alert('Unable to delete employee. Please try again.')
   });
 
-  const assignRoleMutation = useMutation({
-    mutationFn: (roleId: number) => employeeApi.assignRoleToEmployee(Number(selectedEmployee!.id), roleId),
-    onSuccess: (res) => { setRoleModalMessage(res.message || 'Assigned'); refetchEmployeeRoles(); },
-    onError: (err: any) => { setRoleModalError(err.response?.data?.message || err.message || 'Error assigning role'); }
-  });
 
-  const removeRoleMutation = useMutation({
-    mutationFn: (roleId: number) => employeeApi.removeRoleFromEmployee(Number(selectedEmployee!.id), roleId),
-    onSuccess: (res) => { setRoleModalMessage(res.message || 'Removed'); refetchEmployeeRoles(); },
-    onError: (err: any) => { setRoleModalError(err.response?.data?.message || err.message || 'Error removing role'); }
-  });
 
   const exportMutation = useMutation({
     mutationFn: () => employeeApi.exportEmployees(),
@@ -263,7 +233,6 @@ const EmployeesPage: React.FC = () => {
     createMutation.mutate({
       ...formData,
       departmentId: formData.departmentId ? Number(formData.departmentId) : undefined,
-      positionId: formData.positionId ? Number(formData.positionId) : undefined,
       managerId: formData.managerId ? Number(formData.managerId) : undefined,
     });
   };
@@ -274,7 +243,6 @@ const EmployeesPage: React.FC = () => {
     updateMutation.mutate({
       ...formData,
       departmentId: formData.departmentId ? Number(formData.departmentId) : undefined,
-      positionId: formData.positionId ? Number(formData.positionId) : undefined,
       managerId: formData.managerId ? Number(formData.managerId) : undefined,
     });
   };
@@ -437,14 +405,8 @@ const EmployeesPage: React.FC = () => {
               {isLoading && (
                  <tr>
                     <td colSpan={4} style={{ padding: '16px' }}>
-                      <style>{`
-                        @keyframes nm-pulse-skeleton {
-                          0%, 100% { opacity: 1; }
-                          50% { opacity: 0.5; }
-                        }
-                      `}</style>
                       {[1, 2, 3].map(i => (
-                        <div key={i} style={{ height: '48px', background: 'var(--nm-surface)', boxShadow: 'var(--nm-shadow-in)', borderRadius: 'var(--nm-radius-md)', marginBottom: '8px', animation: 'nm-pulse-skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+                        <div key={i} className={styles.skeletonRow}></div>
                       ))}
                     </td>
                  </tr>
@@ -533,7 +495,7 @@ const EmployeesPage: React.FC = () => {
 
       {/* DETAILS MODAL */}
       {showDetailsModal && selectedEmployee && (
-        <div className={styles.modalBackdrop} onClick={closeDetails}>
+        <ModalPortal onBackdropClick={closeDetails}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
             <div className={styles.modalHeader}>
               <div className="flex items-center gap-4">
@@ -568,6 +530,27 @@ const EmployeesPage: React.FC = () => {
                 <p className={styles.detailsValue}>{getDepartmentName(selectedEmployee.departmentId)}</p>
               </div>
               <div className={styles.detailsBlock}>
+                <p className={styles.detailsLabel}>Manager ID</p>
+                <p className={styles.detailsValue}>{selectedEmployee.managerId || '-'}</p>
+              </div>
+              <div className={styles.detailsBlock}>
+                <p className={styles.detailsLabel}>Phone</p>
+                <p className={styles.detailsValue}>{selectedEmployee.phone || '-'}</p>
+              </div>
+              <div className={styles.detailsBlock}>
+                <p className={styles.detailsLabel}>Gender</p>
+                <p className={styles.detailsValue}>
+                  {selectedEmployee.gender === 'MALE' ? 'Male' : 
+                   selectedEmployee.gender === 'FEMALE' ? 'Female' : 
+                   selectedEmployee.gender === 'OTHER' ? 'Other' : 
+                   selectedEmployee.gender || '-'}
+                </p>
+              </div>
+              <div className={styles.detailsBlock}>
+                <p className={styles.detailsLabel}>Date of Birth</p>
+                <p className={styles.detailsValue}>{formatDate(selectedEmployee.dob)}</p>
+              </div>
+              <div className={styles.detailsBlock}>
                 <p className={styles.detailsLabel}>Hire Date</p>
                 <p className={styles.detailsValue}>{formatDate(selectedEmployee.hireDate)}</p>
               </div>
@@ -587,9 +570,6 @@ const EmployeesPage: React.FC = () => {
               </button>
               {isAdmin && (
                 <>
-                  <button onClick={() => openRole(selectedEmployee)} className={styles.nmBtnSecondary}>
-                    Manage Role
-                  </button>
                   <button onClick={() => openEdit(selectedEmployee)} className={styles.nmBtnPrimary}>
                     <Edit2 className="h-4 w-4 shrink-0" /> Edit
                   </button>
@@ -600,12 +580,12 @@ const EmployeesPage: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ADD/EDIT MODAL FORMS */}
       {(showAddModal || showEditModal) && (
-        <div className={styles.modalBackdrop} onClick={showAddModal ? closeAdd : closeEdit}>
+        <ModalPortal onBackdropClick={showAddModal ? closeAdd : closeEdit}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>{showEditModal ? 'Edit Employee' : 'Add Employee'}</h2>
@@ -728,13 +708,7 @@ const EmployeesPage: React.FC = () => {
                       {departments.map((d: any) => <option key={d.departmentId} value={d.departmentId}>{d.departmentName}</option>)}
                     </select>
                   </div>
-                  <div className={styles.fieldGroup}>
-                    <label>Position</label>
-                    <select value={formData.positionId || ''} onChange={(e) => setFormData({ ...formData, positionId: Number(e.target.value) || undefined })} className={styles.nmInput}>
-                      <option value="">Select pos</option>
-                      {positions.map((p: any) => <option key={p.positionId} value={p.positionId}>{p.positionName}</option>)}
-                    </select>
-                  </div>
+
                 </>
               )}
 
@@ -747,13 +721,7 @@ const EmployeesPage: React.FC = () => {
                       {departments.map((d: any) => <option key={d.departmentId} value={d.departmentId}>{d.departmentName}</option>)}
                     </select>
                   </div>
-                  <div className={styles.fieldGroup}>
-                    <label>Position</label>
-                    <select value={formData.positionId || ''} onChange={(e) => setFormData({ ...formData, positionId: Number(e.target.value) || undefined })} className={styles.nmInput}>
-                      <option value="">Select pos</option>
-                      {positions.map((p: any) => <option key={p.positionId} value={p.positionId}>{p.positionName}</option>)}
-                    </select>
-                  </div>
+
                   <div className={styles.fieldGroup}>
                     <label>Manager ID</label>
                     <input type="number" value={formData.managerId || ''} onChange={(e) => setFormData({ ...formData, managerId: Number(e.target.value) || undefined })} className={styles.nmInput} />
@@ -786,12 +754,12 @@ const EmployeesPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* DELETE MODAL */}
       {showDeleteModal && selectedEmployee && (
-        <div className={styles.modalBackdrop} onClick={closeDelete}>
+        <ModalPortal onBackdropClick={closeDelete}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className={styles.modalHeader}>
               <div className="flex items-center gap-3">
@@ -813,81 +781,9 @@ const EmployeesPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
-      {/* ROLE MODAL */}
-      {showRoleModal && selectedEmployee && isAdmin && (
-        <div className={styles.modalBackdrop} onClick={closeRole}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h2>Role Assignment</h2>
-                <p className={styles.pageSubtitle}>{selectedEmployee.fullName} (ID {selectedEmployee.id})</p>
-              </div>
-              <button onClick={closeRole} className={styles.nmBtnIcon}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {roleModalMessage && <div style={{ background: 'var(--nm-success)', color: '#fff', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '12px', fontWeight: 'bold' }}>{roleModalMessage}</div>}
-            {roleModalError && <div style={{ background: 'var(--nm-danger)', color: '#fff', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '12px', fontWeight: 'bold' }}>{roleModalError}</div>}
-
-            {isRoleLoading && <div style={{ padding: '24px', textAlign: 'center', opacity: 0.6 }}>Loading roles...</div>}
-
-            {!isRoleLoading && (
-              <div className="space-y-6">
-                <div className={styles.detailsBlock}>
-                  <p className={styles.detailsLabel}>Current Roles</p>
-                  {employeeRoles.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      {employeeRoles.map((role: any) => (
-                        <div key={role.roleId} className={styles.nmCardInset} style={{ padding: '12px' }}>
-                          <p style={{ fontWeight: 'bold', color: 'var(--nm-primary)' }}>{role.roleCode}</p>
-                          <p style={{ fontSize: '12px', opacity: 0.8 }}>{role.roleName}</p>
-                          <button
-                            onClick={() => removeRoleMutation.mutate(role.roleId)}
-                            disabled={removeRoleMutation.isPending || assignRoleMutation.isPending}
-                            className={styles.nmBtnPrimary} style={{ marginTop: '12px', padding: '4px 12px', fontSize: '11px', background: 'var(--nm-danger)', boxShadow: 'none' }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ fontSize: '12px', opacity: 0.6 }}>No role assigned.</p>
-                  )}
-                </div>
-
-                <div className={styles.detailsBlock}>
-                  <label className={styles.detailsLabel}>Assign new role</label>
-                  <div className="flex flex-col gap-3 md:flex-row mt-2">
-                    <select
-                      value={selectedRoleId || ''}
-                      onChange={(e) => setSelectedRoleId(Number(e.target.value) || null)}
-                      className={styles.nmInput}
-                      style={{ flex: 1 }}
-                    >
-                      <option value="">Select role</option>
-                      {allRoles.map((role: any) => (
-                        <option key={role.roleId} value={role.roleId}>{role.roleCode} - {role.roleName}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => { if(selectedRoleId) assignRoleMutation.mutate(selectedRoleId); }}
-                      disabled={!selectedRoleId || assignRoleMutation.isPending || removeRoleMutation.isPending}
-                      className={styles.nmBtnPrimary}
-                    >
-                      {assignRoleMutation.isPending ? 'Saving...' : 'Assign Role'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

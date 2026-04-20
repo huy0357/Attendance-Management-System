@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { shiftApi, ShiftTemplateResponse, ShiftTemplateUpsertPayload } from '../api/attendanceCore.api';
 import styles from './ShiftTemplatesPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const ShiftTemplatesPage: React.FC = () => {
@@ -121,8 +122,25 @@ const ShiftTemplatesPage: React.FC = () => {
 
   const activeMutation = useMutation({
     mutationFn: ({ id, active }: { id: number, active: boolean }) => shiftApi.setShiftTemplateActive(id, active),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shiftTemplates'] }),
-    onError: () => alert('Unable to update active status.')
+    onMutate: async ({ id, active }) => {
+      await queryClient.cancelQueries({ queryKey: ['shiftTemplates'] });
+      const prevData = queryClient.getQueryData(['shiftTemplates', debouncedSearch, activeParam]);
+      
+      if (prevData) {
+        queryClient.setQueryData(['shiftTemplates', debouncedSearch, activeParam], (old: any) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((t: any) => t.shiftId === id ? { ...t, isActive: active } : t);
+        });
+      }
+      return { prevData };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.prevData) {
+        queryClient.setQueryData(['shiftTemplates', debouncedSearch, activeParam], context.prevData);
+      }
+      alert('Unable to update active status.');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['shiftTemplates'] }),
   });
 
   const deleteMutation = useMutation({
@@ -131,7 +149,14 @@ const ShiftTemplatesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['shiftTemplates'] });
       setShowDeleteModal(false);
     },
-    onError: () => alert('Unable to delete shift template. It might be linked to existing schedules.')
+    onError: (error: any) => {
+      const status = error?.response?.status;
+      if (status === 400 || status === 409 || status === 500) {
+        alert('Không thể xóa Ca làm việc đang được gán lịch cho nhân viên. Vui lòng gỡ lịch trước khi xóa!');
+      } else {
+        alert('Unable to delete shift template. It might be linked to existing schedules.');
+      }
+    }
   });
 
   // Validation
@@ -145,6 +170,8 @@ const ShiftTemplatesPage: React.FC = () => {
     const errors: string[] = [];
     if (!formData.shiftCode.trim()) errors.push('Code is required.');
     if (!formData.shiftName.trim()) errors.push('Name is required.');
+    if (!formData.startTime) errors.push('Start time is required.');
+    if (!formData.endTime) errors.push('End time is required.');
     
     if (formData.startTime && formData.endTime) {
       const start = toMinutes(formData.startTime);
@@ -174,10 +201,16 @@ const ShiftTemplatesPage: React.FC = () => {
     setFormTouched(true);
     if (!validateForm()) return;
     
+    const payload = {
+      ...formData,
+      startTime: formData.startTime && formData.startTime.length === 5 ? `${formData.startTime}:00` : formData.startTime,
+      endTime: formData.endTime && formData.endTime.length === 5 ? `${formData.endTime}:00` : formData.endTime
+    };
+    
     if (mode === 'create') {
-      createMutation.mutate(formData);
+      createMutation.mutate(payload);
     } else {
-      updateMutation.mutate(formData);
+      updateMutation.mutate(payload);
     }
   };
 
@@ -316,7 +349,7 @@ const ShiftTemplatesPage: React.FC = () => {
 
       {/* FORM MODAL */}
       {showForm && (
-        <div className={styles.modalBackdrop} onClick={cancelForm}>
+        <ModalPortal onBackdropClick={cancelForm}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
              <div className={styles.modalHeader}>
               <div>
@@ -391,12 +424,12 @@ const ShiftTemplatesPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* DELETE MODAL */}
       {showDeleteModal && templateToDelete && (
-        <div className={styles.modalBackdrop} onClick={() => setShowDeleteModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowDeleteModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className={styles.modalHeader}>
               <h2>Delete Template</h2>
@@ -413,7 +446,7 @@ const ShiftTemplatesPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

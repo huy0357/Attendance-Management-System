@@ -4,6 +4,7 @@ import { Download, Search, X, Loader2, CheckCircle, AlertCircle } from 'lucide-r
 import { useAuth } from '../../../core/auth/AuthContext';
 import { attendanceDailyApi } from './api/attendance-daily.api';
 import styles from './AttendanceDailyPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 // --- Helpers ---
@@ -390,7 +391,7 @@ const AttendanceDailyPage: React.FC = () => {
 
       {/* ──────────────────────────────── MONTHLY SUMMARY MODAL ──────────────────────────────── */}
       {isMonthlyModalOpen && (
-        <div className={styles.modalBackdrop} onClick={() => setIsMonthlyModalOpen(false)}>
+        <ModalPortal onBackdropClick={() => setIsMonthlyModalOpen(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} aria-busy={generateMutation.isPending || exportMutation.isPending}>
             <div className={styles.modalHeader}>
               <div>
@@ -465,7 +466,7 @@ const AttendanceDailyPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

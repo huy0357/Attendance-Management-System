@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { Clock, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { scheduleApi, shiftApi, ShiftTemplateResponse, Shift } from '../api/attendanceCore.api';
 import styles from './SchedulingPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const DUMMY_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -434,7 +435,7 @@ const SchedulingPage: React.FC = () => {
       </div>
 
       {showAssignRangeModal && (
-        <div className={styles.modalBackdrop} onClick={() => setShowAssignRangeModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowAssignRangeModal(false)}>
           <div className={styles.assignRangeModal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -527,12 +528,12 @@ const SchedulingPage: React.FC = () => {
               </button>
             </div>
           </div>
-         </div>
+         </ModalPortal>
       )}
 
       {/* --- EMPLOYEE STATS MODAL --- */}
       {selectedStatsEmployee && (
-        <div className={styles.modalBackdrop} onClick={() => setSelectedStatsEmployee(null)}>
+        <ModalPortal onBackdropClick={() => setSelectedStatsEmployee(null)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className={styles.modalHeader}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -584,7 +585,7 @@ const SchedulingPage: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

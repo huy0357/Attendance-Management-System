@@ -4,6 +4,7 @@ import { Search, Eye, Check, X, Clock, Loader2, AlertCircle } from 'lucide-react
 import { useAuth } from '../../../core/auth/AuthContext';
 import { requestApi } from '../api/attendanceCore.api';
 import styles from './OtRequestsPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const getStatusBadgeClass = (status: string) => {
@@ -321,7 +322,7 @@ const OtRequestsPage: React.FC = () => {
       )}
 
       {showReviewModal && selectedRequest && (
-        <div className={styles.modalBackdrop} onClick={() => setShowReviewModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowReviewModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -394,11 +395,11 @@ const OtRequestsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {showDetailsModal && selectedRequest && (
-        <div className={styles.modalBackdrop} onClick={() => setShowDetailsModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowDetailsModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -488,7 +489,7 @@ const OtRequestsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { ArrowRight, Search, Eye, CheckCircle, Clock, XCircle, AlertCircle, Tria
 import { useAuth } from '../../../core/auth/AuthContext';
 import { requestApi, RequestsResponse } from '../api/attendanceCore.api';
 import styles from './LeaveManagementPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const getStatusColor = (status: string) => {
@@ -263,7 +264,7 @@ const LeaveManagementPage: React.FC = () => {
       </div>
 
       {showReviewModal && selectedRequest && (
-        <div className={styles.modalBackdrop} onClick={() => setShowReviewModal(false)}>
+        <ModalPortal onBackdropClick={() => setShowReviewModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
@@ -356,7 +357,7 @@ const LeaveManagementPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

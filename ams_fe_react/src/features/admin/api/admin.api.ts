@@ -118,17 +118,26 @@ export const adminApi = {
     return data;
   },
 
-  getAccountRoles: async (): Promise<AccountRoleDefinition[]> => {
-    const { data } = await axiosInstance.get<RoleResponse[]>('/roles');
-    return data
-        // ROLE PRUNING: Only include ADMIN and EMPLOYEE
-        .filter(r => r.roleCode === 'ROLE_ADMIN' || r.roleCode === 'ROLE_EMPLOYEE')
-        .map(role => ({
-          id: role.roleId,
-          name: role.roleName,
-          code: role.roleCode,
-          description: role.description || '',
-    }));
+  getAccountRoles: async (): Promise<RoleResponse[]> => {
+    const res = await axiosInstance.get('/roles');
+    console.log("=== RAW ROLE RESPONSE ===", res.data);
+    
+    // Thuật toán Bóc tách Đa năng
+    let roleData: any[] = [];
+    if (Array.isArray(res.data)) {
+        roleData = res.data;
+    } else if (res.data?.data && Array.isArray(res.data.data)) {
+        roleData = res.data.data;
+    } else if (res.data?.content && Array.isArray(res.data.content)) {
+        roleData = res.data.content;
+    } else if (res.data?.items && Array.isArray(res.data.items)) {
+        roleData = res.data.items;
+    } else {
+        console.error("CANNOT EXTRACT ROLE ITEMS FROM:", res.data);
+    }
+    
+    // Hủy bỏ mọi bộ lọc Hardcode
+    return roleData;
   },
 
   getAuditLogs: async (

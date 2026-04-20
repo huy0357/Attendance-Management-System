@@ -206,6 +206,12 @@ function getRoleLabel(normalizedRole: string | null): string {
 // ── Page Spinner fallback ─────────────────────────────────────────────────────
 
 
+// ── ForbiddenToast — hiển thị khi axiosInstance bắt lỗi 403 ──────────────────
+interface ForbiddenToast {
+  id: number;
+  message: string;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 const AdminLayout: React.FC = () => {
   const { username, hasAnyRole, getNormalizedRole, logout, isAuthenticated } = useAuth();
@@ -219,6 +225,21 @@ const AdminLayout: React.FC = () => {
   const normalizedRole = getNormalizedRole();
   const displayRoleLabel = getRoleLabel(normalizedRole);
   const displayInitials = getDisplayInitials(displayUsername);
+
+  // ── 403 Forbidden Toast Listener ─────────────────────────────────────────
+  const [forbiddenToasts, setForbiddenToasts] = useState<ForbiddenToast[]>([]);
+  useEffect(() => {
+    const handleForbidden = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { message: string };
+      const id = Date.now();
+      setForbiddenToasts((prev) => [...prev, { id, message: detail.message }]);
+      setTimeout(() => {
+        setForbiddenToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 4000);
+    };
+    window.addEventListener('ams:forbidden', handleForbidden);
+    return () => window.removeEventListener('ams:forbidden', handleForbidden);
+  }, []);
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (!item.requiredRoles || item.requiredRoles.length === 0) return isAuthenticated;
@@ -430,6 +451,53 @@ const AdminLayout: React.FC = () => {
 
       {/* Chatbot — always rendered, logic unchanged */}
       <Chatbot />
+
+      {/* ── 403 Forbidden Toasts ─────────────────────────────────────────── */}
+      {forbiddenToasts.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            pointerEvents: 'none',
+          }}
+        >
+          {forbiddenToasts.map((t) => (
+            <div
+              key={t.id}
+              style={{
+                background: 'var(--nm-surface)',
+                borderLeft: '4px solid var(--nm-danger)',
+                borderRadius: 'var(--nm-radius-md)',
+                boxShadow: '6px 6px 20px rgba(0,0,0,0.18), -4px -4px 12px rgba(255,255,255,0.7)',
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontFamily: 'var(--font-primary)',
+                fontSize: 'var(--fs-sm)',
+                color: 'var(--nm-text)',
+                minWidth: '280px',
+                animation: 'slideInRight 0.3s ease',
+                pointerEvents: 'all',
+              }}
+            >
+              <span style={{ color: 'var(--nm-danger)', fontWeight: 'bold', fontSize: '18px' }}>⚠</span>
+              <span><strong>Từ chối truy cập (403)</strong><br />{t.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <style>{`
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(40px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 };

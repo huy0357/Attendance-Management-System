@@ -46,7 +46,7 @@ export const tokenStorage = {
 // ── Axios instance ────────────────────────────────────────────────────────────
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30_000,
+  timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -100,7 +100,26 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
+      _retryCount?: number;
     };
+
+    if (originalRequest) {
+      const isNetworkError = !error.response;
+      const isTimeout = error.code === 'ECONNABORTED';
+      const isServerError = error.response && error.response.status >= 500;
+
+      // CHỈ retry khi gặp lỗi Network Error, Timeout (ECONNABORTED) hoặc status >= 500
+      // TUYỆT ĐỐI KHÔNG retry lỗi 4xx
+      if (isNetworkError || isTimeout || isServerError) {
+        originalRequest._retryCount = originalRequest._retryCount || 0;
+        if (originalRequest._retryCount < 2) {
+          originalRequest._retryCount++;
+          const delay = originalRequest._retryCount === 1 ? 1000 : 2000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return axiosInstance(originalRequest);
+        }
+      }
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint(originalRequest.url)) {
       if (isRefreshing) {
@@ -140,6 +159,16 @@ axiosInstance.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // ── 403 Forbidden: Phát event toàn cục để hiển thị Toast thân thiện ────
+    if (error.response?.status === 403) {
+      window.dispatchEvent(
+        new CustomEvent('ams:forbidden', {
+          detail: { message: 'Bạn không có quyền thực hiện thao tác này.' },
+        }),
+      );
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);
