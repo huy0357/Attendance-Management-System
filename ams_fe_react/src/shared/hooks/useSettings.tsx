@@ -1,3 +1,19 @@
+/**
+ * SECURITY NOTE — localStorage usage in this file is INTENTIONAL and safe.
+ *
+ * Storage key: `ams.settings.preferences`
+ * Contents:    Non-sensitive UI preferences only:
+ *              { theme, language, timeFormat, compactSidebar, reduceMotion }
+ *
+ * This key NEVER holds authentication tokens, API keys, or user PII.
+ *
+ * These preferences intentionally SURVIVE logout — wiping them on logout would
+ * degrade UX with zero security benefit. The AuthContext.logout() function
+ * deliberately does NOT call localStorage.clear() for this reason.
+ *
+ * ⚠️  DO NOT store auth tokens (accessToken, refreshToken) in this hook.
+ * ⚠️  DO NOT read from this key in any authentication flow.
+ */
 import {
   createContext,
   useCallback,

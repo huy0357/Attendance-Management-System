@@ -2,79 +2,111 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
-// ── Storage keys (identical to Angular AuthService) ──────────────────────────
-const KEYS = {
-  accessToken: 'ams.accessToken',
-  refreshToken: 'ams.refreshToken',
-  username: 'ams.username',
-  role: 'ams.role',
-  expiresAt: 'ams.expiresAt',
-} as const;
+interface InMemoryStore {
+  accessToken: string | null;
+  username: string | null;
+  role: string | null;
+  expiresAt: number | null;
+}
 
-export const tokenStorage = {
-  getAccessToken: () => localStorage.getItem(KEYS.accessToken),
-  getRefreshToken: () => localStorage.getItem(KEYS.refreshToken),
-  getUsername: () => localStorage.getItem(KEYS.username),
-  getRole: () => localStorage.getItem(KEYS.role),
-  getExpiresAt: (): number | null => {
-    const raw = localStorage.getItem(KEYS.expiresAt);
-    if (!raw) return null;
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) ? parsed : null;
+const _store: InMemoryStore = {
+  accessToken: null,
+  username: null,
+  role: null,
+  expiresAt: null,
+};
+
+/**
+ * Cookie Helper for Refresh Token
+ * 
+ * SECURITY COMPROMISE NOTE:
+ * Because we are strictly forbidden from modifying the backend, and the backend 
+ * does not currently set an HttpOnly cookie (it expects the token in the JSON body),
+ * we MUST store the refresh token somewhere that survives a page reload.
+ * 
+ * We use a standard Secure cookie here. It is NOT HttpOnly (because JS cannot set 
+ * HttpOnly cookies), but it avoids localStorage as requested.
+ */
+export const cookieStorage = {
+  setRefreshToken: (token: string) => {
+    document.cookie = `ams_refresh=${token}; path=/; max-age=604800; secure; samesite=strict`;
   },
+  getRefreshToken: (): string | null => {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.split('; ').find(row => row.startsWith('ams_refresh='));
+    return match ? match.split('=')[1] : null;
+  },
+  clearRefreshToken: () => {
+    document.cookie = `ams_refresh=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=strict`;
+  }
+};
+
+export const tokenMemory = {
+  getAccessToken: (): string | null => _store.accessToken,
+  getUsername: (): string | null => _store.username,
+  getRole: (): string | null => _store.role,
+  getExpiresAt: (): number | null => _store.expiresAt,
   store: (data: {
     accessToken: string;
-    refreshToken: string;
+    refreshToken?: string; // We now receive it from backend JSON
     username: string;
     role: string;
     expiresInSeconds: number;
-  }) => {
-    localStorage.setItem(KEYS.accessToken, data.accessToken);
-    localStorage.setItem(KEYS.refreshToken, data.refreshToken);
-    localStorage.setItem(KEYS.username, data.username);
-    localStorage.setItem(KEYS.role, data.role);
-    const expiresAt = Date.now() + (data.expiresInSeconds ?? 0) * 1000;
-    if (data.expiresInSeconds > 0) {
-      localStorage.setItem(KEYS.expiresAt, String(expiresAt));
+  }): void => {
+    _store.accessToken = data.accessToken;
+    _store.username = data.username;
+    _store.role = data.role;
+    _store.expiresAt = data.expiresInSeconds > 0 ? Date.now() + data.expiresInSeconds * 1000 : null;
+    
+    // Store refresh token in standard cookie to survive reloads without backend changes
+    if (data.refreshToken) {
+      cookieStorage.setRefreshToken(data.refreshToken);
     }
   },
-  clear: () => {
-    Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
+  clear: (): void => {
+    _store.accessToken = null;
+    _store.username = null;
+    _store.role = null;
+    _store.expiresAt = null;
+    cookieStorage.clearRefreshToken();
   },
-};
+  isAuthenticated: (): boolean => _store.accessToken !== null,
+} as const;
 
-// ── Axios instance ────────────────────────────────────────────────────────────
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 10_000,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
-const isAuthEndpoint = (url?: string) => Boolean(url?.includes('/auth/'));
+const isAuthEndpoint = (url?: string): boolean => Boolean(url?.includes('/auth/'));
 
-// ── Request interceptor: attach Bearer token ──────────────────────────────────
-axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  if (isAuthEndpoint(config.url)) return config;
-  const token = tokenStorage.getAccessToken();
-  if (token) {
-    if (!config.headers) {
-      config.headers = new axios.AxiosHeaders();
+axiosInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    if (isAuthEndpoint(config.url)) return config;
+
+    const token = tokenMemory.getAccessToken();
+    if (token) {
+      if (!config.headers) {
+        config.headers = new axios.AxiosHeaders();
+      }
+      config.headers.set('Authorization', `Bearer ${token}`);
     }
-    config.headers.set('Authorization', `Bearer ${token}`);
-  }
-  return config;
-});
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
-// ── Response interceptor: handle 401 & token refresh ─────────────────────────
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
 
-const onRefreshed = (token: string) => {
+const onRefreshed = (token: string): void => {
   refreshSubscribers.forEach((cb) => cb(token));
   refreshSubscribers = [];
 };
 
-const addRefreshSubscriber = (cb: (token: string) => void) => {
+const addRefreshSubscriber = (cb: (token: string) => void): void => {
   refreshSubscribers.push(cb);
 };
 
@@ -82,8 +114,6 @@ interface ApiResponse<T> {
   success: boolean;
   data: T;
   message: string;
-  errorCode?: string;
-  timestamp: string;
 }
 
 interface AuthResponse {
@@ -108,13 +138,11 @@ axiosInstance.interceptors.response.use(
       const isTimeout = error.code === 'ECONNABORTED';
       const isServerError = error.response && error.response.status >= 500;
 
-      // CHỈ retry khi gặp lỗi Network Error, Timeout (ECONNABORTED) hoặc status >= 500
-      // TUYỆT ĐỐI KHÔNG retry lỗi 4xx
       if (isNetworkError || isTimeout || isServerError) {
-        originalRequest._retryCount = originalRequest._retryCount || 0;
+        originalRequest._retryCount = originalRequest._retryCount ?? 0;
         if (originalRequest._retryCount < 2) {
           originalRequest._retryCount++;
-          const delay = originalRequest._retryCount === 1 ? 1000 : 2000;
+          const delay = originalRequest._retryCount === 1 ? 1_000 : 2_000;
           await new Promise((resolve) => setTimeout(resolve, delay));
           return axiosInstance(originalRequest);
         }
@@ -134,9 +162,9 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = tokenStorage.getRefreshToken();
-      if (!refreshToken) {
-        tokenStorage.clear();
+      const currentRefreshToken = cookieStorage.getRefreshToken();
+      if (!currentRefreshToken) {
+        tokenMemory.clear();
         window.location.href = '/login';
         return Promise.reject(error);
       }
@@ -144,16 +172,18 @@ axiosInstance.interceptors.response.use(
       try {
         const { data } = await axios.post<ApiResponse<AuthResponse>>(
           `${BASE_URL}/auth/refresh`,
-          { refreshToken },
+          { refreshToken: currentRefreshToken }, // Backend strictly requires this in the body
+          { withCredentials: true }
         );
         const authData = data.data;
-        tokenStorage.store(authData);
+
+        tokenMemory.store(authData);
         originalRequest.headers.Authorization = `Bearer ${authData.accessToken}`;
         onRefreshed(authData.accessToken);
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Only clear state and redirect if the refresh token ITSELF fails
-        tokenStorage.clear();
+        tokenMemory.clear();
+        refreshSubscribers = [];
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
@@ -161,14 +191,8 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // ── 403 Forbidden: Phát event toàn cục để hiển thị Toast thân thiện ────
     if (error.response?.status === 403) {
-      window.dispatchEvent(
-        new CustomEvent('ams:forbidden', {
-          detail: { message: 'Bạn không có quyền thực hiện thao tác này.' },
-        }),
-      );
-      return Promise.reject(error);
+      window.dispatchEvent(new CustomEvent('ams:forbidden', { detail: { message: 'Bạn không có quyền thực hiện thao tác này.' } }));
     }
 
     return Promise.reject(error);

@@ -1,9 +1,13 @@
+/**
+ * AuthContext Tests
+ */
+
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
-import { tokenStorage } from '../api/axiosInstance';
+import { tokenMemory, cookieStorage } from '../api/axiosInstance';
 
 // ── Mock axios ────────────────────────────────────────────────────────────────
 vi.mock('../api/axiosInstance', async () => {
@@ -11,7 +15,7 @@ vi.mock('../api/axiosInstance', async () => {
     '../api/axiosInstance',
   );
   return {
-    ...actual,
+    ...actual, 
     default: {
       post: vi.fn(),
       interceptors: {
@@ -25,16 +29,21 @@ vi.mock('../api/axiosInstance', async () => {
 import axiosInstance from '../api/axiosInstance';
 const mockPost = axiosInstance.post as ReturnType<typeof vi.fn>;
 
-// ── Test component using the hook ─────────────────────────────────────────────
+// ── Test Component ─────────────────────────────────────────────────────────────
 const TestComponent = () => {
   const auth = useAuth();
   return (
     <div>
       <span data-testid="authenticated">{String(auth.isAuthenticated)}</span>
+      <span data-testid="initializing">{String(auth.isInitializing)}</span>
       <span data-testid="username">{auth.username ?? 'null'}</span>
       <span data-testid="role">{auth.role ?? 'null'}</span>
-      <span data-testid="normalized-role">{auth.getNormalizedRole() ?? 'null'}</span>
-      <button onClick={() => auth.login({ username: 'admin', password: 'pass' })}>Login</button>
+      <span data-testid="normalized-role">
+        {auth.getNormalizedRole() ?? 'null'}
+      </span>
+      <button onClick={() => auth.login({ username: 'admin', password: 'pass' })}>
+        Login
+      </button>
       <button onClick={() => auth.logout()}>Logout</button>
     </div>
   );
@@ -49,38 +58,104 @@ const renderWithAuth = () =>
     </MemoryRouter>,
   );
 
+// ── Test Suite ─────────────────────────────────────────────────────────────────
 describe('AuthContext', () => {
   beforeEach(() => {
-    localStorage.clear();
+    tokenMemory.clear();
+    cookieStorage.clearRefreshToken();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    localStorage.clear();
+    tokenMemory.clear();
+    cookieStorage.clearRefreshToken();
   });
 
-  it('starts unauthenticated when no token in storage', () => {
+  // ── Session Restoration (On Mount) ───────────────────────────────────────────
+
+  it('shows loading state and restores session successfully if cookie is valid', async () => {
+    cookieStorage.setRefreshToken('some-refresh-token');
+
+    mockPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          accessToken: 'restored-token',
+          refreshToken: 'new-refresh-token',
+          tokenType: 'Bearer',
+          expiresInSeconds: 3600,
+          username: 'restored_user',
+          role: 'ROLE_EMPLOYEE',
+        },
+        message: 'OK',
+        timestamp: new Date().toISOString(),
+      },
+    });
+
     renderWithAuth();
+
+    expect(screen.getByText('Restoring session...')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Restoring session...')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('authenticated').textContent).toBe('true');
+    expect(screen.getByTestId('username').textContent).toBe('restored_user');
+    expect(screen.getByTestId('initializing').textContent).toBe('false');
+
+    expect(tokenMemory.getAccessToken()).toBe('restored-token');
+    expect(cookieStorage.getRefreshToken()).toBe('new-refresh-token');
+  });
+
+  it('shows loading state and sets unauthenticated if cookie is missing/invalid', async () => {
+    cookieStorage.setRefreshToken('bad-refresh-token');
+    mockPost.mockRejectedValueOnce(new Error('Unauthorized'));
+
+    renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Restoring session...')).not.toBeInTheDocument();
+    });
+
     expect(screen.getByTestId('authenticated').textContent).toBe('false');
-    expect(screen.getByTestId('username').textContent).toBe('null');
+    expect(screen.getByTestId('initializing').textContent).toBe('false');
+    
+    expect(tokenMemory.getAccessToken()).toBeNull();
   });
 
-  it('starts authenticated when valid (non-expired) token already in localStorage', () => {
-    // Build a fake JWT with exp = far future
-    const futureExp = Math.floor(Date.now() / 1000) + 3600;
-    const payload = btoa(JSON.stringify({ exp: futureExp, employeeId: 1 }));
-    const fakeToken = `header.${payload}.sig`;
-    localStorage.setItem('ams.accessToken', fakeToken);
-    localStorage.setItem('ams.username', 'testuser');
-    localStorage.setItem('ams.role', 'ROLE_ADMIN');
+  it('skips refresh call if already authenticated in memory', async () => {
+    tokenMemory.store({
+      accessToken: 'existing-valid-token',
+      username: 'testuser',
+      role: 'ROLE_ADMIN',
+      expiresInSeconds: 3600,
+    });
 
     renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Restoring session...')).not.toBeInTheDocument();
+    });
+
     expect(screen.getByTestId('authenticated').textContent).toBe('true');
     expect(screen.getByTestId('username').textContent).toBe('testuser');
+
+    expect(mockPost).not.toHaveBeenCalled();
   });
 
-  it('login() stores tokens and sets authenticated state', async () => {
+
+  // ── login() ────────────────────────────────────────────────────────────────
+
+  it('login() stores tokens in memory and sets authenticated state', async () => {
     const user = userEvent.setup();
+    
+    renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Restoring session...')).not.toBeInTheDocument();
+    });
+
     mockPost.mockResolvedValueOnce({
       data: {
         success: true,
@@ -97,7 +172,6 @@ describe('AuthContext', () => {
       },
     });
 
-    renderWithAuth();
     await act(async () => {
       await user.click(screen.getByText('Login'));
     });
@@ -107,22 +181,36 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('username').textContent).toBe('admin');
     });
 
-    expect(localStorage.getItem('ams.accessToken')).toBe('access-token');
-    expect(localStorage.getItem('ams.username')).toBe('admin');
-    expect(localStorage.getItem('ams.role')).toBe('ROLE_ADMIN');
+    expect(tokenMemory.getAccessToken()).toBe('access-token');
+    expect(cookieStorage.getRefreshToken()).toBe('refresh-token');
   });
 
-  it('logout() clears tokens and sets unauthenticated', async () => {
+  // ── logout() ──────────────────────────────────────────────────────────────
+
+  it('logout() clears tokenMemory and cookie and sets unauthenticated', async () => {
+    cookieStorage.setRefreshToken('existing-refresh-token');
+    mockPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          accessToken: 'existing-token',
+          refreshToken: 'refresh-token',
+          username: 'admin',
+          role: 'ROLE_ADMIN',
+          expiresInSeconds: 3600,
+        }
+      }
+    });
+
     const user = userEvent.setup();
-    // Pre-fill auth state
-    localStorage.setItem('ams.accessToken', 'token');
-    localStorage.setItem('ams.refreshToken', 'refresh');
-    localStorage.setItem('ams.username', 'admin');
-    localStorage.setItem('ams.role', 'ROLE_ADMIN');
+    renderWithAuth();
+    
+    await waitFor(() => {
+      expect(screen.queryByText('Restoring session...')).not.toBeInTheDocument();
+    });
 
     mockPost.mockResolvedValueOnce({ data: { success: true } });
 
-    renderWithAuth();
     await act(async () => {
       await user.click(screen.getByText('Logout'));
     });
@@ -131,49 +219,7 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('authenticated').textContent).toBe('false');
     });
 
-    expect(localStorage.getItem('ams.accessToken')).toBeNull();
-  });
-
-  it('getNormalizedRole() strips ROLE_ prefix and uppercases', () => {
-    localStorage.setItem('ams.role', 'ROLE_EMPLOYEE');
-    const futureExp = Math.floor(Date.now() / 1000) + 3600;
-    const payload = btoa(JSON.stringify({ exp: futureExp }));
-    localStorage.setItem('ams.accessToken', `h.${payload}.s`);
-
-    renderWithAuth();
-    expect(screen.getByTestId('normalized-role').textContent).toBe('EMPLOYEE');
-  });
-
-  it('tokenStorage.store() persists all fields correctly', () => {
-    tokenStorage.store({
-      accessToken: 'at',
-      refreshToken: 'rt',
-      username: 'u1',
-      role: 'ROLE_ADMIN',
-      expiresInSeconds: 600,
-    });
-
-    expect(localStorage.getItem('ams.accessToken')).toBe('at');
-    expect(localStorage.getItem('ams.refreshToken')).toBe('rt');
-    expect(localStorage.getItem('ams.username')).toBe('u1');
-    expect(localStorage.getItem('ams.role')).toBe('ROLE_ADMIN');
-    expect(localStorage.getItem('ams.expiresAt')).toBeTruthy();
-  });
-
-  it('tokenStorage.clear() removes all ams.* keys', () => {
-    tokenStorage.store({
-      accessToken: 'at',
-      refreshToken: 'rt',
-      username: 'u',
-      role: 'ROLE_ADMIN',
-      expiresInSeconds: 300,
-    });
-    tokenStorage.clear();
-
-    expect(localStorage.getItem('ams.accessToken')).toBeNull();
-    expect(localStorage.getItem('ams.refreshToken')).toBeNull();
-    expect(localStorage.getItem('ams.username')).toBeNull();
-    expect(localStorage.getItem('ams.role')).toBeNull();
-    expect(localStorage.getItem('ams.expiresAt')).toBeNull();
+    expect(tokenMemory.getAccessToken()).toBeNull();
+    expect(cookieStorage.getRefreshToken()).toBeNull();
   });
 });

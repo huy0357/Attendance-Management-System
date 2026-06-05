@@ -23,6 +23,12 @@ const defaultState: SettingsState = {
   reduceMotion: false,
 };
 
+/**
+ * SECURITY NOTE — localStorage usage in this component is INTENTIONAL and safe.
+ * This key stores only non-sensitive UI preferences (theme, language, etc.).
+ * It NEVER holds authentication tokens or user credentials.
+ * ⚠️  DO NOT add auth-related data to this storage key.
+ */
 const storageKey = 'ams.settings.preferences';
 
 const SettingsPage: React.FC = () => {

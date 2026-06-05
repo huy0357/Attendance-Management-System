@@ -46,7 +46,7 @@ describe('LoginPage', () => {
 
   it('renders the login form with all elements', () => {
     renderLogin();
-    expect(screen.getByText('AMS Core')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /ams\s*core/i })).toBeInTheDocument();
     expect(screen.getByText('Welcome back')).toBeInTheDocument();
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();

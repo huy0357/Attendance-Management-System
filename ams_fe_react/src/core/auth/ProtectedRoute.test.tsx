@@ -77,7 +77,7 @@ describe('RoleRoute', () => {
       isAuthenticated: true,
       hasAnyRole: () => false,
     });
-    renderWithMemoryRouter(auth, '/', <RoleRoute allowedRoles={['ADMIN']} />);
+    renderWithMemoryRouter(auth, '/', <RoleRoute allowedRoles={['ADMIN']} redirectTo="/dashboard" />);
     expect(screen.getByTestId('dashboard')).toBeInTheDocument();
     expect(screen.queryByTestId('protected-content')).toBeNull();
   });
