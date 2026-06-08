@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - mix-be-dev-fe-fix
+      - production
 
 jobs:
   deploy:
