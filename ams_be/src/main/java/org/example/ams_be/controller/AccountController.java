@@ -21,7 +21,7 @@ import java.util.List;
 public class AccountController {
 
     private final AccountService accountService;
-
+//test
     @GetMapping
     public ResponseEntity<List<AccountDto>> getAll() {
         return ResponseEntity.ok(accountService.getAllAccounts());
