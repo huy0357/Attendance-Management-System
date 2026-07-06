@@ -1,0 +1,321 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AttendanceEmailPage — Neumorphism Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nmCard {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-lg);
+  padding: var(--nm-space-5);
+  box-shadow: var(--nm-shadow-out);
+  transition: var(--nm-transition);
+  margin-bottom: var(--nm-space-6);
+}
+
+.nmCardHeader {
+  border-bottom: 2px solid rgba(0,0,0,0.05);
+  margin: calc(var(--nm-space-5) * -1) calc(var(--nm-space-5) * -1) var(--nm-space-5);
+  padding: var(--nm-space-4) var(--nm-space-5);
+  
+  h2 {
+    font-family: var(--font-primary);
+    font-size: var(--fs-lg);
+    font-weight: var(--fw-bold);
+    color: var(--nm-text);
+  }
+  
+  p {
+    font-size: var(--fs-sm);
+    color: var(--nm-text-secondary);
+    margin-top: 4px;
+  }
+}
+
+.nmCardInset {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-lg);
+  padding: var(--nm-space-5);
+  box-shadow: var(--nm-shadow-in);
+}
+
+/* ── Typography Headers ──────────────────────────────────────────────────── */
+.pageTitle {
+  font-family: var(--font-primary);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  color: var(--nm-text);
+  margin-bottom: 4px;
+}
+
+.pageSubtitle {
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text-muted);
+}
+
+/* ── Input & Search ──────────────────────────────────────────────────────── */
+.nmInput {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-md);
+  box-shadow: var(--nm-shadow-in);
+  border: none;
+  padding: 10px 14px;
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text);
+  transition: var(--nm-transition);
+  outline: none;
+  width: 100%;
+
+  &:focus {
+    box-shadow: 
+      inset 4px 4px 10px var(--nm-dark),
+      inset -4px -4px 10px var(--nm-light),
+      0 0 0 2px rgba(0, 102, 102, 0.2);
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+
+  input {
+    width: 100%;
+    padding-left: 36px;
+  }
+
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--nm-text-muted);
+  }
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.nmBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--nm-primary);
+  color: var(--nm-text-invert);
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  padding: 12px 24px;
+  border-radius: var(--nm-radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: 
+    6px 6px 12px rgba(0, 80, 80, 0.4),
+    -4px -4px 10px rgba(0, 150, 150, 0.2);
+  transition: var(--nm-transition);
+
+  &:hover {
+    background: var(--nm-primary-light);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 
+      inset 3px 3px 8px rgba(0, 50, 50, 0.5),
+      inset -2px -2px 6px rgba(0, 130, 130, 0.3);
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+.nmBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--nm-surface);
+  color: var(--nm-text);
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  padding: 10px 20px;
+  border-radius: var(--nm-radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--nm-shadow-out);
+  transition: var(--nm-transition);
+
+  &:hover {
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-lg);
+  }
+  
+  &:active {
+    box-shadow: var(--nm-shadow-active);
+    transform: translateY(1px);
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.nmBtnSm {
+  padding: 6px 14px;
+  font-size: var(--fs-xs);
+  border-radius: calc(var(--nm-radius-md) - 2px);
+}
+
+/* ── Status Badges ─────────── ───────────────────────────────────────────── */
+.nmBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-family: var(--font-primary);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--nm-radius-full);
+  background: var(--nm-surface);
+  box-shadow: var(--nm-shadow-in);
+}
+
+.nmBadgeSuccess { color: var(--nm-success); }
+.nmBadgeDanger { color: var(--nm-danger); }
+
+/* ── Table Layout ────────────────────────────────────────────────────────── */
+.nmTableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: calc(var(--nm-radius-md) - 2px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.nmTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background: var(--nm-surface);
+
+  thead {
+    th {
+      font-family: var(--font-primary);
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-semibold);
+      color: var(--nm-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 16px;
+      box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  tbody {
+    tr {
+      transition: var(--nm-transition);
+      cursor: default;
+      border-bottom: 2px solid transparent; 
+    }
+
+    tr:hover {
+      background: var(--nm-surface-deep);
+    }
+
+    td {
+      padding: 16px;
+      font-family: var(--font-primary);
+      font-size: var(--fs-sm);
+      color: var(--nm-text);
+      vertical-align: middle;
+    }
+  }
+}
+
+/* ── Alerts ───────────────────────────────────────────── */
+.alertBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--nm-space-4);
+  border-radius: var(--nm-radius-md);
+  margin-bottom: var(--nm-space-6);
+  font-family: var(--font-primary);
+  font-weight: var(--fw-semibold);
+  
+  &.success {
+    box-shadow: inset 0 0 0 2px var(--nm-success);
+    color: var(--nm-success);
+    background: var(--nm-surface);
+  }
+
+  &.error {
+    box-shadow: inset 0 0 0 2px var(--nm-danger);
+    color: var(--nm-danger);
+    background: var(--nm-surface);
+  }
+  
+  .alertInner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  button {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    box-shadow: var(--nm-shadow-out);
+    border-radius: 4px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:active {
+      box-shadow: var(--nm-shadow-in);
+    }
+  }
+}
+
+/* ── Form Checkbox ──────────────────────────────────────────────────────── */
+.nmCheckboxWrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--nm-surface);
+  box-shadow: var(--nm-shadow-in);
+  padding: 12px 16px;
+  border-radius: var(--nm-radius-md);
+  margin-top: var(--nm-space-4);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--nm-primary);
+    cursor: pointer;
+  }
+
+  span {
+    font-family: var(--font-primary);
+    font-size: var(--fs-sm);
+    color: var(--nm-text-secondary);
+    
+    b {
+      color: var(--nm-text);
+      font-weight: var(--fw-bold);
+    }
+  }
+}

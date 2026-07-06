@@ -1,0 +1,462 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LoginPage — Neumorphism Auth Screen
+   neumorphism-SKILL.md: surface=#E7E5E4, primary=#006666, font=Space Mono
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Full-page layout ─────────────────────────────────────────────────────── */
+.page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nm-surface);
+  padding: var(--nm-space-4);
+  overflow: hidden;
+  font-family: var(--font-primary);
+}
+
+/* Decorative ambient blobs */
+.blob1 {
+  position: absolute;
+  top: -120px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 102, 102, 0.08) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.blob2 {
+  position: absolute;
+  bottom: -120px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 102, 102, 0.06) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+/* ── Content wrapper ─────────────────────────────────────────────────────────*/
+.wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--nm-space-6);
+}
+
+/* ── Brand section ───────────────────────────────────────────────────────── */
+.brand {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--nm-space-2);
+}
+
+/* Circular logo — extruded neumorphic disc */
+.logoDisc {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--nm-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    8px 8px 20px var(--nm-dark),
+    -8px -8px 20px var(--nm-light),
+    inset 2px 2px 5px rgba(0, 130, 130, 0.15);
+  margin-bottom: var(--nm-space-1);
+}
+
+.logoLetter {
+  font-family: var(--font-primary);
+  font-size: 2rem;
+  font-weight: var(--fw-bold);
+  color: var(--nm-primary);
+  line-height: 1;
+}
+
+.brandTitle {
+  font-family: var(--font-primary);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  color: var(--nm-text);
+  letter-spacing: -0.03em;
+  margin: 0;
+
+  span {
+    color: var(--nm-primary);
+  }
+}
+
+.brandSub {
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text-muted);
+  margin: 0;
+}
+
+/* ── Card — extruded main panel ──────────────────────────────────────────── */
+.card {
+  width: 100%;
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-xl);
+  /* Large extruded card */
+  box-shadow: var(--nm-shadow-lg);
+  padding: var(--nm-space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--nm-space-5);
+}
+
+/* ── Heading area ──────────────────────────────────────────────────────────── */
+.cardHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heading {
+  font-family: var(--font-primary);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  color: var(--nm-text);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.subheading {
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text-secondary);
+  margin: 0;
+}
+
+/* ── Mode indicator dots ──────────────────────────────────────────────────── */
+.modeDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nm-surface);
+  box-shadow: var(--nm-shadow-sm);
+  transition: var(--nm-transition);
+}
+
+.modeDotActive {
+  width: 18px;
+  border-radius: 3px;
+  background: var(--nm-primary);
+  box-shadow: none;
+}
+
+/* ── Alert messages ───────────────────────────────────────────────────────── */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: var(--nm-space-2);
+  padding: var(--nm-space-3) var(--nm-space-4);
+  border-radius: var(--nm-radius-sm);
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  /* Inset — alert appears pressed into surface */
+  box-shadow: var(--nm-shadow-in);
+}
+
+.alertError {
+  background: var(--nm-badge-danger-bg);
+  color: var(--nm-badge-danger-text);
+}
+
+.alertSuccess {
+  background: var(--nm-badge-success-bg);
+  color: var(--nm-badge-success-text);
+}
+
+/* ── Form ──────────────────────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nm-space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nm-space-2);
+}
+
+.label {
+  font-family: var(--font-primary);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--nm-text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Input wrapper — inset Neumorphism ──────────────────────────────────── */
+.inputWrap {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  border-radius: var(--nm-radius-sm);
+  background: var(--nm-surface);
+  /* Inset — field pressed into surface */
+  box-shadow: var(--nm-shadow-in);
+  transition: var(--nm-transition);
+  overflow: hidden;
+}
+
+.inputWrap:focus-within {
+  box-shadow:
+    inset 4px 4px 10px var(--nm-dark),
+    inset -4px -4px 10px var(--nm-light),
+    0 0 0 2px rgba(0, 102, 102, 0.22);
+}
+
+.inputIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  color: var(--nm-text-muted);
+}
+
+.input {
+  flex: 1;
+  height: 100%;
+  padding: 0 var(--nm-space-2);
+  font-family: var(--font-primary);
+  font-size: var(--fs-base);
+  color: var(--nm-text);
+  background: transparent;
+  border: none;
+  outline: none;
+
+  &::placeholder {
+    color: var(--nm-text-muted);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.eyeBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--nm-text-muted);
+  cursor: pointer;
+  transition: color 150ms ease;
+
+  &:hover {
+    color: var(--nm-primary);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+}
+
+/* ── Remember me row ──────────────────────────────────────────────────────── */
+.rememberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--nm-space-2);
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkWrap {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkBox {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--nm-surface);
+  box-shadow: var(--nm-shadow-in);
+  transition: var(--nm-transition);
+}
+
+.checkbox:checked + .checkBox {
+  background: var(--nm-primary);
+  box-shadow: inset 2px 2px 5px rgba(0, 50, 50, 0.4);
+}
+
+.forgotBtn {
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--nm-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 150ms ease;
+  padding: 0;
+
+  &:hover {
+    color: var(--nm-primary-light);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* ── Primary button — extruded teal ──────────────────────────────────────── */
+.btnPrimary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nm-space-2);
+  width: 100%;
+  padding: var(--nm-space-3) var(--nm-space-4);
+  font-family: var(--font-primary);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.05em;
+  color: var(--nm-text-invert);
+  background: var(--nm-primary);
+  border: none;
+  border-radius: var(--nm-radius-sm);
+  cursor: pointer;
+  /* Primary colored extruded shadow */
+  box-shadow:
+    6px 6px 14px rgba(0, 77, 77, 0.45),
+    -4px -4px 10px rgba(0, 150, 150, 0.25);
+  transition: var(--nm-transition);
+  margin-top: var(--nm-space-2);
+
+  &:hover:not(:disabled) {
+    background: var(--nm-primary-light);
+    box-shadow:
+      8px 8px 18px rgba(0, 60, 60, 0.5),
+      -4px -4px 12px rgba(0, 160, 160, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+      inset 3px 3px 8px rgba(0, 40, 40, 0.5),
+      inset -2px -2px 6px rgba(0, 130, 130, 0.25);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nm-primary);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+.btnLoading {
+  opacity: 0.8;
+}
+
+/* ── Back button — extruded surface ─────────────────────────────────────── */
+.btnBack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nm-space-2);
+  width: 100%;
+  padding: var(--nm-space-2) var(--nm-space-4);
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--nm-text-secondary);
+  background: var(--nm-surface);
+  border: none;
+  border-radius: var(--nm-radius-sm);
+  cursor: pointer;
+  box-shadow: var(--nm-shadow-sm);
+  transition: var(--nm-transition);
+
+  &:hover:not(:disabled) {
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-out);
+  }
+
+  &:active:not(:disabled) {
+    box-shadow: var(--nm-shadow-active);
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+/* ── Spinner ──────────────────────────────────────────────────────────────── */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: nm-spin 0.7s linear infinite;
+}
+
+/* ── Footer text ─────────────────────────────────────────────────────────── */
+.footer {
+  font-family: var(--font-primary);
+  font-size: 10px;
+  color: var(--nm-text-muted);
+  text-align: center;
+  letter-spacing: 0.04em;
+}

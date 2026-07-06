@@ -1,0 +1,432 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AuditLogPage — Neumorphism Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nmCard {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-lg);
+  padding: var(--nm-space-5);
+  box-shadow: var(--nm-shadow-out);
+  transition: var(--nm-transition);
+}
+
+.nmCardInset {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-lg);
+  padding: var(--nm-space-5);
+  box-shadow: var(--nm-shadow-in);
+}
+
+/* ── Typography Headers ──────────────────────────────────────────────────── */
+.pageTitle {
+  font-family: var(--font-primary);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  color: var(--nm-text);
+  margin-bottom: 4px;
+}
+
+.pageSubtitle {
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text-muted);
+}
+
+/* ── KPI Widgets ─────────────────────────────────────────────────────────── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--nm-space-4);
+  margin-bottom: var(--nm-space-6);
+  
+  @media (min-width: 640px) { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 1024px) { grid-template-columns: repeat(4, 1fr); }
+}
+
+.kpiCard {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-lg);
+  padding: var(--nm-space-5);
+  box-shadow: var(--nm-shadow-out);
+  display: flex;
+  flex-direction: column;
+
+  .kpiHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--nm-space-2);
+  }
+
+  .kpiLabel {
+    font-family: var(--font-primary);
+    font-size: 10px;
+    font-weight: var(--fw-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .kpiValue {
+    font-family: var(--font-primary);
+    font-size: var(--fs-xl);
+    font-weight: var(--fw-bold);
+  }
+}
+
+/* ── Info Bar ────────────────────────────────────────────────────────────── */
+.infoBar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nm-space-3);
+  padding: var(--nm-space-4);
+  background: var(--nm-surface-deep);
+  border-radius: var(--nm-radius-lg);
+  box-shadow: var(--nm-shadow-in);
+  margin-bottom: var(--nm-space-6);
+  
+  h3 {
+    font-family: var(--font-primary);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-bold);
+    color: var(--nm-primary);
+    margin-bottom: 2px;
+  }
+  
+  p {
+    font-size: 12px;
+    color: var(--nm-text-secondary);
+  }
+}
+
+/* ── Form Inputs ─────────────────────────────────────────────────────────── */
+.nmInput {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-md);
+  box-shadow: var(--nm-shadow-in);
+  border: none;
+  padding: 10px 14px;
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text);
+  transition: var(--nm-transition);
+  outline: none;
+  width: 100%;
+
+  &:focus {
+    box-shadow: 
+      inset 4px 4px 10px var(--nm-dark),
+      inset -4px -4px 10px var(--nm-light),
+      0 0 0 2px rgba(0, 102, 102, 0.2);
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+
+  input {
+    width: 100%;
+    padding-left: 36px;
+  }
+
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--nm-text-muted);
+  }
+}
+
+.filterBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nm-space-4);
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-lg);
+  padding: var(--nm-space-5);
+  box-shadow: var(--nm-shadow-out); 
+  margin-bottom: var(--nm-space-6);
+  
+  .filterRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nm-space-4);
+  }
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.nmBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--nm-primary);
+  color: var(--nm-text-invert);
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  padding: 10px 20px;
+  border-radius: var(--nm-radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: 
+    6px 6px 12px rgba(0, 80, 80, 0.4),
+    -4px -4px 10px rgba(0, 150, 150, 0.2);
+  transition: var(--nm-transition);
+
+  &:hover {
+    background: var(--nm-primary-light);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 
+      inset 3px 3px 8px rgba(0, 50, 50, 0.5),
+      inset -2px -2px 6px rgba(0, 130, 130, 0.3);
+  }
+}
+
+.nmBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--nm-surface);
+  color: var(--nm-text);
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  padding: 10px 20px;
+  border-radius: var(--nm-radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--nm-shadow-out);
+  transition: var(--nm-transition);
+
+  &:hover {
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-lg);
+  }
+  
+  &:active {
+    box-shadow: var(--nm-shadow-in);
+    transform: translateY(1px);
+  }
+}
+
+.nmBtnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--nm-surface);
+  color: var(--nm-text-secondary);
+  border-radius: var(--nm-radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--nm-shadow-sm);
+  transition: var(--nm-transition);
+
+  &:hover {
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-out);
+  }
+
+  &:active {
+    box-shadow: var(--nm-shadow-in);
+  }
+}
+
+/* ── Status Badges ───────────────────────────────────────────────────────── */
+.nmBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-family: var(--font-primary);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--nm-radius-full);
+  background: var(--nm-surface);
+  box-shadow: var(--nm-shadow-in);
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* ── Grid/Console Table ──────────────────────────────────────────────────── */
+/* The user asked for a "console" like inner-shadow container for Audit Logs */
+.auditConsole {
+  background: var(--nm-surface-deep);
+  border-radius: var(--nm-radius-xl);
+  padding: var(--nm-space-2);
+  box-shadow: var(--nm-shadow-in);
+  overflow: hidden;
+  margin-bottom: var(--nm-space-6);
+}
+
+.nmTableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--nm-radius-lg);
+}
+
+.nmTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background: transparent;
+
+  thead {
+    th {
+      font-family: var(--font-primary);
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-bold);
+      color: var(--nm-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 16px;
+      position: sticky;
+      top: 0;
+      background: var(--nm-surface);
+      box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  tbody {
+    tr {
+      transition: var(--nm-transition);
+      cursor: default;
+      border-bottom: 2px solid transparent; 
+    }
+
+    tr:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    td {
+      padding: 16px;
+      font-family: var(--font-primary);
+      font-size: var(--fs-sm);
+      color: var(--nm-text);
+      vertical-align: middle;
+      border-bottom: 2px solid rgba(0,0,0,0.02);
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+  }
+}
+
+/* ── Modal Layout ────────────────────────────────────────────────────────── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 41, 56, 0.5);
+  backdrop-filter: blur(4px);
+  padding: var(--nm-space-6);
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: var(--nm-radius-xl);
+  background: var(--nm-surface);
+  padding: var(--nm-space-8);
+  box-shadow: 12px 12px 32px rgba(0, 0, 0, 0.25), -12px -12px 32px rgba(255, 255, 255, 0.5);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--nm-space-6);
+  
+  h2 {
+    font-family: var(--font-primary);
+    font-size: var(--fs-xl);
+    font-weight: var(--fw-bold);
+    color: var(--nm-text);
+    margin: 0;
+  }
+  
+  p {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--nm-text-muted);
+    margin-top: 4px;
+  }
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.detailsBlock {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-md);
+  padding: 16px;
+  box-shadow: var(--nm-shadow-in);
+  
+  &.col2 {
+    grid-column: span 2 / span 2;
+  }
+}
+
+.detailsLabel {
+  font-family: var(--font-primary);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  color: var(--nm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.preBlock {
+  background: var(--nm-surface-deep);
+  border-radius: var(--nm-radius-sm);
+  padding: 16px;
+  box-shadow: var(--nm-shadow-in);
+  overflow-y: auto;
+  max-height: 200px;
+
+  pre, code {
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    margin: 0;
+    color: var(--nm-text);
+  }
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--nm-space-3);
+  margin-top: var(--nm-space-8);
+  padding-top: var(--nm-space-4);
+  box-shadow: 0 -2px 5px -2px rgba(0, 0, 0, 0.05);
+}

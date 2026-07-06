@@ -1,0 +1,223 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AMS React — Neumorphism Design Tokens
+   Source: neumorphism-SKILL.md
+   Font: Space Mono (primary/display) | JetBrains Mono (mono/code)
+   Author: typeui.sh
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Color Palette ─────────────────────────────────────────────────────── */
+  --nm-primary:        #006666;
+  --nm-primary-light:  #008080;
+  --nm-primary-dark:   #004d4d;
+  --nm-secondary:      #F1F2F5;
+  --nm-success:        #00A63D;
+  --nm-warning:        #FE9900;
+  --nm-danger:         #FF2157;
+  --nm-info:           #006666;
+
+  /* ── Surface ───────────────────────────────────────────────────────────── */
+  /* surface=#E7E5E4 is the canonical Neumorphism background. ALL shadows     */
+  /* are derived from this base color.                                        */
+  --nm-surface:        #E7E5E4;
+  --nm-surface-raise:  #EEECEB;   /* slightly lighter — elevated panels      */
+  --nm-surface-deep:   #DDDBD9;   /* slightly darker — recessed areas        */
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --nm-text:           #1E2938;   /* primary text                            */
+  --nm-text-secondary: #4A5568;   /* muted labels                            */
+  --nm-text-muted:     #718096;   /* placeholder / disabled                  */
+  --nm-text-invert:    #FFFFFF;   /* text on dark/primary backgrounds        */
+
+  /* ── Font Families ─────────────────────────────────────────────────────── */
+  --font-primary: 'Space Mono', 'Courier New', monospace;
+  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+
+  /* ── Font Weights ──────────────────────────────────────────────────────── */
+  --fw-light:    300;
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* ── Font Size Scale (compact density) ─────────────────────────────────── */
+  --fs-xs:   0.6875rem;  /* 11px */
+  --fs-sm:   0.75rem;    /* 12px */
+  --fs-base: 0.875rem;   /* 14px */
+  --fs-md:   1rem;       /* 16px */
+  --fs-lg:   1.125rem;   /* 18px */
+  --fs-xl:   1.25rem;    /* 20px */
+  --fs-2xl:  1.5rem;     /* 24px */
+  --fs-3xl:  1.875rem;   /* 30px */
+
+  /* ── Neumorphism Shadow Palette ─────────────────────────────────────────── */
+  /*
+     Base surface: #E7E5E4
+     Light highlight (top-left): #FFFFFF          (+18 HSL lightness)
+     Dark shadow   (bottom-right): #C5C3C2        (darkened ~14%)
+  */
+  --nm-light:  #FFFFFF;
+  --nm-dark:   #C5C3C2;
+
+  /* Extruded — element appears raised OUT of the surface */
+  --nm-shadow-out:
+    6px 6px 14px var(--nm-dark),
+    -6px -6px 14px var(--nm-light);
+
+  /* Inset — element appears PRESSED INTO the surface */
+  --nm-shadow-in:
+    inset 4px 4px 10px var(--nm-dark),
+    inset -4px -4px 10px var(--nm-light);
+
+  /* Active/Pressed — tighter inset for click feedback */
+  --nm-shadow-active:
+    inset 2px 2px 6px var(--nm-dark),
+    inset -2px -2px 6px var(--nm-light);
+
+  /* Subtle — small raise for interactive elements at rest */
+  --nm-shadow-sm:
+    3px 3px 8px var(--nm-dark),
+    -3px -3px 8px var(--nm-light);
+
+  /* Large — prominent card elevation */
+  --nm-shadow-lg:
+    10px 10px 24px var(--nm-dark),
+    -10px -10px 24px var(--nm-light);
+
+  /* Directional — sidebar right edge (panel cast) */
+  --nm-shadow-right:
+    4px 0 12px var(--nm-dark),
+    -2px 0 6px var(--nm-light);
+
+  /* Primary tinted glow — for active/focused primary elements */
+  --nm-shadow-primary-out:
+    6px 6px 14px var(--nm-dark),
+    -6px -6px 14px var(--nm-light),
+    0 0 0 2px rgba(0, 102, 102, 0.18);
+
+  /* ── Border Radius Scale ────────────────────────────────────────────────── */
+  --nm-radius-xs: 6px;
+  --nm-radius-sm: 10px;
+  --nm-radius:    14px;
+  --nm-radius-lg: 20px;
+  --nm-radius-xl: 28px;
+  --nm-radius-full: 9999px;
+
+  /* ── Spacing Scale (compact density) ───────────────────────────────────── */
+  --nm-space-1: 0.25rem;   /* 4px  */
+  --nm-space-2: 0.5rem;    /* 8px  */
+  --nm-space-3: 0.75rem;   /* 12px */
+  --nm-space-4: 1rem;      /* 16px */
+  --nm-space-5: 1.25rem;   /* 20px */
+  --nm-space-6: 1.5rem;    /* 24px */
+  --nm-space-8: 2rem;      /* 32px */
+  --nm-space-10: 2.5rem;   /* 40px */
+
+  /* ── Transitions ────────────────────────────────────────────────────────── */
+  --nm-transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --nm-transition-fast: all 120ms ease;
+  --nm-transition-slow: all 350ms ease;
+
+  /* ── Z-index Scale ──────────────────────────────────────────────────────── */
+  --nm-z-base:    0;
+  --nm-z-above:   10;
+  --nm-z-overlay: 50;
+  --nm-z-modal:   9999;   /* Must exceed Header (50) + Sidebar (10) */
+  --nm-z-toast:   10000;
+
+  /* ── Status Badge Colors ─────────────────────────────────────────────────── */
+  --nm-badge-success-bg:   rgba(0, 166, 61, 0.12);
+  --nm-badge-success-text: #00A63D;
+  --nm-badge-warning-bg:   rgba(254, 153, 0, 0.12);
+  --nm-badge-warning-text: #CC7A00;
+  --nm-badge-danger-bg:    rgba(255, 33, 87, 0.12);
+  --nm-badge-danger-text:  #FF2157;
+  --nm-badge-info-bg:      rgba(0, 102, 102, 0.12);
+  --nm-badge-info-text:    #006666;
+  --nm-badge-neutral-bg:   rgba(30, 41, 56, 0.08);
+  --nm-badge-neutral-text: #4A5568;
+
+  /* ── Scrollbar ── */
+  --nm-scrollbar-track: var(--nm-surface);
+  --nm-scrollbar-thumb: #B8B6B4;
+}
+
+/* ── Base Reset & Neumorphism Globals ─────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--nm-surface);
+  color: var(--nm-text);
+  font-family: var(--font-primary);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-regular);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--nm-text);
+  font-family: var(--font-primary);
+  font-weight: var(--fw-bold);
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* Links */
+a {
+  color: var(--nm-primary);
+  text-decoration: none;
+  transition: var(--nm-transition-fast);
+}
+a:hover {
+  color: var(--nm-primary-light);
+}
+
+/* ── Custom Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--nm-scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nm-scrollbar-thumb);
+  border-radius: var(--nm-radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A3A1A0;
+}
+
+/* ── Keyframe Animations ─────────────────────────────────────────────────── */
+@keyframes nm-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes nm-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+@keyframes nm-fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes nm-slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}

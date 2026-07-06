@@ -1,0 +1,475 @@
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Download, Search, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../../core/auth/AuthContext';
+import { attendanceDailyApi } from './api/attendance-daily.api';
+import styles from './AttendanceDailyPage.module.scss';
+import ModalPortal from '../../../shared/components/ModalPortal';
+import { cn } from '../../../shared/utils/cn';
+
+// --- Helpers ---
+const enumerateIsoDatesInclusive = (from: string, to: string): string[] => {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  const out: string[] = [];
+  const cursor = new Date(fy, fm - 1, fd);
+  const end = new Date(ty, tm - 1, td);
+  while (cursor.getTime() <= end.getTime()) {
+    const y = cursor.getFullYear();
+    const month = `${cursor.getMonth() + 1}`.padStart(2, '0');
+    const day = `${cursor.getDate()}`.padStart(2, '0');
+    out.push(`${y}-${month}-${day}`);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+};
+
+const getMonthVal = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, '0');
+  return `${y}-${m}`;
+};
+
+const AttendanceDailyPage: React.FC = () => {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('ADMIN');
+
+  const [activeTab, setActiveTab] = useState<'all' | 'me'>(isAdmin ? 'all' : 'me');
+
+  const today = new Date();
+  const defaultTo = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
+  const defaultFrom = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+
+  const [from, setFrom] = useState(defaultFrom);
+  const [to, setTo] = useState(defaultTo);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  
+  const [errorMessage, setErrorMessage] = useState('');
+  const [syncWarning, setSyncWarning] = useState('');
+
+  // Track if we need to sync batch admin
+  const syncedRangeRef = useRef<{from: string, to: string} | null>(null);
+  const isSyncingRef = useRef(false);
+
+  // --- Queries ---
+
+  // 1. Employees Dictionary
+  const { data: employeesList } = useQuery({
+    queryKey: ['scheduleEmployees'],
+    queryFn: () => attendanceDailyApi.getScheduleEmployees(),
+    staleTime: 5 * 60 * 1000, // 5 min cache
+  });
+
+  const employeesMap = useMemo(() => {
+    const map = new Map<number, any>();
+    if (employeesList) {
+      employeesList.forEach(emp => map.set(Number(emp.id), emp));
+    }
+    return map;
+  }, [employeesList]);
+
+  const getEmployeeName = (empId: number) => employeesMap.get(empId)?.name || `Employee #${empId}`;
+  const getEmployeeInitial = (empId: number) => {
+    const name = getEmployeeName(empId);
+    return name ? name.charAt(0).toUpperCase() : 'E';
+  };
+
+  // 2. Fetch Records
+  const { data: recordsPage, isLoading, error } = useQuery({
+    queryKey: ['attendanceDaily', activeTab, from, to, page, size],
+    queryFn: async () => {
+      setErrorMessage('');
+      
+      const dayCount = enumerateIsoDatesInclusive(from, to).length;
+      if (dayCount > 62) {
+        throw new Error('Khoảng ngày quá lớn (tối đa 62 ngày). Thu hẹp From/To.');
+      }
+      if (to < from) {
+        throw new Error('To date must be on or after From date.');
+      }
+
+      // Admin/Manager tab: trigger batch sync in background (non-blocking), always fetch data
+      if (isAdmin && activeTab === 'all') {
+        const currentRange = `${from}_${to}`;
+        const lastRange = syncedRangeRef.current ? `${syncedRangeRef.current.from}_${syncedRangeRef.current.to}` : null;
+        
+        if (currentRange !== lastRange && !isSyncingRef.current) {
+          syncedRangeRef.current = { from, to };
+          isSyncingRef.current = true;
+          setSyncWarning('');
+          const dates = enumerateIsoDatesInclusive(from, to);
+          Promise.allSettled(dates.map(d => attendanceDailyApi.runAttendanceBatchForDate(d)))
+            .then(() => { isSyncingRef.current = false; })
+            .catch(() => {
+              isSyncingRef.current = false;
+              setSyncWarning('Batch sync gặp lỗi, dữ liệu có thể chưa cập nhật đầy đủ.');
+            });
+        }
+        return await attendanceDailyApi.getAttendanceDailyAdmin(from, to, page, size);
+      } else {
+        return await attendanceDailyApi.getMyAttendanceDaily(from, to, page, size);
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load attendance records.');
+    }
+  }, [error]);
+
+  const records = recordsPage?.content || [];
+  const totalElements = recordsPage?.totalElements || 0;
+  const totalPages = recordsPage?.totalPages || 0;
+  const currentPage = page + 1;
+  const isLastPage = totalPages > 0 && page >= totalPages - 1;
+
+  // --- Formatting Helpers ---
+  const formatWorkDate = (val?: string | null) => val ? val.slice(0, 10) : '-';
+  const formatTime = (val?: string | null) => {
+    if (!val) return '-';
+    // Expecting 2026-04-01T08:00:00
+    const t = val.indexOf('T');
+    const fragment = t >= 0 ? val.slice(t + 1) : val;
+    const match = fragment.match(/^(\d{2}):(\d{2})/);
+    return match ? `${match[1]}:${match[2]}` : '-';
+  };
+  const formatHours = (mins?: number | null) => {
+    if (!mins) return '0h 0m';
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  };
+
+  const getDisplayStatus = (rec: any) => {
+    if (rec.status === 'PRESENT') {
+      if ((rec.lateMinutes || 0) > 0) return 'LATE';
+      if ((rec.earlyLeaveMinutes || 0) > 0) return 'EARLY_LEAVE';
+    }
+    return rec.status || '-';
+  };
+
+  // --- Handlers ---
+  const handleTabChange = (tab: 'all' | 'me') => {
+    setActiveTab(tab);
+    setPage(0);
+  };
+
+  // --- Monthly Summary Modal State ---
+  const [isMonthlyModalOpen, setIsMonthlyModalOpen] = useState(false);
+  const [summaryMonth, setSummaryMonth] = useState(getMonthVal(new Date()));
+  const [summarySuccessMsg, setSummarySuccessMsg] = useState('');
+  const [summaryErrorMsg, setSummaryErrorMsg] = useState('');
+
+  const generateMutation = useMutation({
+    mutationFn: () => attendanceDailyApi.generateMonthlySummary(summaryMonth),
+    onSuccess: () => {
+      setSummaryErrorMsg('');
+      setSummarySuccessMsg('Monthly summary generated successfully.');
+      setTimeout(() => setSummarySuccessMsg(''), 3500);
+    },
+    onError: (err: any) => {
+      setSummarySuccessMsg('');
+      setSummaryErrorMsg(err.response?.data?.message || err.message || 'Unable to generate summary.');
+    }
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: () => attendanceDailyApi.exportAttendanceMonthly(summaryMonth),
+    onSuccess: (blob) => {
+      setSummaryErrorMsg('');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendance_monthly_${summaryMonth}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setSummarySuccessMsg('Report exported successfully.');
+      setTimeout(() => setSummarySuccessMsg(''), 4000);
+    },
+    onError: (err: any) => {
+      setSummarySuccessMsg('');
+      setSummaryErrorMsg(err.response?.data?.message || err.message || 'Unable to export report.');
+    }
+  });
+
+  const openMonthlyModal = () => {
+    setSummaryMonth(getMonthVal(new Date()));
+    setSummarySuccessMsg('');
+    setSummaryErrorMsg('');
+    setIsMonthlyModalOpen(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ──────────────────────────────── HEADER ──────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={styles.pageTitle}>Time & Attendance Logs</h1>
+          <p className={styles.pageSubtitle}>Review calculated attendance records for the selected date range.</p>
+        </div>
+      </div>
+
+      {isAdmin && (
+        <div className={styles.viewToggle} style={{ width: 'fit-content' }}>
+          <button 
+            className={activeTab === 'all' ? styles.active : ''} 
+            onClick={() => handleTabChange('all')}
+          >
+            All Employees
+          </button>
+          <button 
+            className={activeTab === 'me' ? styles.active : ''} 
+            onClick={() => handleTabChange('me')}
+          >
+            My Attendance
+          </button>
+        </div>
+      )}
+
+      {/* ──────────────────────────────── TOOLBAR ──────────────────────────────── */}
+      <div className={styles.filterBar}>
+        <div className={styles.filterGroup}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--nm-text-muted)', textTransform: 'uppercase' }}>Range:</span>
+            <input 
+              type="date" 
+              value={from} 
+              max={to} 
+              onChange={(e) => { setFrom(e.target.value); setPage(0); }} 
+              className={styles.nmInput}
+              style={{ width: 'auto' }}
+            />
+            <span style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>to</span>
+            <input 
+              type="date" 
+              value={to} 
+              min={from} 
+              onChange={(e) => { setTo(e.target.value); setPage(0); }} 
+              className={styles.nmInput}
+              style={{ width: 'auto' }}
+            />
+          </div>
+        </div>
+        
+        {/* Monthly Report — ADMIN only (batch generate + export) */}
+        {isAdmin && (
+          <div>
+            <button className={styles.nmBtnPrimary} onClick={openMonthlyModal} style={{ background: 'var(--nm-info)', boxShadow: 'none' }}>
+              <Download className="w-4 h-4" />
+              Monthly Report
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ──────────────────────────────── ERROR ALERT ──────────────────────────────── */}
+      {errorMessage && (
+        <div style={{ padding: '16px', background: 'var(--nm-surface)', borderRadius: 'var(--nm-radius-md)', boxShadow: 'inset 0 0 0 2px var(--nm-danger)', color: 'var(--nm-danger)', fontWeight: 'bold', marginBottom: '16px' }}>
+          {errorMessage}
+        </div>
+      )}
+
+      {syncWarning && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: 'var(--nm-surface)', borderRadius: 'var(--nm-radius-md)', boxShadow: 'inset 0 0 0 2px var(--nm-warning)', color: 'var(--nm-warning)', fontWeight: 'bold', marginBottom: '16px' }}>
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          {syncWarning}
+        </div>
+      )}
+
+      {/* ──────────────────────────────── DATA TABLE ──────────────────────────────── */}
+      <div className={styles.nmTableWrapper}>
+        <table className={styles.nmTable}>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th>Check-in Time</th>
+              <th>Check-out Time</th>
+              <th>Total Work Hours</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            {/* LOADING STATE */}
+            {isLoading && (
+              <tr>
+                 <td colSpan={6} style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                       <Loader2 className="animate-spin w-5 h-5" />
+                       <span>Fetching data...</span>
+                    </div>
+                 </td>
+              </tr>
+            )}
+            
+            {/* EMPTY STATE */}
+            {!isLoading && records.length === 0 && (
+              <tr>
+                 <td colSpan={6} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
+                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                     <Search className="text-gray-400 w-12 h-12 mb-2" />
+                     <p style={{ fontWeight: 'bold' }}>No attendance records found for this period</p>
+                     <p style={{ fontSize: '14px' }}>Try adjusting the date range or employee filter.</p>
+                   </div>
+                 </td>
+              </tr>
+            )}
+
+            {/* DATA ROWS */}
+            {!isLoading && records.length > 0 && records.map((record: any) => {
+              const status = getDisplayStatus(record);
+              let statusClass = styles.nmBadgeNeutral;
+              if (status === 'PRESENT') statusClass = styles.nmBadgeSuccess;
+              else if (status === 'LATE' || status === 'EARLY_LEAVE') statusClass = styles.nmBadgeWarning;
+              else if (status === 'ABSENT') statusClass = styles.nmBadgeDanger;
+              else if (status === 'LEAVE') statusClass = styles.nmBadgeInfo;
+
+              return (
+                <tr key={record.attendanceId}>
+                  <td style={{ fontWeight: 'bold' }}>{formatWorkDate(record.workDate)}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div className={styles.nmAvatar}>{getEmployeeInitial(record.employeeId)}</div>
+                      <div>
+                        <span style={{ display: 'block', fontWeight: 'bold' }}>{getEmployeeName(record.employeeId)}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>VDP-{record.employeeId}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ fontFamily: 'var(--font-mono)' }}>{formatTime(record.firstInTime)}</td>
+                  <td style={{ fontFamily: 'var(--font-mono)' }}>{formatTime(record.lastOutTime)}</td>
+                  <td style={{ fontWeight: 'bold' }}>{formatHours(record.workMinutes)}</td>
+                  <td>
+                    <div>
+                      <span className={cn(styles.nmBadge, statusClass)}>
+                        {status}
+                      </span>
+                      {(record.lateMinutes > 0) && (
+                        <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Đi muộn {record.lateMinutes}p</span>
+                      )}
+                      {(record.earlyLeaveMinutes > 0) && (
+                        <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Về sớm {record.earlyLeaveMinutes}p</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* ──────────────────────────────── PAGINATION ──────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderTop: '2px solid rgba(0,0,0,0.05)', background: 'var(--nm-surface)' }}>
+          <div style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>
+            Showing {records.length} of {totalElements} records
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--nm-text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Items per page:</label>
+              <select 
+                value={size} 
+                onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }} 
+                className={styles.nmInput}
+                style={{ padding: '4px 8px' }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <button disabled={page <= 0 || isLoading} onClick={() => setPage(p => p - 1)} className={styles.nmBtnSecondary} style={{ padding: '6px 12px' }}>Prev</button>
+            <span style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>Page {currentPage} of {totalPages || 1}</span>
+            <button disabled={isLastPage || isLoading} onClick={() => setPage(p => p + 1)} className={styles.nmBtnSecondary} style={{ padding: '6px 12px' }}>Next</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ──────────────────────────────── MONTHLY SUMMARY MODAL ──────────────────────────────── */}
+      {isMonthlyModalOpen && (
+        <ModalPortal onBackdropClick={() => setIsMonthlyModalOpen(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} aria-busy={generateMutation.isPending || exportMutation.isPending}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2>Monthly Summary</h2>
+                <p style={{ fontSize: '14px', color: 'var(--nm-text-secondary)', marginTop: '4px' }}>Generate the monthly attendance summary and export.</p>
+              </div>
+              <button 
+                className={styles.nmBtnIcon}
+                onClick={() => setIsMonthlyModalOpen(false)} 
+                disabled={generateMutation.isPending || exportMutation.isPending}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <div className={styles.fieldGroup}>
+                <label htmlFor="attendance-summary-month">Month</label>
+                <input
+                  id="attendance-summary-month"
+                  type="month"
+                  value={summaryMonth}
+                  onChange={(e) => setSummaryMonth(e.target.value)}
+                  className={styles.nmInput}
+                />
+              </div>
+              
+              {summarySuccessMsg && (
+                <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--nm-success)', fontWeight: 'bold' }}>
+                  <CheckCircle className="w-5 h-5 shrink-0" />
+                  {summarySuccessMsg}
+                </div>
+              )}
+
+              {summaryErrorMsg && (
+                <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--nm-danger)', fontWeight: 'bold' }}>
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  {summaryErrorMsg}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={() => setIsMonthlyModalOpen(false)}
+                disabled={generateMutation.isPending || exportMutation.isPending}
+                className={styles.nmBtnSecondary}
+              >
+                Cancel
+              </button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => generateMutation.mutate()}
+                  disabled={generateMutation.isPending || exportMutation.isPending || !summaryMonth}
+                  className={styles.nmBtnPrimary}
+                >
+                  {generateMutation.isPending && <Loader2 className="animate-spin w-4 h-4" />}
+                  {generateMutation.isPending ? 'Generating...' : 'Generate '}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => exportMutation.mutate()}
+                  disabled={generateMutation.isPending || exportMutation.isPending || !summaryMonth}
+                  className={styles.nmBtnPrimary}
+                  style={{ background: 'var(--nm-info)', boxShadow: 'none' }}
+                >
+                  {exportMutation.isPending && <Loader2 className="animate-spin w-4 h-4" />}
+                  {exportMutation.isPending ? 'Exporting...' : 'Export'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+    </div>
+  );
+};
+
+export default AttendanceDailyPage;

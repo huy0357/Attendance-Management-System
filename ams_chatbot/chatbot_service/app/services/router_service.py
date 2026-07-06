@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unidecode import unidecode
+
 
 class RouterService:
     DIRECT_INTENTS = {
@@ -9,13 +11,21 @@ class RouterService:
     }
 
     def resolve(self, message: str) -> str:
-        text = message.lower()
-        if "ca" in text or "lịch làm việc" in text:
+        text = unidecode(message.lower())
+        if "ca" in text or "lich lam viec" in text:
             return "direct_today_shift"
-        if "check in" in text or "chấm công" in text:
+        if "check in" in text or "cham cong" in text:
             return "direct_attendance_today"
-        if "đơn" in text and "trạng thái" in text:
+        if "don" in text and "trang thai" in text:
             return "direct_request_status"
-        if "quy định" in text or "chính sách" in text or "hướng dẫn" in text:
+        if "quy dinh" in text or "chinh sach" in text or "huong dan" in text:
             return "knowledge_search"
+        if (
+            "toi la ai" in text
+            or "vai tro" in text
+            or "ban la ai" in text
+            or "ban lam duoc gi" in text
+            or "help" in text
+        ):
+            return "general_chat"
         return "fallback"

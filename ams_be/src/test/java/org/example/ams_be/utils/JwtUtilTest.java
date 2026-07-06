@@ -53,7 +53,7 @@ class JwtUtilTest {
 
     @Test
     void getEmployeeIdReturnsNullWhenClaimMissing() {
-        String token = jwtUtil.generateAccessToken("charlie", "ADMIN", 1L);
+        String token = jwtUtil.generateAccessToken("charlie", "ADMIN", null);
 
         assertNull(jwtUtil.getEmployeeId(token));
     }

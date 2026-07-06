@@ -92,7 +92,7 @@ class RequestsControllerTest {
 
         ResponseEntity<Void> response = controller.delete(requestId, empId);
 
-        assertEquals(24, response.getStatusCode().value()); // 204 No Content
+        assertEquals(204, response.getStatusCode().value()); // 204 No Content
         // Cập nhật: Verify theo tham số mới
         verify(requestsService).delete(requestId, empId);
     }

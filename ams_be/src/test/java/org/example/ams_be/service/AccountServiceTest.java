@@ -50,6 +50,9 @@ class AccountServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private AuditLogService auditLogService;
+
     @InjectMocks
     private AccountService accountService;
 
@@ -242,6 +245,7 @@ class AccountServiceTest {
         when(accountRepository.existsByUsername("bob")).thenReturn(false);
         when(roleRepository.findById(2L))
                 .thenReturn(Optional.of(Role.builder().roleId(2L).roleCode("manager").build()));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountDto result = accountService.update(1L, req);
 
@@ -257,6 +261,7 @@ class AccountServiceTest {
         req.setUsername(" ");
         Account existing = account(1L, "alice", "employee", true);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountDto result = accountService.update(1L, req);
 
@@ -272,6 +277,7 @@ class AccountServiceTest {
         req.setUsername("alice");
         Account existing = account(1L, "alice", "employee", true);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountDto result = accountService.update(1L, req);
 
@@ -281,18 +287,19 @@ class AccountServiceTest {
 
     @Test
     void deleteThrowsWhenAccountNotFound() {
-        when(accountRepository.existsById(99L)).thenReturn(false);
+        when(accountRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> accountService.delete(99L));
     }
 
     @Test
     void deleteRemovesAccountWhenFound() {
-        when(accountRepository.existsById(10L)).thenReturn(true);
+        Account existing = account(10L, "alice", "employee", true);
+        when(accountRepository.findById(10L)).thenReturn(Optional.of(existing));
 
         accountService.delete(10L);
 
-        verify(accountRepository).deleteById(10L);
+        verify(accountRepository).delete(existing);
     }
 
     @Test
