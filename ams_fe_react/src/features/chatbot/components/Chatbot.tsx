@@ -6,6 +6,7 @@ import { ChatMessage, ChatResponse } from '../models/chatbot.model';
 import { formatIsoTimestampsInText } from '../utils/format-chat-content';
 import styles from './Chatbot.module.scss';
 import clsx from 'clsx';
+import { v4 as uuid } from 'uuid';
 
 const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +17,7 @@ const Chatbot: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatbotOnline, setChatbotOnline] = useState(true);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId] = useState(() => uuid());
   
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fabRef = useRef<HTMLButtonElement>(null);
@@ -46,7 +47,7 @@ const Chatbot: React.FC = () => {
     if (isError) {
       setChatbotOnline(false);
       setMessages([{
-        id: crypto.randomUUID(),
+        id: uuid(),
         sender: 'ai',
         content: 'Dịch vụ chatbot hiện chưa sẵn sàng. Bạn có thể thử lại sau ít phút.',
         timestamp: new Date(),
@@ -55,7 +56,7 @@ const Chatbot: React.FC = () => {
     } else {
       setChatbotOnline(true);
       setMessages([{
-        id: crypto.randomUUID(),
+        id: uuid(),
         sender: 'ai',
         content: 'Xin chào! Tôi là AMS AI Assistant. Tôi có thể giúp bạn tra cứu thông tin chấm công, nghỉ phép và các quy định của công ty. Bạn cần hỗ trợ gì?',
         timestamp: new Date(),
@@ -121,7 +122,7 @@ const Chatbot: React.FC = () => {
       setMessages(prev => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: uuid(),
           sender: 'ai',
           content: display,
           timestamp: new Date(),
@@ -134,7 +135,7 @@ const Chatbot: React.FC = () => {
       setMessages(prev => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: uuid(),
           sender: 'ai',
           content: 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại sau.',
           timestamp: new Date(),
@@ -152,7 +153,7 @@ const Chatbot: React.FC = () => {
     setMessages(prev => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: uuid(),
         sender: 'user',
         content,
         timestamp: new Date(),
