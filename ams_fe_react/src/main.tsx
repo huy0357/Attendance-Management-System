@@ -11,14 +11,17 @@ if (!window.crypto) {
   window.crypto = {};
 }
 if (typeof window.crypto.randomUUID !== 'function') {
-  // @ts-ignore
-  window.crypto.randomUUID = function (): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  };
+  Object.defineProperty(window.crypto, 'randomUUID', {
+    value: function (): string {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    },
+    writable: true,
+    configurable: true,
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
