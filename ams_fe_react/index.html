@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -7,13 +7,31 @@
     <meta name="description" content="Attendance Management System — Smart workforce tracking and scheduling platform." />
     <title>AMS | Attendance Management System</title>
 
-    <!-- Google Fonts: Space Mono (primary) + JetBrains Mono (code/mono) -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- 🔥 Polyfill crypto.randomUUID cho HTTP (fix lỗi production) -->
+    <script>
+      (function() {
+        if (typeof window !== 'undefined' && (!window.crypto || typeof window.crypto.randomUUID !== 'function')) {
+          console.log('🔧 Applying crypto.randomUUID polyfill for non-secure context');
+          
+          window.crypto = window.crypto || {};
+          window.crypto.randomUUID = function () {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+              const r = Math.random() * 16 | 0;
+              const v = c === 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
+          };
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
