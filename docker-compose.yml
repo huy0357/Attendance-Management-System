@@ -65,7 +65,7 @@ services:
 
   frontend:
     build:
-      context: ./ams_fe
+      context: ./ams_fe_react
       dockerfile: Dockerfile
     container_name: frontend
     restart: unless-stopped
