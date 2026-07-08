@@ -29,7 +29,10 @@ const _store: InMemoryStore = {
  */
 export const cookieStorage = {
   setRefreshToken: (token: string) => {
-    document.cookie = `ams_refresh=${token}; path=/; max-age=604800; secure; samesite=strict`;
+    const secure = window.location.protocol === 'https:';
+
+    document.cookie =
+      `ams_refresh=${token}; path=/; max-age=604800; samesite=lax${secure ? '; secure' : ''}`;
   },
   getRefreshToken: (): string | null => {
     if (typeof document === 'undefined') return null;
@@ -37,7 +40,10 @@ export const cookieStorage = {
     return match ? match.split('=')[1] : null;
   },
   clearRefreshToken: () => {
-    document.cookie = `ams_refresh=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=strict`;
+    const secure = window.location.protocol === 'https:';
+
+    document.cookie =
+      `ams_refresh=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax${secure ? '; secure' : ''}`;
   }
 };
 
@@ -57,7 +63,7 @@ export const tokenMemory = {
     _store.username = data.username;
     _store.role = data.role;
     _store.expiresAt = data.expiresInSeconds > 0 ? Date.now() + data.expiresInSeconds * 1000 : null;
-    
+
     // Store refresh token in standard cookie to survive reloads without backend changes
     if (data.refreshToken) {
       cookieStorage.setRefreshToken(data.refreshToken);
