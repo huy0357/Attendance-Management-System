@@ -134,7 +134,7 @@ const DashboardPage: React.FC = () => {
 
   const { data: exceptionsData, isLoading: isLoadingExceptions } = useQuery({
     queryKey: ['dashboardExceptions'],
-    queryFn: () => dashboardApi.getExceptions(['PENDING', 'IN_PROGRESS'], undefined, undefined, 20),
+    queryFn: () => dashboardApi.getExceptions(['OPEN', 'IN_PROGRESS'], undefined, undefined, 20),
     enabled: canSeeAdminDashboardActions,
     refetchInterval: false,
     refetchOnWindowFocus: false,
