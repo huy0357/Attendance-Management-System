@@ -24,7 +24,6 @@ const LeaveManagementPage = lazy(() => import('../features/attendance/leave-mana
 const SchedulingPage = lazy(() => import('../features/attendance/scheduling/SchedulingPage'));
 const ShiftTemplatesPage = lazy(() => import('../features/attendance/shift-templates/ShiftTemplatesPage'));
 const AttendanceEmailPage = lazy(() => import('../features/attendance/attendance-email/AttendanceEmailPage'));
-const OtRequestsPage = lazy(() => import('../features/attendance/ot-requests/OtRequestsPage'));
 const MonthlySummaryPage = lazy(() => import('../features/attendance/monthly-summary/MonthlySummaryPage'));
 const MySchedulePage = lazy(() => import('../features/attendance/my-schedule/MySchedulePage'));
 
@@ -37,8 +36,6 @@ const RoleManagementPage = lazy(() => import('../features/admin/role-management/
 const DataExportsPage = lazy(() => import('../features/admin/data-exports/DataExportsPage'));
 const BatchProcessingPage = lazy(() => import('../features/admin/batch-processing/BatchProcessingPage'));
 
-const PayrollPage = lazy(() => import('../features/payroll/PayrollPage'));
-const ReportsPage = lazy(() => import('../features/reports/ReportsPage'));
 
 // Error Pages
 const NotFoundPage = lazy(() => import('../features/error/NotFoundPage'));
@@ -83,7 +80,6 @@ const AppRouter: React.FC = () => (
           {/* ── MANAGER + ADMIN ──────────────────────────────────────────── */}
           <Route element={<RoleRoute allowedRoles={['ADMIN', 'MANAGER']} redirectTo="/hrm/employee-portal" />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/attendance/ot-requests" element={<OtRequestsPage />} />
           </Route>
 
           {/* ── ADMIN ONLY ───────────────────────────────────────────────── */}
@@ -102,8 +98,6 @@ const AppRouter: React.FC = () => (
             <Route path="/attendance/monthly-summary" element={<MonthlySummaryPage />} />
 
             {/* Payroll & Reports */}
-            <Route path="/payroll" element={<PayrollPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
 
             {/* Admin panel */}
             <Route path="/admin/account-management" element={<AccountManagementPage />} />

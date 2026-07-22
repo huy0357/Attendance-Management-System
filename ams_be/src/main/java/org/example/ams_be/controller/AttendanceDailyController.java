@@ -2,7 +2,6 @@ package org.example.ams_be.controller;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.example.ams_be.dto.response.AttendanceDailyResponse;
 import org.example.ams_be.security.UserPrincipal;

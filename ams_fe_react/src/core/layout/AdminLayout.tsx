@@ -84,14 +84,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <ClipboardList {...ICON_SIZE} />,
   },
 
-  // ── MANAGER + ADMIN ──────────────────────────────────────────────────────────
-  {
-    label: 'OT Requests',
-    path: '/attendance/ot-requests',
-    icon: <Clock {...ICON_SIZE} />,
-    requiredRoles: ['MANAGER', 'ADMIN'],
-    sectionLabel: 'Team',
-  },
+
 
   // ── ADMIN ONLY — HRM ─────────────────────────────────────────────────────────
   {
@@ -135,26 +128,14 @@ const NAV_ITEMS: NavItem[] = [
     requiredRoles: ['ADMIN'],
   },
   {
-    label: 'Attend. Email',
+    label: 'Attendance Email',
     path: '/attendance/attendance-email',
     icon: <Mail {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
 
   // ── ADMIN ONLY — Finance ──────────────────────────────────────────────────────
-  {
-    label: 'Payroll',
-    path: '/payroll',
-    icon: <ClipboardList {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
-    sectionLabel: 'Finance',
-  },
-  {
-    label: 'Reports',
-    path: '/reports',
-    icon: <ClipboardList {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
-  },
+
 
   // ── ADMIN ONLY — System ───────────────────────────────────────────────────────
   {
