@@ -39,12 +39,20 @@ services:
     networks:
       - app-network
 
-  backend:
-    build:
-      context: ./ams_be
-      dockerfile: Dockerfile
-    container_name: backend
+  minio:
+    image: minio/minio:latest
+    container_name: minio
     restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio-data:/data
+    networks:
+      - app-network
+
+  backend:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8&serverTimezone=Asia/Ho_Chi_Minh
       SPRING_DATASOURCE_USERNAME: root
@@ -54,12 +62,16 @@ services:
       APP_JWT_SECRET: ${JWT_SECRET}
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
-      FILE_UPLOAD_DIR: uploads/avatars
-    volumes:
-      - uploads-data:/app/uploads
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: avatars
+      MINIO_PUBLIC_BASE_URL: http://${VPS_HOST}/avatars
     depends_on:
       mysql:
         condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - app-network
 

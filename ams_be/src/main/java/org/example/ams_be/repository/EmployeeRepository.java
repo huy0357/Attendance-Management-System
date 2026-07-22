@@ -126,7 +126,6 @@ public class EmployeeRepository {
                     position_id = ?,
                     manager_id = ?,
                     hire_date = ?
-                    -- XÓA updated_at = ? ở đây
                 WHERE employee_id = ?
                 """;
 
@@ -147,15 +146,14 @@ public class EmployeeRepository {
 
     public int updateAvatar(Long employeeId, String avatarUrl, LocalDateTime updatedAt) {
         String sql = """
-                UPDATE employees
-                SET avatar_url = ?,
-                WHERE employee_id = ?
-                """;
+            UPDATE employees
+            SET avatar_url = ?
+            WHERE employee_id = ?
+            """;
 
         return jdbcTemplate.update(
                 sql,
                 avatarUrl,
-                // Timestamp.valueOf(updatedAt),
                 employeeId);
     }
 

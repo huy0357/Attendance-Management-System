@@ -7,6 +7,7 @@ import org.example.ams_be.entity.Account;
 import org.example.ams_be.repository.AccountRepository;
 import org.example.ams_be.repository.EmployeeRepository;
 import org.example.ams_be.service.ProfileService;
+import org.example.ams_be.service.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +28,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final AccountRepository accountRepository;
     private final EmployeeRepository employeeRepository;
+    private final StorageService storageService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -97,72 +99,38 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public Map<String, Object> uploadMyAvatar(MultipartFile file) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
         if (authentication == null || authentication.getName() == null) {
             throw new RuntimeException("Unauthorized");
         }
-
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("File is empty");
         }
 
         String contentType = file.getContentType();
-        Set<String> allowedTypes = Set.of(
-                "image/jpeg",
-                "image/png",
-                "image/jpg",
-                "image/webp"
-        );
-
+        Set<String> allowedTypes = Set.of("image/jpeg", "image/png", "image/jpg", "image/webp");
         if (contentType == null || !allowedTypes.contains(contentType)) {
             throw new RuntimeException("Only jpg, jpeg, png, webp are allowed");
         }
 
         String username = authentication.getName();
-
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
-
         EmployeeDto employee = employeeRepository.findById(account.getEmployeeId())
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        try {
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
+        String avatarUrl = storageService.upload(file);
 
-            String originalFilename = file.getOriginalFilename();
-            String extension = getFileExtension(originalFilename);
-
-            String newFileName = UUID.randomUUID() + "." + extension;
-            Path filePath = uploadPath.resolve(newFileName);
-
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            String avatarUrl = "/uploads/avatars/" + newFileName;
-
-            int updated = employeeRepository.updateAvatar(
-                    employee.employeeId,
-                    avatarUrl,
-                    LocalDateTime.now()
-            );
-
-            if (updated == 0) {
-                throw new RuntimeException("Update avatar failed");
-            }
-
-            EmployeeDto updatedEmployee = employeeRepository.findById(employee.employeeId)
-                    .orElseThrow(() -> new RuntimeException("Employee not found after upload avatar"));
-
-            Map<String, Object> response = buildProfileResponse(account, updatedEmployee);
-            response.put("message", "Upload avatar successfully");
-
-            return response;
-
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot save file: " + e.getMessage());
+        int updated = employeeRepository.updateAvatar(employee.employeeId, avatarUrl, LocalDateTime.now());
+        if (updated == 0) {
+            throw new RuntimeException("Update avatar failed");
         }
+
+        EmployeeDto updatedEmployee = employeeRepository.findById(employee.employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found after upload avatar"));
+
+        Map<String, Object> response = buildProfileResponse(account, updatedEmployee);
+        response.put("message", "Upload avatar successfully");
+        return response;
     }
 
     private String getFileExtension(String filename) {
