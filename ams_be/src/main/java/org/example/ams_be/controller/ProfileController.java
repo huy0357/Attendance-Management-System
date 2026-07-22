@@ -3,6 +3,7 @@ package org.example.ams_be.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.ams_be.dto.request.EmployeeRequest;
 import org.example.ams_be.service.ProfileService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,8 +27,15 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.updateMyProfile(request));
     }
 
-    @PostMapping("/avatar")
-    public ResponseEntity<Map<String, Object>> uploadMyAvatar(@RequestParam("file") MultipartFile file) {
+    @PostMapping(
+            value = "/avatar",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<Map<String, Object>> uploadMyAvatar(
+            @RequestParam("file") MultipartFile file) {
+
+        System.out.println("==== Upload avatar called ====");
+
         return ResponseEntity.ok(profileService.uploadMyAvatar(file));
     }
 }
