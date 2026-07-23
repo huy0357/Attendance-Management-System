@@ -1,6 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, X, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { shiftApi, ShiftTemplateResponse, ShiftTemplateUpsertPayload } from '../api/attendanceCore.api';
 import styles from './ShiftTemplatesPage.module.scss';
@@ -11,6 +12,7 @@ const ShiftTemplatesPage: React.FC = () => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // Search parameters
   const [searchQuery, setSearchQuery] = useState('');
@@ -435,7 +437,7 @@ const ShiftTemplatesPage: React.FC = () => {
               <h2>Delete Template</h2>
             </div>
             <p style={{ fontSize: '14px', color: 'var(--nm-text)', margin: '16px 0' }}>
-              Are you sure you want to delete this shift template? This action will deactivate the template and it will no longer be available for scheduling.
+              Are you sure you want to delete this shift template? This action will permanently delete the template from the database and cannot be undone.
             </p>
             <div className={styles.modalFooter}>
               <button onClick={() => setShowDeleteModal(false)} disabled={deleteMutation.isPending} className={styles.nmBtnSecondary}>

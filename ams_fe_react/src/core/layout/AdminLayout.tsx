@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   User,
@@ -25,14 +26,14 @@ import { cn } from '../../shared/utils/cn';
 
 // ── Nav item definition ───────────────────────────────────────────────────────
 interface NavItem {
-  label: string;
+  labelKey: string;
   path: string;
   icon: React.ReactNode;
   /** If omitted → visible to all authenticated users */
   requiredRoles?: string[];
   activeMatchPaths?: string[];
   /** Visual section divider label shown above this item */
-  sectionLabel?: string;
+  sectionLabelKey?: string;
 }
 
 const ICON_SIZE = { size: 17, strokeWidth: 2 } as const;
@@ -45,21 +46,24 @@ const ICON_SIZE = { size: 17, strokeWidth: 2 } as const;
  *   [ADMIN]    → HRM management, Payroll, Reports, Admin panel
  */
 const NAV_ITEMS: NavItem[] = [
-  // ── Visible to ALL authenticated roles ──────────────────────────────────────
+  // ── Main ─────────────────────────────────────────────────────────
   {
-    label: 'Dashboard',
+    labelKey: 'nav.dashboard',
     path: '/dashboard',
     icon: <LayoutDashboard {...ICON_SIZE} />,
     requiredRoles: ['ADMIN', 'MANAGER'],
-    sectionLabel: 'Main',
+    sectionLabelKey: 'nav.sections.main',
   },
+
+  // ── Employee Space ──────────────────────────────────────────────
   {
-    label: 'Employee Portal',
+    labelKey: 'nav.employeePortal',
     path: '/hrm/employee-portal',
     icon: <User {...ICON_SIZE} />,
+    sectionLabelKey: 'nav.sections.mySpace',
   },
   {
-    label: 'Attendance Daily',
+    labelKey: 'nav.attendanceDaily',
     path: '/attendance/attendance-daily',
     icon: <Clock {...ICON_SIZE} />,
     activeMatchPaths: [
@@ -69,84 +73,73 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
-    label: 'My Schedule',
+    labelKey: 'nav.mySchedule',
     path: '/attendance/my-schedule',
     icon: <Calendar {...ICON_SIZE} />,
   },
   {
-    label: 'Requests',
+    labelKey: 'nav.requests',
     path: '/attendance/requests-management',
     icon: <ClipboardCheck {...ICON_SIZE} />,
   },
   {
-    label: 'Leave Management',
+    labelKey: 'nav.leaveManagement',
     path: '/attendance/leave-management',
     icon: <ClipboardList {...ICON_SIZE} />,
   },
 
-
-
-  // ── ADMIN ONLY — HRM ─────────────────────────────────────────────────────────
+  // ── ADMIN ONLY — HRM ─────────────────────────────────────────────
   {
-    label: 'Employees',
+    labelKey: 'nav.employees',
     path: '/hrm/employees',
     icon: <Users {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
-    sectionLabel: 'HRM',
+    sectionLabelKey: 'nav.sections.hrm',
   },
   {
-    label: 'Departments',
+    labelKey: 'nav.departments',
     path: '/hrm/departments',
     icon: <Building {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
-  {
-    label: 'Contracts',
-    path: '/hrm/contracts',
-    icon: <ClipboardCheck {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
-  },
 
-  // ── ADMIN ONLY — Attendance Management ───────────────────────────────────────
+  // ── ADMIN ONLY — Attendance Management ───────────────────────────
   {
-    label: 'Scheduling',
+    labelKey: 'nav.scheduling',
     path: '/attendance/scheduling',
     icon: <Calendar {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
-    sectionLabel: 'Attendance Mgmt',
+    sectionLabelKey: 'nav.sections.attendanceMgmt',
   },
   {
-    label: 'Shift Templates',
+    labelKey: 'nav.shiftTemplates',
     path: '/attendance/shift-templates',
     icon: <Calendar {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
   {
-    label: 'Attendance Email',
+    labelKey: 'nav.attendanceEmail',
     path: '/attendance/attendance-email',
     icon: <Mail {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
 
-  // ── ADMIN ONLY — Finance ──────────────────────────────────────────────────────
-
-
-  // ── ADMIN ONLY — System ───────────────────────────────────────────────────────
+  // ── ADMIN ONLY — System ──────────────────────────────────────────
   {
-    label: 'Accounts',
+    labelKey: 'nav.accounts',
     path: '/admin/account-management',
     icon: <Users {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
-    sectionLabel: 'System',
+    sectionLabelKey: 'nav.sections.system',
   },
   {
-    label: 'Audit Logs',
+    labelKey: 'nav.auditLogs',
     path: '/admin/audit-log',
     icon: <ClipboardList {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
   {
-    label: 'Settings',
+    labelKey: 'nav.settings',
     path: '/admin/settings',
     icon: <Settings {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
@@ -191,9 +184,11 @@ interface ForbiddenToast {
 const AdminLayout: React.FC = () => {
   const { username, hasAnyRole, getNormalizedRole, logout, isAuthenticated } = useAuth();
   const { compactSidebar, setCompactSidebar } = useSettings();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const displayUsername = username ?? 'User';
@@ -246,16 +241,17 @@ const AdminLayout: React.FC = () => {
     [location.pathname, resolveNavPath],
   );
 
-  // Close user menu on outside click
+  // Close menus on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+        setNotifOpen(false);
       }
     };
-    if (userMenuOpen) document.addEventListener('mousedown', handleClick);
+    if (userMenuOpen || notifOpen) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [userMenuOpen]);
+  }, [userMenuOpen, notifOpen]);
 
   // Scroll active nav item into view
   const navRef = useRef<HTMLElement>(null);
@@ -296,8 +292,8 @@ const AdminLayout: React.FC = () => {
             return (
               <React.Fragment key={item.path}>
                 {/* Section divider label */}
-                {item.sectionLabel && !compactSidebar && (
-                  <span className={styles['ams-nav-section-label']}>{item.sectionLabel}</span>
+                {item.sectionLabelKey && !compactSidebar && (
+                  <span className={styles['ams-nav-section-label']}>{t(item.sectionLabelKey)}</span>
                 )}
                 <NavLink
                   to={resolveNavPath(item)}
@@ -308,7 +304,7 @@ const AdminLayout: React.FC = () => {
                   aria-current={active ? 'page' : undefined}
                 >
                   <span className={styles['ams-nav-icon']}>{item.icon}</span>
-                  <span className={styles['ams-nav-label']}>{item.label}</span>
+                  <span className={styles['ams-nav-label']}>{t(item.labelKey)}</span>
                   {active && (
                     <ChevronRight
                       size={13}
@@ -344,7 +340,7 @@ const AdminLayout: React.FC = () => {
               <input
                 type="search"
                 id="ams-global-search"
-                placeholder="Search…"
+                placeholder={t('header.search')}
                 className={styles['ams-search-input']}
                 aria-label="Global search"
               />
@@ -354,21 +350,42 @@ const AdminLayout: React.FC = () => {
           {/* Right side: bell + avatar */}
           <div className={styles['ams-header-right']} ref={menuRef}>
             {/* Notification bell */}
-            <button
-              className={styles['ams-icon-btn']}
-              aria-label="Notifications"
-              type="button"
-            >
-              <Bell size={17} />
-              <span className={styles['ams-notif-dot']} aria-hidden="true" />
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                className={styles['ams-icon-btn']}
+                aria-label="Notifications"
+                type="button"
+                onClick={() => {
+                  setNotifOpen(!notifOpen);
+                  setUserMenuOpen(false);
+                }}
+              >
+                <Bell size={17} />
+                <span className={styles['ams-notif-dot']} aria-hidden="true" />
+              </button>
+
+              {/* Notification Dropdown */}
+              {notifOpen && (
+                <div
+                  className={styles['ams-user-menu']}
+                  style={{ right: '-10px', width: '280px', padding: '24px 16px', textAlign: 'center', color: 'var(--nm-text-secondary)' }}
+                >
+                  <Bell size={32} style={{ margin: '0 auto 12px auto', opacity: 0.2 }} />
+                  <p style={{ fontWeight: 'bold', fontSize: 'var(--fs-sm)', color: 'var(--nm-text)' }}>{t('header.noNotifications')}</p>
+                  <p style={{ fontSize: 'var(--fs-xs)', marginTop: '4px' }}>{t('header.allCaughtUp')}</p>
+                </div>
+              )}
+            </div>
 
             {/* Avatar / user menu */}
             <button
               id="ams-user-menu-trigger"
               type="button"
               className={styles['ams-avatar-btn']}
-              onClick={() => setUserMenuOpen((o) => !o)}
+              onClick={() => {
+                setUserMenuOpen((o) => !o);
+                setNotifOpen(false);
+              }}
               aria-haspopup="true"
               aria-expanded={userMenuOpen}
               aria-label="User menu"
@@ -401,7 +418,7 @@ const AdminLayout: React.FC = () => {
                     }}
                   >
                     <User size={15} />
-                    <span>Profile</span>
+                    <span>{t('header.profile')}</span>
                   </button>
                   <button
                     type="button"

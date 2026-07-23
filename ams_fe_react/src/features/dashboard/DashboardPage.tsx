@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download,
@@ -105,6 +106,7 @@ const DashboardPage: React.FC = () => {
   const { hasRole, hasAnyRole } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // MANAGER also needs team-level KPI visibility (attendance overview, live pulse)
   const canSeeAdminDashboardActions = hasAnyRole(['ADMIN', 'MANAGER']);
@@ -189,6 +191,22 @@ const DashboardPage: React.FC = () => {
 
   const goToAttendanceDaily = () => navigate('/attendance/attendance-daily');
 
+  const handleExport = () => {
+    // Generate a mock CSV report based on current KPIs
+    const headers = "Metric,Value\n";
+    const kpiData = `Total Employees,${kpi?.totalEmployees?.total ?? 0}\nPresent Today,${kpi?.presentToday?.count ?? 0}\nAbsent Today,${kpi?.absentToday?.count ?? 0}\nLate Check-ins,${kpi?.lateCheckins?.count ?? 0}\n`;
+    
+    // Add BOM for Excel UTF-8 support
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + kpiData;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `attendance_summary_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // -- Computed KPI --
   const kpiAttendancePercent = kpi?.presentToday?.percentage != null ? kpi.presentToday.percentage.toFixed(1) + '%' : '—';
   const kpiLateAvgMin = kpi?.lateCheckins?.averageDelayMinutes != null ? `${kpi.lateCheckins.averageDelayMinutes}m avg` : '—';
@@ -204,36 +222,36 @@ const DashboardPage: React.FC = () => {
         className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8"
       >
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 mb-1">
-            Overview
+          <h1 className="text-3xl font-black font-sans tracking-tight text-slate-800 mb-1">
+            {t('dashboard.overview')}
           </h1>
-          <p className="text-sm font-medium text-slate-500">
+          <p className="text-[14px] font-medium font-sans text-slate-500">
             {hasRole('ADMIN')
-              ? 'Real-time telemetry across all branches and kiosks.'
+              ? t('dashboard.adminSubtitle')
               : hasRole('MANAGER')
-              ? 'Team attendance overview and exception tracking.'
-              : 'Welcome back. Use the shortcuts below to navigate.'}
+              ? t('dashboard.managerSubtitle')
+              : t('dashboard.employeeSubtitle')}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <select
-            className="h-10 px-4 py-2 rounded-xl border border-slate-200 bg-white/50 backdrop-blur-sm text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="h-10 px-4 py-2 rounded-xl border border-slate-200 bg-white/50 backdrop-blur-sm text-sm font-bold font-sans text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:bg-white"
             value={selectedTimeRange}
             onChange={e => setSelectedTimeRange(e.target.value)}
           >
-            <option>Today</option>
-            <option>This Week</option>
-            <option>This Month</option>
+            <option>{t('dashboard.today')}</option>
+            <option>{t('dashboard.thisWeek')}</option>
+            <option>{t('dashboard.thisMonth')}</option>
           </select>
           {/* Monthly Summary Export — ADMIN only */}
           {hasRole('ADMIN') && (
             <button
-              onClick={() => navigate('/attendance/monthly-summary')}
-              className="group relative inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95"
+              onClick={handleExport}
+              className="group relative inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-bold font-sans text-slate-700 shadow-sm border border-slate-200 transition-all hover:bg-slate-50 hover:shadow-md hover:text-indigo-600 active:scale-95"
             >
-              <Download className="h-4 w-4 text-slate-300 transition-transform group-hover:-translate-y-0.5" />
-              <span className="mt-0.5">Export</span>
+              <Download className="h-4 w-4 text-slate-400 group-hover:text-indigo-500 transition-transform group-hover:-translate-y-0.5" />
+              <span>{t('dashboard.export')}</span>
             </button>
           )}
         </div>
@@ -244,50 +262,50 @@ const DashboardPage: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-8"
       >
         {isLoading && canSeeAdminDashboardActions ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : canSeeAdminDashboardActions ? (
           <>
             {/* KPI 1 : Total Employees */}
-            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6")}>
-              <div className="flex items-start justify-between">
+            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 relative overflow-hidden min-w-0")}>
+              <div className="flex items-start justify-between relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100/50">
                   <Users className="h-6 w-6 text-indigo-600" />
                 </div>
                 {kpiNewThisMonth != null && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200/50">
-                    <ArrowUpRight className="h-3 w-3" /> {kpiNewThisMonth} new
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold font-sans text-emerald-600">
+                    <ArrowUpRight className="h-3 w-3" /> {kpiNewThisMonth} {t('dashboard.new')}
                   </span>
                 )}
               </div>
-              <div className="mt-6">
-                <p className="text-sm font-medium text-slate-500">Total Employees</p>
+              <div className="mt-4 relative z-10">
+                <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">{t('dashboard.totalEmployees')}</p>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">{kpi?.totalEmployees?.count ?? '—'}</h3>
+                  <h3 className="text-3xl font-black font-sans text-slate-800 tracking-tight">{kpi?.totalEmployees?.count ?? '—'}</h3>
                 </div>
               </div>
             </motion.div>
 
             {/* KPI 2 : Present Today */}
-            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 relative overflow-hidden")}>
+            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 relative overflow-hidden min-w-0")}>
               <div className="z-10 relative">
                 <div className="flex items-start justify-between">
                   <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100/50">
                     <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                   </div>
                 </div>
-                <div className="mt-6">
-                  <p className="text-sm font-medium text-slate-500">Present Today</p>
+                <div className="mt-4">
+                  <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">{t('dashboard.presentToday')}</p>
                   <div className="mt-1 flex items-baseline gap-2">
-                    <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">{kpiAttendancePercent}</h3>
-                    <span className="text-sm font-medium text-slate-500">({kpi?.presentToday?.count ?? 0}/{kpi?.presentToday?.total ?? 0})</span>
+                    <h3 className="text-3xl font-black font-sans text-slate-800 tracking-tight">{kpiAttendancePercent}</h3>
+                    <span className="text-sm font-medium font-sans text-slate-500">({kpi?.presentToday?.count ?? 0}/{kpi?.presentToday?.total ?? 0})</span>
                   </div>
                 </div>
               </div>
               {/* Mini aesthetics chart */}
-              <div className="absolute bottom-0 left-0 w-full h-16 opacity-30 pointer-events-none">
+              <div className="absolute bottom-0 left-0 w-full h-12 opacity-30 pointer-events-none">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartDataOk}>
                     <Area type="monotone" dataKey="value" stroke="#059669" fill="#10b981" strokeWidth={2} />
@@ -297,7 +315,7 @@ const DashboardPage: React.FC = () => {
             </motion.div>
 
             {/* KPI 3 : Late Check-ins */}
-            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 relative overflow-hidden")}>
+            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 relative overflow-hidden min-w-0")}>
               <div className="z-10 relative">
                 <div className="flex items-start justify-between">
                   <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100/50">
@@ -305,25 +323,25 @@ const DashboardPage: React.FC = () => {
                   </div>
                   {kpi?.lateCheckins?.changeFromYesterday != null && (
                     <span className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border",
+                      "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold font-sans",
                       kpi.lateCheckins.changeFromYesterday >= 0 
-                        ? "bg-rose-50 text-rose-700 border-rose-200/50" 
-                        : "bg-emerald-50 text-emerald-700 border-emerald-200/50"
+                        ? "bg-rose-50 text-rose-600" 
+                        : "bg-emerald-50 text-emerald-600"
                     )}>
                       {kpi.lateCheckins.changeFromYesterday >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                      {Math.abs(kpi.lateCheckins.changeFromYesterday)} daily
+                      {Math.abs(kpi.lateCheckins.changeFromYesterday)} {t('dashboard.daily')}
                     </span>
                   )}
                 </div>
-                <div className="mt-6">
-                  <p className="text-sm font-medium text-slate-500">Late Check-ins</p>
+                <div className="mt-4">
+                  <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">{t('dashboard.absentToday')}</p>
                   <div className="mt-1 flex items-baseline gap-2">
-                    <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">{kpi?.lateCheckins?.count ?? '—'}</h3>
-                    <span className="text-sm font-medium text-slate-500">{kpiLateAvgMin}</span>
+                    <h3 className="text-3xl font-black font-sans text-slate-800 tracking-tight">{kpi?.lateCheckins?.count ?? '—'}</h3>
+                    <span className="text-sm font-medium font-sans text-slate-500">{kpiLateAvgMin}</span>
                   </div>
                 </div>
               </div>
-              <div className="absolute bottom-0 left-0 w-full h-16 opacity-30 pointer-events-none">
+              <div className="absolute bottom-0 left-0 w-full h-12 opacity-30 pointer-events-none">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartDataWarn}>
                     <Area type="monotone" dataKey="value" stroke="#d97706" fill="#fbbf24" strokeWidth={2} />
@@ -333,19 +351,19 @@ const DashboardPage: React.FC = () => {
             </motion.div>
 
             {/* KPI 4 : Exceptions */}
-            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 border-l-4 border-l-rose-500")}>
-              <div className="flex items-start justify-between">
+            <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 relative overflow-hidden min-w-0")}>
+              <div className="flex items-start justify-between relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-rose-50 flex items-center justify-center border border-rose-100/50">
                   <AlertTriangle className="h-6 w-6 text-rose-600" />
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-800 border border-rose-200">
+                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold font-sans text-rose-600">
                   Urgent
                 </span>
               </div>
-              <div className="mt-6">
-                <p className="text-sm font-medium text-slate-500">Unresolved Exceptions</p>
+              <div className="mt-4 relative z-10">
+                <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">Exceptions</p>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">{kpi?.exceptions?.count ?? '—'}</h3>
+                  <h3 className="text-3xl font-black font-sans text-slate-800 tracking-tight">{kpi?.exceptions?.count ?? '—'}</h3>
                 </div>
               </div>
             </motion.div>
@@ -354,7 +372,7 @@ const DashboardPage: React.FC = () => {
 
         {/* Self Service KPI Placeholder */}
         {!isLoading && canSeeSelfServiceDashboardActions && !canSeeAdminDashboardActions && (
-          <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6")}>
+          <motion.div variants={itemVariants} className={cn(styles.glassCard, "p-6 min-w-0")}>
             <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center">
               <User className="h-6 w-6 text-blue-600" />
             </div>
@@ -368,29 +386,31 @@ const DashboardPage: React.FC = () => {
 
       {/* ───── LAYOUT: MAIN TABLES ───── */}
       {!isLoading && canSeeAdminDashboardActions && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           
           {/* LEFT: Live Pulse Table (Col-Span-2) */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className={cn(styles.glassCard, "xl:col-span-2 flex flex-col")}
+            className={cn(styles.glassCard, "xl:col-span-2 flex flex-col min-w-0")}
           >
-            <div className="flex items-center justify-between p-6 border-b border-slate-100/50">
+            <div className="flex items-center justify-between gap-3 p-6 border-b border-slate-100/50 bg-gradient-to-br from-white to-slate-50/50">
               <div className="flex items-center gap-3">
-                {/* Pulsing indicator */}
-                <div className={styles.liveDot}>
-                  <span className={styles.liveDotPing}></span>
-                  <span className={styles.liveDotInner}></span>
+                {/* Pulsing indicator wrapped in a standardized icon container */}
+                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100">
+                  <div className={styles.liveDot}>
+                    <span className={styles.liveDotPing}></span>
+                    <span className={styles.liveDotInner}></span>
+                  </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 leading-tight">Live Pulse</h3>
-                  <p className="text-xs font-medium text-slate-500">Real-time terminal stream</p>
+                  <h3 className="text-base font-bold font-sans text-slate-800 leading-tight">Live Pulse</h3>
+                  <p className="text-xs font-medium font-sans text-slate-500 mt-0.5">Real-time terminal stream</p>
                 </div>
               </div>
-              <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-md tracking-wider uppercase">
-                {livePulse?.totalCount ?? 0} Today
+              <span className="px-3 py-1 bg-slate-100/50 text-slate-600 text-[10px] font-bold font-sans rounded-full tracking-wider uppercase border border-slate-200">
+                {livePulse?.records?.length ?? 0} Today
               </span>
             </div>
 
@@ -403,11 +423,11 @@ const DashboardPage: React.FC = () => {
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50">Employee</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50">Time</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50">Location</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50">Status</th>
+                    <tr className="border-b border-slate-200/60">
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Employee</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Time</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Location</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100/50">
@@ -427,36 +447,43 @@ const DashboardPage: React.FC = () => {
                                 {getInitials(rec.employee.name)}
                               </div>
                               <div>
-                                <p className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                <p className="text-sm font-bold text-slate-800 font-sans group-hover:text-indigo-600 transition-colors">
                                   {rec.employee.name}
                                 </p>
-                                <p className="text-xs font-medium text-slate-500">
+                                <p className="text-[13px] font-medium text-slate-500 font-sans mt-0.5">
                                   {rec.employee.department}
                                 </p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm font-mono font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded-md">
+                            <span className="text-sm font-mono font-bold text-slate-600">
                               {formatCheckInTime(rec.checkInTime)}
                             </span>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-1.5 text-slate-500">
-                              <MapPin className="h-4 w-4 opacity-50" />
-                              <span className="text-sm font-medium">{rec.branchId || rec.location || 'HQ'}</span>
+                              <MapPin className="h-4 w-4 opacity-40" />
+                              <span className="text-[13px] font-semibold font-sans">{rec.branchId || rec.location || 'HQ'}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={cn(
-                              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap border",
-                              rec.lateMinutes > 0
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            )}>
-                              {rec.lateMinutes > 0 ? <Clock className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                              {rec.lateMinutes > 0 ? 'Late' : 'On Time'}
-                            </span>
+                            {rec.lateMinutes > 0 ? (
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white shadow-sm border border-amber-100 text-[13px] font-bold font-sans text-amber-600">
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                </span>
+                                Late
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white shadow-sm border border-emerald-100 text-[13px] font-bold font-sans text-emerald-600">
+                                <span className="relative flex h-2 w-2">
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                On Time
+                              </span>
+                            )}
                           </td>
                         </motion.tr>
                       ))}
@@ -466,9 +493,9 @@ const DashboardPage: React.FC = () => {
               )}
             </div>
             
-            <div className="p-4 border-t border-slate-100/50 bg-slate-50/50 flex justify-end rounded-b-2xl">
-              <button onClick={goToAttendanceDaily} className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition flex items-center gap-1">
-                View All Activity <ArrowUpRight className="h-4 w-4" />
+            <div className="p-4 border-t border-slate-100/50 bg-slate-50/50 flex justify-center rounded-b-2xl">
+              <button onClick={goToAttendanceDaily} className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-white shadow-sm border border-slate-200 text-[13px] font-bold font-sans text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors outline-none cursor-pointer">
+                View All Activity <ArrowUpRight className="h-4 w-4 text-slate-400" />
               </button>
             </div>
           </motion.div>
@@ -478,21 +505,21 @@ const DashboardPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4 }}
-            className={cn(styles.glassCard, "xl:col-span-1 flex flex-col")}
+            className={cn(styles.glassCard, "xl:col-span-1 flex flex-col min-w-0")}
           >
-            <div className="flex items-start justify-between p-6 border-b border-rose-100/50 bg-gradient-to-br from-white to-rose-50/30">
+            <div className="flex items-center justify-between gap-3 p-6 border-b border-rose-100/50 bg-gradient-to-br from-white to-rose-50/30">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-rose-100/80 rounded-xl flex items-center justify-center text-rose-600">
+                <div className="h-10 w-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600 shadow-[0_2px_10px_rgba(225,29,72,0.15)]">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 leading-tight">Attention Required</h3>
-                  <p className="text-xs font-medium text-slate-500">Unresolved exceptions</p>
+                  <h3 className="text-base font-bold font-sans text-slate-800 leading-tight">Attention Required</h3>
+                  <p className="text-xs font-medium font-sans text-slate-500 mt-0.5">Unresolved exceptions</p>
                 </div>
               </div>
               {exceptionsData?.exceptions?.length ? (
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white shadow-sm">
-                  {exceptionsData.exceptions.length}
+                <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold font-sans rounded-full tracking-wider uppercase border border-rose-200">
+                  {exceptionsData.exceptions.length} Pending
                 </span>
               ) : null}
             </div>
@@ -519,11 +546,11 @@ const DashboardPage: React.FC = () => {
                       <div className={cn("h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm bg-gradient-to-br", getAvatarGradient(ex.employee.name))}>
                         {getInitials(ex.employee.name)}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">
+                      <div className="flex-1 min-w-0 py-1">
+                        <p className="text-sm font-bold text-slate-800 font-sans truncate">
                           {ex.employee.name}
                         </p>
-                        <p className="text-xs font-medium text-slate-500 mt-0.5 line-clamp-2">
+                        <p className="text-[13px] font-medium text-slate-500 font-sans mt-1 line-clamp-2 leading-relaxed">
                           {ex.description || ex.exceptionType}
                         </p>
                       </div>
@@ -545,21 +572,21 @@ const DashboardPage: React.FC = () => {
       {!isLoading && canSeeSelfServiceDashboardActions && !canSeeAdminDashboardActions && (
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="grid grid-cols-2 md:grid-cols-4 gap-8"
         >
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3")} onClick={() => navigate('/attendance/requests-management')}>
+          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={() => navigate('/attendance/requests-management')}>
             <FileText className="h-8 w-8 text-indigo-500" />
             <span className="font-semibold text-slate-700">My Requests</span>
           </div>
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3")} onClick={goToAttendanceDaily}>
+          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={goToAttendanceDaily}>
             <CalendarDays className="h-8 w-8 text-fuchsia-500" />
             <span className="font-semibold text-slate-700">My Attendance</span>
           </div>
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3")} onClick={() => navigate('/attendance/leave-management')}>
+          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={() => navigate('/attendance/leave-management')}>
             <Clock className="h-8 w-8 text-amber-500" />
             <span className="font-semibold text-slate-700">Leave</span>
           </div>
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3")} onClick={() => navigate('/hrm/employee-portal')}>
+          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={() => navigate('/hrm/employee-portal')}>
             <Briefcase className="h-8 w-8 text-emerald-500" />
             <span className="font-semibold text-slate-700">Profile</span>
           </div>
@@ -582,7 +609,7 @@ const DashboardPage: React.FC = () => {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", duration: 0.5, bounce: 0.2 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100"
+              className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100 font-sans"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                 <div>
@@ -637,7 +664,7 @@ const DashboardPage: React.FC = () => {
                       placeholder="e.g., Verified valid doctor's note, adjusted system records..."
                       value={resolveNotes}
                       onChange={e => setResolveNotes(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 p-3 text-sm transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                      className="w-full rounded-xl border border-slate-200 p-3 text-sm font-sans transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
                     />
                   </div>
 

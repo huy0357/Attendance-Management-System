@@ -1,11 +1,13 @@
 import React from 'react';
-import { Palette, Sun, Moon, LayoutDashboard, RefreshCw } from 'lucide-react';
+import { Palette, Sun, Moon, LayoutDashboard, RefreshCw, Globe } from 'lucide-react';
 import styles from './SettingsPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
 import { useSettings } from '../../../shared/hooks/useSettings';
+import { useTranslation } from 'react-i18next';
 
 const SettingsPage: React.FC = () => {
-  const { theme, setTheme, compactSidebar, setCompactSidebar, reduceMotion, setReduceMotion, reset } = useSettings();
+  const { theme, setTheme, compactSidebar, setCompactSidebar, reduceMotion, setReduceMotion, language, setLanguage, reset } = useSettings();
+  const { t } = useTranslation();
 
   const handleResetDefaults = () => {
     reset();
@@ -15,12 +17,12 @@ const SettingsPage: React.FC = () => {
     <div className="space-y-6 pb-6" style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div className={styles.settingsHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Preferences &amp; Settings</h1>
-          <p className={styles.pageSubtitle}>Customize your workspace experience. Saved locally.</p>
+          <h1 className={styles.pageTitle}>{t('settings.title')}</h1>
+          <p className={styles.pageSubtitle}>{t('settings.subtitle')}</p>
         </div>
         <button className={styles.nmBtnSecondary} onClick={handleResetDefaults}>
           <RefreshCw className="h-4 w-4" />
-          Reset Defaults
+          {t('settings.reset')}
         </button>
       </div>
 
@@ -32,15 +34,15 @@ const SettingsPage: React.FC = () => {
               <Palette className="w-6 h-6" />
             </div>
             <div>
-              <h2>Appearance</h2>
-              <p>Choose how AMS looks and feels in your browser.</p>
+              <h2>{t('settings.appearance')}</h2>
+              <p>{t('settings.appearanceDesc')}</p>
             </div>
           </div>
 
           <div className={styles.settingsBlock}>
-            <h3>Theme Mode</h3>
-            <p>Switch between day mode and dark canvas.</p>
-            
+            <h3>{t('settings.themeMode')}</h3>
+            <p>{t('settings.themeDesc')}</p>
+
             <div className={styles.segmentedControl}>
               <button
                 type="button"
@@ -48,7 +50,7 @@ const SettingsPage: React.FC = () => {
                 onClick={() => setTheme('light')}
               >
                 <Sun className="w-4 h-4" />
-                <span>Light Mode</span>
+                <span>{t('settings.lightMode')}</span>
               </button>
 
               <button
@@ -57,29 +59,62 @@ const SettingsPage: React.FC = () => {
                 onClick={() => setTheme('dark')}
               >
                 <Moon className="w-4 h-4" />
-                <span>Dark Mode</span>
+                <span>{t('settings.darkMode')}</span>
               </button>
             </div>
           </div>
         </section>
 
-        {/* === NHÓM 2: LAYOUT OPTIONS === */}
+        {/* === NHÓM 2: LANGUAGE === */}
+        <section className={styles.nmCard}>
+          <div className={styles.cardHeader}>
+            <div className={styles.iconWrapper} style={{ color: 'var(--nm-success)' }}>
+              <Globe className="w-6 h-6" />
+            </div>
+            <div>
+              <h2>{t('settings.language')}</h2>
+              <p>{t('settings.languageDesc')}</p>
+            </div>
+          </div>
+
+          <div className={styles.settingsBlock}>
+            <div className={styles.segmentedControl}>
+              <button
+                type="button"
+                className={cn(styles.option, language === 'en' ? styles.active : '')}
+                onClick={() => setLanguage('en')}
+              >
+                <span>{t('settings.langEn')}</span>
+              </button>
+
+              <button
+                type="button"
+                className={cn(styles.option, language === 'vi' ? styles.active : '')}
+                onClick={() => setLanguage('vi')}
+              >
+                <span>{t('settings.langVi')}</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* === NHÓM 3: LAYOUT OPTIONS === */}
         <section className={styles.nmCard}>
           <div className={styles.cardHeader}>
             <div className={styles.iconWrapper} style={{ color: 'var(--nm-info)' }}>
               <LayoutDashboard className="w-6 h-6" />
             </div>
             <div>
-              <h2>Layout &amp; Animation Options</h2>
-              <p>Trim the sidebar down and manage heavy effects.</p>
+              <h2>{t('settings.layout')}</h2>
+              <p>{t('settings.layoutDesc')}</p>
             </div>
           </div>
 
           <div className={styles.toggleRow}>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-primary)', fontSize: '14px', fontWeight: 'bold' }}>Compact Sidebar</h3>
+              <h3 style={{ fontFamily: 'var(--font-primary)', fontSize: '14px', fontWeight: 'bold' }}>{t('settings.compactSidebar')}</h3>
               <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)', maxWidth: '300px' }}>
-                Hides descriptive text for a denser layout.
+                {t('settings.compactDesc')}
               </p>
             </div>
             
@@ -96,9 +131,9 @@ const SettingsPage: React.FC = () => {
 
           <div className={styles.toggleRow}>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-primary)', fontSize: '14px', fontWeight: 'bold' }}>Reduce Motion</h3>
+              <h3 style={{ fontFamily: 'var(--font-primary)', fontSize: '14px', fontWeight: 'bold' }}>{t('settings.reduceMotion')}</h3>
               <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)', maxWidth: '300px' }}>
-                Suppress decorative transitions and movement-heavy effects.
+                {t('settings.reduceMotionDesc')}
               </p>
             </div>
             

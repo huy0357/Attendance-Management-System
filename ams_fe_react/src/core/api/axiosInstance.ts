@@ -142,8 +142,9 @@ axiosInstance.interceptors.response.use(
       const isNetworkError = !error.response;
       const isTimeout = error.code === 'ECONNABORTED';
       const isServerError = error.response && error.response.status >= 500;
+      const isGetRequest = originalRequest.method?.toLowerCase() === 'get';
 
-      if (isNetworkError || isTimeout || isServerError) {
+      if (isGetRequest && (isNetworkError || isTimeout || isServerError)) {
         originalRequest._retryCount = originalRequest._retryCount ?? 0;
         if (originalRequest._retryCount < 2) {
           originalRequest._retryCount++;

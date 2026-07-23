@@ -15,7 +15,7 @@ const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'));
 const EmployeePortalPage = lazy(() => import('../features/hrm/employee-portal/EmployeePortalPage'));
 const EmployeesPage = lazy(() => import('../features/hrm/employees/EmployeesPage'));
 const DepartmentsPage = lazy(() => import('../features/hrm/departments/DepartmentsPage'));
-const ContractsPage = lazy(() => import('../features/hrm/contracts/ContractsPage'));
+
 
 // Attendance
 const AttendanceDailyPage = lazy(() => import('../features/attendance/attendance-daily/AttendanceDailyPage'));
@@ -86,7 +86,7 @@ const AppRouter: React.FC = () => (
             {/* HRM */}
             <Route path="/hrm/employees" element={<EmployeesPage />} />
             <Route path="/hrm/departments" element={<DepartmentsPage />} />
-            <Route path="/hrm/contracts" element={<ContractsPage />} />
+
 
             {/* Attendance - admin views */}
             <Route path="/attendance/attendance-daily/admin" element={<AttendanceDailyPage />} />

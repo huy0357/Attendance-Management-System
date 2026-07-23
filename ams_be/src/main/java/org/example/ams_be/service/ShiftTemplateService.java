@@ -141,8 +141,7 @@ public class ShiftTemplateService {
         ShiftTemplate entity = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Shift not found"));
 
-        entity.setIsActive(false);
-        repo.save(entity);
+        repo.delete(entity);
     }
 
 }

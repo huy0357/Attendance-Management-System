@@ -124,17 +124,6 @@ const LeaveManagementPage: React.FC = () => {
           <h1 className={styles.pageTitle}>My Leave Requests</h1>
           <p className={styles.pageSubtitle}>Track your leave requests with a cleaner status overview.</p>
         </div>
-        <div className="flex items-center gap-3 self-start md:self-auto">
-          <NavLink to="/attendance/requests" className={styles.nmBtnSecondary} style={{ fontSize: '12px' }}>
-            Go to Requests Management
-            <ArrowRight className="h-4 w-4" />
-          </NavLink>
-          {isAdminOrManager && (
-            <NavLink to="/attendance/requests" className={styles.nmBtnPrimary} style={{ background: 'var(--nm-warning)', fontSize: '12px', boxShadow: 'none', color: 'var(--nm-text)' }}>
-              Review Submitted Requests
-            </NavLink>
-          )}
-        </div>
       </div>
 
       <div className={styles.kpiGrid}>

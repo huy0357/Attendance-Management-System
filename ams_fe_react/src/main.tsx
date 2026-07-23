@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './app/App';
 import './styles/tokens.scss';
 import './styles/global.scss';
+import './core/i18n';
 
 // Polyfill crypto.randomUUID cho môi trường HTTP (chưa có secure context)
 // TODO: Xoá đoạn này sau khi cấu hình HTTPS xong cho domain

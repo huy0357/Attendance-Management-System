@@ -22,19 +22,23 @@ import {
   useMemo,
   useState,
 } from 'react';
+import i18n from '../../core/i18n';
 
 export type ThemeMode = 'light' | 'dark';
+export type LanguageCode = 'en' | 'vi';
 
 interface SettingsState {
   theme: ThemeMode;
   compactSidebar: boolean;
   reduceMotion: boolean;
+  language: LanguageCode;
 }
 
 interface SettingsContextValue extends SettingsState {
   setTheme: (theme: ThemeMode) => void;
   setCompactSidebar: (compact: boolean) => void;
   setReduceMotion: (reduce: boolean) => void;
+  setLanguage: (language: LanguageCode) => void;
   reset: () => void;
 }
 
@@ -44,6 +48,7 @@ const DEFAULT_STATE: SettingsState = {
   theme: 'light',
   compactSidebar: false,
   reduceMotion: false,
+  language: 'en',
 };
 
 function readPersistedState(): SettingsState {
@@ -61,6 +66,7 @@ function readPersistedState(): SettingsState {
         typeof parsed.reduceMotion === 'boolean'
           ? parsed.reduceMotion
           : DEFAULT_STATE.reduceMotion,
+      language: parsed.language === 'vi' ? 'vi' : DEFAULT_STATE.language,
     };
   } catch {
     return DEFAULT_STATE;
@@ -98,13 +104,31 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setTheme = useCallback((theme: ThemeMode) => persist({ ...state, theme }), [state, persist]);
-  const setCompactSidebar = useCallback((compactSidebar: boolean) => persist({ ...state, compactSidebar }), [state, persist]);
-  const setReduceMotion = useCallback((reduceMotion: boolean) => persist({ ...state, reduceMotion }), [state, persist]);
+  const setCompactSidebar = useCallback(
+    (compactSidebar: boolean) => persist({ ...state, compactSidebar }),
+    [state, persist],
+  );
+  const setReduceMotion = useCallback(
+    (reduceMotion: boolean) => persist({ ...state, reduceMotion }),
+    [state, persist],
+  );
+  const setLanguage = useCallback((language: LanguageCode) => {
+    i18n.changeLanguage(language);
+    persist({ ...state, language });
+  }, [state, persist]);
+
   const reset = useCallback(() => persist(DEFAULT_STATE), [persist]);
 
-  const value = useMemo<SettingsContextValue>(
-    () => ({ ...state, setTheme, setCompactSidebar, setReduceMotion, reset }),
-    [state, setTheme, setCompactSidebar, setReduceMotion, reset],
+  const value = useMemo(
+    () => ({
+      ...state,
+      setTheme,
+      setCompactSidebar,
+      setReduceMotion,
+      setLanguage,
+      reset,
+    }),
+    [state, setTheme, setCompactSidebar, setReduceMotion, setLanguage, reset],
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
