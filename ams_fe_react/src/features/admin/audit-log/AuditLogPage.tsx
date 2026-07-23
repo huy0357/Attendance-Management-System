@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Shield, Search, Eye, Plus, Edit2, Trash2, LogIn, LogOut, Check, X, Lock, Unlock, AlertCircle } from 'lucide-react';
+import { Download, Shield, Search, Eye, Plus, Edit2, Trash2, LogIn, LogOut, Check, X, Lock, Unlock, AlertCircle, Loader2 } from 'lucide-react';
 import { adminApi, AuditLog, AuditLogAction } from '../api/admin.api';
 import styles from './AuditLogPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -79,7 +79,17 @@ const AuditLogPage: React.FC = () => {
   const users = ['All Users']; 
 
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [selectedLogId, setSelectedLogId] = useState<number | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const { data: logDetails, isFetching: isFetchingDetails } = useQuery({
+    queryKey: ['auditLogDetails', selectedLogId],
+    queryFn: () => adminApi.getAuditLogById(selectedLogId!),
+    enabled: !!selectedLogId,
+    retry: false
+  });
+
+  const displayLog = logDetails || selectedLog;
 
   const filteredLogs = useMemo(() => {
     let res = logs;
@@ -223,7 +233,7 @@ const AuditLogPage: React.FC = () => {
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{log.recordId}</td>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{log.ipAddress}</td>
                     <td>
-                      <button onClick={() => { setSelectedLog(log); setShowDetailsModal(true); }} className={styles.nmBtnIcon} title="View Details">
+                      <button onClick={() => { setSelectedLog(log); setSelectedLogId(log.rawId); setShowDetailsModal(true); }} className={styles.nmBtnIcon} title="View Details">
                         <Eye className="w-4 h-4" />
                       </button>
                     </td>
@@ -272,15 +282,18 @@ const AuditLogPage: React.FC = () => {
       </div>
 
       {/* DETAILS MODAL */}
-      {showDetailsModal && selectedLog && (
-        <ModalPortal onBackdropClick={() => setShowDetailsModal(false)}>
+      {showDetailsModal && displayLog && (
+        <ModalPortal onBackdropClick={() => { setShowDetailsModal(false); setSelectedLogId(null); setSelectedLog(null); }}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
                 <h2>Audit Log Details</h2>
-                <p>{selectedLog.id}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                  <p>{displayLog.id}</p>
+                  {isFetchingDetails && <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--nm-text-muted)' }} title="Fetching latest details..." />}
+                </div>
               </div>
-              <button onClick={() => setShowDetailsModal(false)} className={styles.nmBtnIcon}>
+              <button onClick={() => { setShowDetailsModal(false); setSelectedLogId(null); setSelectedLog(null); }} className={styles.nmBtnIcon}>
                  <X className="h-5 w-5" />
               </button>
             </div>
@@ -291,27 +304,27 @@ const AuditLogPage: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
                   <div>
                     <p className={styles.detailsLabel}>Timestamp</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{selectedLog.timestamp}</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{displayLog.timestamp}</p>
                   </div>
                   <div>
                     <p className={styles.detailsLabel}>Action</p>
                     <div style={{ marginTop: '2px' }}>
-                      <span className={styles.nmBadge} style={getActionBadgeClasses(selectedLog.action)}>
+                      <span className={styles.nmBadge} style={getActionBadgeClasses(displayLog.action)}>
                          {(() => {
-                           const Icon = getActionIcon(selectedLog.action);
+                           const Icon = getActionIcon(displayLog.action);
                            return <Icon />;
                          })()}
-                         {getActionLabel(selectedLog.action)}
+                         {getActionLabel(displayLog.action)}
                       </span>
                     </div>
                   </div>
                   <div>
                     <p className={styles.detailsLabel}>Module</p>
-                    <p style={{ fontWeight: 'bold' }}>{selectedLog.module}</p>
+                    <p style={{ fontWeight: 'bold' }}>{displayLog.module}</p>
                   </div>
                   <div>
                     <p className={styles.detailsLabel}>Record ID</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{selectedLog.recordId}</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{displayLog.recordId}</p>
                   </div>
                 </div>
               </div>
@@ -321,55 +334,55 @@ const AuditLogPage: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
                   <div>
                     <p className={styles.detailsLabel}>User ID</p>
-                    <p style={{ fontWeight: 'bold' }}>{selectedLog.userId}</p>
+                    <p style={{ fontWeight: 'bold' }}>{displayLog.userId}</p>
                   </div>
                   <div>
                     <p className={styles.detailsLabel}>User Name</p>
-                    <p style={{ fontWeight: 'bold' }}>{selectedLog.userName}</p>
+                    <p style={{ fontWeight: 'bold' }}>{displayLog.userName}</p>
                   </div>
                   <div>
                     <p className={styles.detailsLabel}>Role</p>
-                    <p style={{ fontWeight: 'bold' }}>{selectedLog.userRole}</p>
+                    <p style={{ fontWeight: 'bold' }}>{displayLog.userRole}</p>
                   </div>
                   <div>
                     <p className={styles.detailsLabel}>IP Address</p>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{selectedLog.ipAddress}</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '14px' }}>{displayLog.ipAddress}</p>
                   </div>
                 </div>
                 <div style={{ marginTop: '16px' }}>
                   <p className={styles.detailsLabel}>User Agent</p>
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{selectedLog.userAgent}</p>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{displayLog.userAgent}</p>
                 </div>
               </div>
 
-              {selectedLog.beforeValue != null && (
+              {displayLog.beforeValue != null && (
                 <div className={styles.detailsBlock}>
                    <h3 className={styles.detailsLabel}>Before Value</h3>
                    <div className={styles.preBlock}>
-                      <pre><code>{formatJsonDisplay(selectedLog.beforeValue)}</code></pre>
+                      <pre><code>{formatJsonDisplay(displayLog.beforeValue)}</code></pre>
                    </div>
                 </div>
               )}
-              {selectedLog.afterValue != null && (
+              {displayLog.afterValue != null && (
                 <div className={styles.detailsBlock}>
                    <h3 className={styles.detailsLabel}>After Value</h3>
                    <div className={styles.preBlock}>
-                      <pre><code>{formatJsonDisplay(selectedLog.afterValue)}</code></pre>
+                      <pre><code>{formatJsonDisplay(displayLog.afterValue)}</code></pre>
                    </div>
                 </div>
               )}
 
-              {selectedLog.notes && (
+              {displayLog.notes && (
                 <div className={cn(styles.detailsBlock, styles.col2)}>
                   <h3 className={styles.detailsLabel}>Notes</h3>
-                  <p>{selectedLog.notes}</p>
+                  <p>{displayLog.notes}</p>
                 </div>
               )}
             </div>
 
             <div className={styles.modalFooter}>
               <button
-                onClick={() => setShowDetailsModal(false)}
+                onClick={() => { setShowDetailsModal(false); setSelectedLogId(null); setSelectedLog(null); }}
                 className={styles.nmBtnPrimary}
               >
                 Close

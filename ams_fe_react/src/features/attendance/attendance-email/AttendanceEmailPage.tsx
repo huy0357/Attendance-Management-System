@@ -91,13 +91,11 @@ const AttendanceEmailPage: React.FC = () => {
       setSuccessMessage(response?.message || `Email sent to ${employee.fullName} successfully.`);
     } catch (error: any) {
       console.error('[Send Employee Error]', error);
-      const statusCode = error?.response?.status;
       let finalMsg = `Unable to send email to ${employee.fullName}.`;
 
-      if (statusCode === 500 || (error?.response?.data?.message || '').toLowerCase().includes('not found')) {
+      if ((error?.response?.data?.message || '').toLowerCase().includes('not found')) {
          finalMsg = "Không tìm thấy dữ liệu tổng kết tháng của nhân viên này. Vui lòng tick chọn 'Recalculate attendance summary before sending' và thử lại!";
       } else {
-         // Fallback if there is another type of explicit error
          const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
          if (serverMsg) finalMsg = serverMsg;
       }
@@ -190,8 +188,8 @@ const AttendanceEmailPage: React.FC = () => {
 
       <div className={styles.nmCard}>
         <div className={styles.nmCardHeader}>
-          <h2>Global Actions</h2>
-          <p>Configure settings and send emails to all employees at once.</p>
+          <h2>Configuration & Global Actions</h2>
+          <p>Select the target month, configure settings, and optionally send emails to all employees at once.</p>
         </div>
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: '16px', alignItems: 'end' }}>

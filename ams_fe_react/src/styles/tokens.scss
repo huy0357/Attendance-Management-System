@@ -221,3 +221,88 @@ a:hover {
   from { opacity: 0; transform: translateX(-12px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+
+:root.dark {
+  --nm-primary:        #009999;
+  --nm-primary-light:  #00cccc;
+  --nm-primary-dark:   #006666;
+  --nm-secondary:      #2C313C;
+  --nm-success:        #00C94A;
+  --nm-warning:        #FFA726;
+  --nm-danger:         #FF4D79;
+  --nm-info:           #009999;
+
+  --nm-surface:        #1E222A;
+  --nm-surface-raise:  #242932;
+  --nm-surface-deep:   #181B22;
+
+  --nm-text:           #E7E5E4;
+  --nm-text-secondary: #A0AABF;
+  --nm-text-muted:     #7A869A;
+
+  --nm-light:  #2A303A;
+  --nm-dark:   #12141A;
+
+  --nm-badge-success-bg:   rgba(0, 201, 74, 0.12);
+  --nm-badge-success-text: #00C94A;
+  --nm-badge-warning-bg:   rgba(255, 167, 38, 0.12);
+  --nm-badge-warning-text: #FFA726;
+  --nm-badge-danger-bg:    rgba(255, 77, 121, 0.12);
+  --nm-badge-danger-text:  #FF4D79;
+  --nm-badge-info-bg:      rgba(0, 153, 153, 0.12);
+  --nm-badge-info-text:    #009999;
+  --nm-badge-neutral-bg:   rgba(231, 229, 228, 0.08);
+  --nm-badge-neutral-text: #E7E5E4;
+
+  --nm-scrollbar-track: var(--nm-surface);
+  --nm-scrollbar-thumb: #4A5568;
+}
+
+:root.dark {
+  --nm-primary:        #009999;
+  --nm-primary-light:  #00cccc;
+  --nm-primary-dark:   #006666;
+  --nm-secondary:      #2C313C;
+  --nm-success:        #00C94A;
+  --nm-warning:        #FFA726;
+  --nm-danger:         #FF4D79;
+  --nm-info:           #009999;
+
+  --nm-surface:        #1E222A;
+  --nm-surface-raise:  #242932;
+  --nm-surface-deep:   #181B22;
+
+  --nm-text:           #E7E5E4;
+  --nm-text-secondary: #A0AABF;
+  --nm-text-muted:     #7A869A;
+
+  --nm-light:  #2A303A;
+  --nm-dark:   #12141A;
+
+  --nm-badge-success-bg:   rgba(0, 201, 74, 0.12);
+  --nm-badge-success-text: #00C94A;
+  --nm-badge-warning-bg:   rgba(255, 167, 38, 0.12);
+  --nm-badge-warning-text: #FFA726;
+  --nm-badge-danger-bg:    rgba(255, 77, 121, 0.12);
+  --nm-badge-danger-text:  #FF4D79;
+  --nm-badge-info-bg:      rgba(0, 153, 153, 0.12);
+  --nm-badge-info-text:    #009999;
+  --nm-badge-neutral-bg:   rgba(231, 229, 228, 0.08);
+  --nm-badge-neutral-text: #E7E5E4;
+
+  --nm-scrollbar-track: var(--nm-surface);
+  --nm-scrollbar-thumb: #4A5568;
+}
+
+:root.reduced-motion {
+  --nm-transition: none !important;
+  --nm-transition-fast: none !important;
+  --nm-transition-slow: none !important;
+  
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -46,6 +46,14 @@ export const attendanceDailyApi = {
     return (res.data as any).data || res.data;
   },
 
+  getAttendanceDailyEmployee: async (employeeId: number, from: string, to: string, page: number, size: number): Promise<SpringPage<AttendanceDailyResponse>> => {
+    const params = new URLSearchParams({
+      from, to, page: page.toString(), size: size.toString()
+    });
+    const res = await axiosInstance.get<SpringPage<AttendanceDailyResponse>>(`${API_BASE}/attendance-daily/employee/${employeeId}`, { params });
+    return (res.data as any).data || res.data;
+  },
+
   runAttendanceBatchForDate: async (date: string): Promise<AdminAttendanceBatchResponse> => {
     const params = new URLSearchParams({ date });
     const res = await axiosInstance.post<AdminAttendanceBatchResponse | { data: AdminAttendanceBatchResponse }>(

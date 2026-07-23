@@ -36,6 +36,7 @@ export type AuditLogAction =
 
 export interface AuditLog {
   id: string;
+  rawId: number;
   timestamp: string;
   userId: string;
   userName: string;
@@ -140,6 +141,24 @@ export const adminApi = {
     return roleData;
   },
 
+  getEmployeeRoles: async (employeeId: number): Promise<RoleResponse[]> => {
+    const res = await axiosInstance.get(`/employees/${employeeId}/roles`);
+    let roleData: any[] = [];
+    if (Array.isArray(res.data)) roleData = res.data;
+    else if (res.data?.data && Array.isArray(res.data.data)) roleData = res.data.data;
+    else if (res.data?.content && Array.isArray(res.data.content)) roleData = res.data.content;
+    else if (res.data?.items && Array.isArray(res.data.items)) roleData = res.data.items;
+    return roleData;
+  },
+
+  assignRoleToEmployee: async (employeeId: number, roleId: number): Promise<void> => {
+    await axiosInstance.post(`/employees/${employeeId}/roles`, { roleId });
+  },
+
+  removeRoleFromEmployee: async (employeeId: number, roleId: number): Promise<void> => {
+    await axiosInstance.delete(`/employees/${employeeId}/roles/${roleId}`);
+  },
+
   getAuditLogs: async (
     page = 1,
     size = 10,
@@ -175,6 +194,7 @@ export const adminApi = {
 
       return {
         id: `LOG-${log.auditId}`,
+        rawId: log.auditId,
         timestamp: log.createdAt || '',
         userId: String(log.actorId || 'System'),
         userName: `User ${log.actorId || 'System'}`, // Dummy name mapping since generic DTO lacks it
@@ -191,6 +211,32 @@ export const adminApi = {
     });
 
     return { items: mappedItems, totalPages };
+  },
+
+  getAuditLogById: async (id: number): Promise<AuditLog> => {
+    const { data } = await axiosInstance.get(`/audit-logs/${id}`);
+    const log = data?.data || data;
+    let beforeVal = undefined;
+    let afterVal = undefined;
+    try { if (log.oldValueJson) beforeVal = JSON.parse(log.oldValueJson); } catch (e) {}
+    try { if (log.newValueJson) afterVal = JSON.parse(log.newValueJson); } catch (e) {}
+
+    return {
+      id: `LOG-${log.auditId}`,
+      rawId: log.auditId,
+      timestamp: log.createdAt || '',
+      userId: String(log.actorId || 'System'),
+      userName: `User ${log.actorId || 'System'}`,
+      userRole: 'UNKNOWN',
+      action: (log.action || '').toLowerCase() as AuditLogAction,
+      module: log.entityType || 'Unknown',
+      recordId: String(log.entityId || ''),
+      ipAddress: 'N/A',
+      userAgent: 'N/A',
+      beforeValue: beforeVal,
+      afterValue: afterVal,
+      notes: ''
+    };
   },
 
   mapAccountDtoToRecord: (a: AccountDto): UserAccountRecord => {

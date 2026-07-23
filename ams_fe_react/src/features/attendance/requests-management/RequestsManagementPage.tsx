@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Filter, Eye, Pencil, Trash2, CheckCircle, XCircle, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
@@ -31,6 +31,17 @@ const RequestsManagementPage: React.FC = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewRequest, setViewRequest] = useState<RequestsResponse | null>(null);
+  const [viewRequestId, setViewRequestId] = useState<number | null>(null);
+
+  const { data: requestDetails, isFetching: isFetchingDetails } = useQuery({
+    queryKey: ['requestDetails', viewRequestId],
+    queryFn: () => requestApi.getRequestById(viewRequestId!),
+    enabled: !!viewRequestId,
+    retry: false
+  });
+
+  const displayRequest = requestDetails || viewRequest;
+
   const [editRequestId, setEditRequestId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
@@ -408,7 +419,7 @@ const RequestsManagementPage: React.FC = () => {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                      <button onClick={() => { setViewRequest(r); setShowViewModal(true); }} className={styles.nmBtnIcon} title="View details">
+                      <button onClick={() => { setViewRequest(r); setViewRequestId(r.requestId); setShowViewModal(true); }} className={styles.nmBtnIcon} title="View details">
                         <Eye className="h-4 w-4 text-blue-500 hover:text-blue-700" />
                       </button>
                       
@@ -553,53 +564,57 @@ const RequestsManagementPage: React.FC = () => {
         </ModalPortal>
       )}
 
-      {showViewModal && viewRequest && (
-        <ModalPortal onBackdropClick={() => setShowViewModal(false)}>
+      {/* ──────────────────────────────── VIEW MODAL ──────────────────────────────── */}
+      {showViewModal && displayRequest && (
+        <ModalPortal onBackdropClick={() => { setShowViewModal(false); setViewRequestId(null); setViewRequest(null); }}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Request Details</h2>
-              <button onClick={() => setShowViewModal(false)} className={styles.nmBtnIcon}><X className="h-5 w-5" /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2>Request Details</h2>
+                {isFetchingDetails && <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--nm-text-muted)' }} title="Fetching latest details..." />}
+              </div>
+              <button onClick={() => { setShowViewModal(false); setViewRequestId(null); setViewRequest(null); }} className={styles.nmBtnIcon}><X className="h-5 w-5" /></button>
             </div>
             
             <div className="space-y-4">
               <div className={styles.detailsGrid}>
-                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Request ID</p><p className={styles.detailsValue}>#{viewRequest.requestId}</p></div>
-                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Employee</p><p className={styles.detailsValue}>{viewRequest.employeeName || '-'}</p></div>
-                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Type</p><p className={styles.detailsValue}>{viewRequest.requestType}</p></div>
+                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Request ID</p><p className={styles.detailsValue}>#{displayRequest.requestId}</p></div>
+                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Employee</p><p className={styles.detailsValue}>{displayRequest.employeeName || '-'}</p></div>
+                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Type</p><p className={styles.detailsValue}>{displayRequest.requestType}</p></div>
                 <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Status</p><p className={styles.detailsValue}>
-                  <span className={cn(styles.nmBadge, viewRequest.status === 'APPROVED' ? styles.nmBadgeSuccess : viewRequest.status === 'REJECTED' ? styles.nmBadgeDanger : viewRequest.status === 'SUBMITTED' ? styles.nmBadgeInfo : styles.nmBadgeNeutral)}>
-                     {viewRequest.status}
+                  <span className={cn(styles.nmBadge, displayRequest.status === 'APPROVED' ? styles.nmBadgeSuccess : displayRequest.status === 'REJECTED' ? styles.nmBadgeDanger : displayRequest.status === 'SUBMITTED' ? styles.nmBadgeInfo : styles.nmBadgeNeutral)}>
+                     {displayRequest.status}
                   </span>
                 </p></div>
-                {(viewRequest.status === 'APPROVED' || viewRequest.status === 'REJECTED') && (
+                {(displayRequest.status === 'APPROVED' || displayRequest.status === 'REJECTED') && (
                   <div className={styles.detailsBlock}>
                     <p className={styles.detailsLabel}>Action By</p>
-                    <p className={styles.detailsValue}>{viewRequest.approverName ? `Approved by: ${viewRequest.approverName}` : (viewRequest as any).approverId ? `Approved by ID: ${(viewRequest as any).approverId}` : 'Manager / Admin'}</p>
+                    <p className={styles.detailsValue}>{displayRequest.approverName ? `Approved by: ${displayRequest.approverName}` : (displayRequest as any).approverId ? `Approved by ID: ${(displayRequest as any).approverId}` : 'Manager / Admin'}</p>
                   </div>
                 )}
-                <div className={cn(styles.detailsBlock, styles['full-width'])}><p className={styles.detailsLabel}>Title</p><p className={styles.detailsValue}>{viewRequest.title}</p></div>
+                <div className={cn(styles.detailsBlock, styles['full-width'])}><p className={styles.detailsLabel}>Title</p><p className={styles.detailsValue}>{displayRequest.title}</p></div>
               </div>
               
               <div className={styles.detailsGrid}>
-                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Start</p><p className={styles.detailsValue}>{formatDateTime(viewRequest.startDatetime)}</p></div>
-                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>End</p><p className={styles.detailsValue}>{formatDateTime(viewRequest.endDatetime)}</p></div>
+                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>Start</p><p className={styles.detailsValue}>{formatDateTime(displayRequest.startDatetime)}</p></div>
+                <div className={styles.detailsBlock}><p className={styles.detailsLabel}>End</p><p className={styles.detailsValue}>{formatDateTime(displayRequest.endDatetime)}</p></div>
               </div>
               
               <div className={styles.nmCardInset} style={{ marginTop: '16px' }}>
                 <p className={styles.detailsLabel} style={{ marginBottom: '4px' }}>Reason</p>
-                <p className={styles.detailsValue}>{viewRequest.reason || '-'}</p>
+                <p className={styles.detailsValue}>{displayRequest.reason || '-'}</p>
               </div>
               
-              {viewRequest.decisionNote && (
+              {displayRequest.decisionNote && (
                 <div className={styles.nmCardInset} style={{ marginTop: '16px', background: 'rgba(220, 53, 69, 0.05)', boxShadow: 'none' }}>
                   <p className={styles.detailsLabel} style={{ marginBottom: '4px', color: 'var(--nm-danger)' }}>Decision Note</p>
-                  <p className={styles.detailsValue} style={{ color: 'var(--nm-danger)' }}>{viewRequest.decisionNote}</p>
+                  <p className={styles.detailsValue} style={{ color: 'var(--nm-danger)' }}>{displayRequest.decisionNote}</p>
                 </div>
               )}
             </div>
             
             <div className={styles.modalFooter}>
-              <button onClick={() => setShowViewModal(false)} className={styles.nmBtnSecondary}>Close</button>
+              <button onClick={() => { setShowViewModal(false); setViewRequestId(null); setViewRequest(null); }} className={styles.nmBtnSecondary}>Close</button>
             </div>
           </div>
         </ModalPortal>

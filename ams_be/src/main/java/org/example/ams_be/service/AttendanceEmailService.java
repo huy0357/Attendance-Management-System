@@ -16,30 +16,54 @@ public class AttendanceEmailService {
 
     private final AttendanceSummaryMonthlyRepository attendanceSummaryMonthlyRepository;
     private final EmailService emailService;
+    private final org.example.ams_be.repository.EmployeeRepository employeeRepository;
 
     public void sendMonthlyAttendanceEmail(String monthKey, Long employeeId) {
         MonthlyAttendanceEmailDto summary = attendanceSummaryMonthlyRepository
                 .findEmailSummaryByMonthAndEmployee(monthKey, employeeId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Monthly summary not found for employeeId=" + employeeId + ", month=" + monthKey));
+                .orElseGet(() -> buildFallbackSummary(monthKey, employeeId));
 
         if (summary.getEmail() == null || summary.getEmail().isBlank()) {
             throw new RuntimeException("Employee has no email: " + employeeId);
         }
 
-        String subject = "Thong bao tong hop cham cong thang " + monthKey;
+        String subject = "Thông báo tổng hợp chấm công tháng " + monthKey;
         String html = buildAttendanceEmailHtml(summary);
 
         emailService.sendHtmlEmail(summary.getEmail(), subject, html);
     }
 
     public void sendMonthlyAttendanceEmailToAll(String monthKey) {
+        List<org.example.ams_be.dto.EmployeeDto> allEmployees = employeeRepository.findAll();
         List<MonthlyAttendanceEmailDto> summaries =
                 attendanceSummaryMonthlyRepository.findAllEmailSummaryByMonth(monthKey);
 
-        for (MonthlyAttendanceEmailDto summary : summaries) {
+        java.util.Map<Long, MonthlyAttendanceEmailDto> summaryMap = summaries.stream()
+                .collect(java.util.stream.Collectors.toMap(MonthlyAttendanceEmailDto::getEmployeeId, s -> s));
+
+        for (org.example.ams_be.dto.EmployeeDto emp : allEmployees) {
+            if ("INACTIVE".equalsIgnoreCase(emp.getStatus()) || emp.getEmail() == null || emp.getEmail().isBlank()) {
+                continue;
+            }
+
+            MonthlyAttendanceEmailDto summary = summaryMap.get(emp.getEmployeeId());
+            if (summary == null) {
+                summary = MonthlyAttendanceEmailDto.builder()
+                        .employeeId(emp.getEmployeeId())
+                        .employeeCode(emp.getEmployeeCode())
+                        .employeeName(emp.getFullName())
+                        .email(emp.getEmail())
+                        .monthKey(monthKey)
+                        .workDays(BigDecimal.ZERO)
+                        .leaveDays(BigDecimal.ZERO)
+                        .absentDays(BigDecimal.ZERO)
+                        .lateMinutes(0)
+                        .otMinutes(0)
+                        .build();
+            }
+
             try {
-                String subject = "Thong bao tong hop cham cong thang " + monthKey;
+                String subject = "Thông báo tổng hợp chấm công tháng " + monthKey;
                 String html = buildAttendanceEmailHtml(summary);
                 emailService.sendHtmlEmail(summary.getEmail(), subject, html);
                 log.info("Sent attendance email to employeeId={}, email={}", summary.getEmployeeId(), summary.getEmail());
@@ -48,6 +72,23 @@ public class AttendanceEmailService {
                         summary.getEmployeeId(), summary.getEmail(), e.getMessage(), e);
             }
         }
+    }
+
+    private MonthlyAttendanceEmailDto buildFallbackSummary(String monthKey, Long employeeId) {
+        org.example.ams_be.dto.EmployeeDto employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found: " + employeeId));
+        return MonthlyAttendanceEmailDto.builder()
+                .employeeId(employeeId)
+                .employeeCode(employee.getEmployeeCode())
+                .employeeName(employee.getFullName())
+                .email(employee.getEmail())
+                .monthKey(monthKey)
+                .workDays(BigDecimal.ZERO)
+                .leaveDays(BigDecimal.ZERO)
+                .absentDays(BigDecimal.ZERO)
+                .lateMinutes(0)
+                .otMinutes(0)
+                .build();
     }
 
     private String buildAttendanceEmailHtml(MonthlyAttendanceEmailDto summary) {
@@ -62,43 +103,43 @@ public class AttendanceEmailService {
                 <html>
                 <head>
                     <meta charset="UTF-8">
-                    <title>Thong bao cham cong</title>
+                    <title>Thông báo chấm công</title>
                 </head>
                 <body style="font-family: Arial, sans-serif; color: #333; background: #f7f7f7; padding: 24px;">
                     <div style="max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #ddd; padding: 24px; border-radius: 10px;">
-                        <h2 style="margin-top: 0;">Thong bao tong hop cham cong thang %s</h2>
+                        <h2 style="margin-top: 0;">Thông báo tổng hợp chấm công tháng %s</h2>
 
-                        <p>Xin chao <b>%s</b> (%s),</p>
-                        <p>Duoi day la thong tin cham cong cua ban trong thang <b>%s</b>.</p>
+                        <p>Xin chào <b>%s</b> (%s),</p>
+                        <p>Dưới đây là thông tin chấm công của bạn trong tháng <b>%s</b>.</p>
 
                         <table style="width: 100%%; border-collapse: collapse; margin-top: 16px;">
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 10px;"><b>So ngay cong</b></td>
+                                <td style="border: 1px solid #ddd; padding: 10px;"><b>Số ngày công</b></td>
                                 <td style="border: 1px solid #ddd; padding: 10px;">%s</td>
                             </tr>
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 10px;"><b>So ngay nghi phep</b></td>
+                                <td style="border: 1px solid #ddd; padding: 10px;"><b>Số ngày nghỉ phép</b></td>
                                 <td style="border: 1px solid #ddd; padding: 10px;">%s</td>
                             </tr>
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 10px;"><b>So ngay vang</b></td>
+                                <td style="border: 1px solid #ddd; padding: 10px;"><b>Số ngày vắng</b></td>
                                 <td style="border: 1px solid #ddd; padding: 10px;">%s</td>
                             </tr>
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 10px;"><b>Tong so phut di muon</b></td>
-                                <td style="border: 1px solid #ddd; padding: 10px;">%d phut</td>
+                                <td style="border: 1px solid #ddd; padding: 10px;"><b>Tổng số phút đi muộn</b></td>
+                                <td style="border: 1px solid #ddd; padding: 10px;">%d phút</td>
                             </tr>
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 10px;"><b>Tong so phut OT</b></td>
-                                <td style="border: 1px solid #ddd; padding: 10px;">%d phut</td>
+                                <td style="border: 1px solid #ddd; padding: 10px;"><b>Tổng số phút OT</b></td>
+                                <td style="border: 1px solid #ddd; padding: 10px;">%d phút</td>
                             </tr>
                         </table>
 
                         <p style="margin-top: 20px;">
-                            Vui long dang nhap he thong de kiem tra chi tiet neu can. Neu du lieu co sai sot, hay lien he HR hoac admin.
+                            Vui lòng đăng nhập hệ thống để kiểm tra chi tiết nếu cần. Nếu dữ liệu có sai sót, hãy liên hệ HR hoặc admin.
                         </p>
 
-                        <p>Tran trong.</p>
+                        <p>Trân trọng.</p>
                     </div>
                 </body>
                 </html>

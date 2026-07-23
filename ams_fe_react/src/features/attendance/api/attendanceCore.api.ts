@@ -269,6 +269,10 @@ export const scheduleApi = {
 // --- REQUESTS API (General) ---
 // Maps to /requests endpoint
 export const requestApi = {
+  getRequestById: async (id: number): Promise<RequestsResponse> => {
+    const res = await axiosInstance.get(`/requests/${id}`);
+    return res.data?.data || res.data;
+  },
   createRequest: async (payload: RequestsUpsertRequest): Promise<RequestsResponse> => {
     // Angular called `${environment.apiBaseUrl}/requests` which might not have the `/v1` since standard endpoints don't inherently.
     // Let's assume standard Vite proxy mapped `/api` to `http://localhost:8080/api`. So I will just map `/requests`.

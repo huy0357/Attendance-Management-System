@@ -24,7 +24,6 @@ const LeaveManagementPage = lazy(() => import('../features/attendance/leave-mana
 const SchedulingPage = lazy(() => import('../features/attendance/scheduling/SchedulingPage'));
 const ShiftTemplatesPage = lazy(() => import('../features/attendance/shift-templates/ShiftTemplatesPage'));
 const AttendanceEmailPage = lazy(() => import('../features/attendance/attendance-email/AttendanceEmailPage'));
-const MonthlySummaryPage = lazy(() => import('../features/attendance/monthly-summary/MonthlySummaryPage'));
 const MySchedulePage = lazy(() => import('../features/attendance/my-schedule/MySchedulePage'));
 
 // Admin
@@ -95,7 +94,6 @@ const AppRouter: React.FC = () => (
             <Route path="/attendance/scheduling" element={<SchedulingPage />} />
             <Route path="/attendance/shift-templates" element={<ShiftTemplatesPage />} />
             <Route path="/attendance/attendance-email" element={<AttendanceEmailPage />} />
-            <Route path="/attendance/monthly-summary" element={<MonthlySummaryPage />} />
 
             {/* Payroll & Reports */}
 

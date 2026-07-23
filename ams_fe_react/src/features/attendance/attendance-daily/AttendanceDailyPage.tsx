@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Download, Search, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Download, Search, X, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { attendanceDailyApi } from './api/attendance-daily.api';
 import styles from './AttendanceDailyPage.module.scss';
@@ -33,6 +34,8 @@ const getMonthVal = (date: Date): string => {
 const AttendanceDailyPage: React.FC = () => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
+  const { employeeId } = useParams<{ employeeId: string }>();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<'all' | 'me'>(isAdmin ? 'all' : 'me');
 
@@ -77,7 +80,7 @@ const AttendanceDailyPage: React.FC = () => {
 
   // 2. Fetch Records
   const { data: recordsPage, isLoading, error } = useQuery({
-    queryKey: ['attendanceDaily', activeTab, from, to, page, size],
+    queryKey: ['attendanceDaily', activeTab, employeeId, from, to, page, size],
     queryFn: async () => {
       setErrorMessage('');
       
@@ -87,6 +90,10 @@ const AttendanceDailyPage: React.FC = () => {
       }
       if (to < from) {
         throw new Error('To date must be on or after From date.');
+      }
+
+      if (employeeId) {
+        return await attendanceDailyApi.getAttendanceDailyEmployee(Number(employeeId), from, to, page, size);
       }
 
       // Admin/Manager tab: trigger batch sync in background (non-blocking), always fetch data
@@ -207,13 +214,27 @@ const AttendanceDailyPage: React.FC = () => {
     <div className="space-y-6">
       {/* ──────────────────────────────── HEADER ──────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className={styles.pageTitle}>Time & Attendance Logs</h1>
-          <p className={styles.pageSubtitle}>Review calculated attendance records for the selected date range.</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {employeeId && (
+            <button 
+              onClick={() => navigate('/attendance/attendance-daily')}
+              className={styles.nmBtnSecondary}
+              style={{ padding: '8px', borderRadius: '50%' }}
+              title="Back to All Employees"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div>
+            <h1 className={styles.pageTitle}>
+              {employeeId ? `Attendance for ${getEmployeeName(Number(employeeId))}` : 'Time & Attendance Logs'}
+            </h1>
+            <p className={styles.pageSubtitle}>Review calculated attendance records for the selected date range.</p>
+          </div>
         </div>
       </div>
 
-      {isAdmin && (
+      {!employeeId && isAdmin && (
         <div className={styles.viewToggle} style={{ width: 'fit-content' }}>
           <button 
             className={activeTab === 'all' ? styles.active : ''} 
@@ -333,7 +354,14 @@ const AttendanceDailyPage: React.FC = () => {
                 <tr key={record.attendanceId}>
                   <td style={{ fontWeight: 'bold' }}>{formatWorkDate(record.workDate)}</td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div 
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: (isAdmin && !employeeId) ? 'pointer' : 'default' }}
+                      onClick={() => {
+                        if (isAdmin && !employeeId) {
+                          navigate(`/attendance/attendance-daily/employee/${record.employeeId}`);
+                        }
+                      }}
+                    >
                       <div className={styles.nmAvatar}>{getEmployeeInitial(record.employeeId)}</div>
                       <div>
                         <span style={{ display: 'block', fontWeight: 'bold' }}>{getEmployeeName(record.employeeId)}</span>

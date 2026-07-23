@@ -1,8 +1,10 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, Plus, Search, Eye, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
+import { Download, Plus, Search, Eye, Edit2, Trash2, X, AlertTriangle, Shield, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { employeeApi, EmployeeDto, EmployeeRequest } from '../api/hrm.api';
+import { adminApi } from '../../admin/api/admin.api';
+import { RoleResponse } from '../../../shared/models/account.model';
 import styles from './EmployeesPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
@@ -33,9 +35,40 @@ const EmployeesPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
 
   // Selected Employee
   const [selectedEmployee, setSelectedEmployee] = useState<UiEmployee | null>(null);
+
+  // Queries for Roles
+  const { data: allRoles = [] } = useQuery({
+    queryKey: ['allRoles'],
+    queryFn: () => adminApi.getAccountRoles(),
+    enabled: isAdmin
+  });
+
+  const { data: employeeRoles = [], isFetching: isLoadingRoles } = useQuery({
+    queryKey: ['employeeRoles', selectedEmployee?.id],
+    queryFn: () => adminApi.getEmployeeRoles(Number(selectedEmployee!.id)),
+    enabled: !!selectedEmployee?.id && showRoleModal
+  });
+
+  const [selectedRoleIdToAssign, setSelectedRoleIdToAssign] = useState<number | ''>('');
+
+  const assignRoleMutation = useMutation({
+    mutationFn: (roleId: number) => adminApi.assignRoleToEmployee(Number(selectedEmployee!.id), roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employeeRoles', selectedEmployee?.id] });
+      setSelectedRoleIdToAssign('');
+    }
+  });
+
+  const removeRoleMutation = useMutation({
+    mutationFn: (roleId: number) => adminApi.removeRoleFromEmployee(Number(selectedEmployee!.id), roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employeeRoles', selectedEmployee?.id] });
+    }
+  });
 
   // Form States
   const defaultFormState: EmployeeRequest = {
@@ -570,6 +603,9 @@ const EmployeesPage: React.FC = () => {
               </button>
               {isAdmin && (
                 <>
+                  <button onClick={() => setShowRoleModal(true)} className={styles.nmBtnPrimary} style={{ background: 'var(--nm-info)', color: '#fff', boxShadow: 'none' }}>
+                    <Shield className="h-4 w-4 shrink-0" /> Manage Roles
+                  </button>
                   <button onClick={() => openEdit(selectedEmployee)} className={styles.nmBtnPrimary}>
                     <Edit2 className="h-4 w-4 shrink-0" /> Edit
                   </button>
@@ -778,6 +814,86 @@ const EmployeesPage: React.FC = () => {
               </button>
               <button onClick={() => deleteMutation.mutate(Number(selectedEmployee.id))} disabled={deleteMutation.isPending} className={styles.nmBtnPrimary} style={{ background: 'var(--nm-danger)', boxShadow: 'none' }}>
                 {deleteMutation.isPending ? 'Deleting...' : 'Delete Employee'}
+              </button>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* ROLE MANAGEMENT MODAL */}
+      {showRoleModal && selectedEmployee && (
+        <ModalPortal onBackdropClick={() => setShowRoleModal(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <div className="flex items-center gap-3">
+                <Shield style={{ color: 'var(--nm-info)' }} />
+                <h2>Manage Roles for {selectedEmployee.fullName}</h2>
+              </div>
+              <button onClick={() => setShowRoleModal(false)} className={styles.nmBtnIcon}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <h3 style={{ marginBottom: '8px', fontWeight: 'bold' }}>Current Roles</h3>
+              {isLoadingRoles ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6 }}>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading roles...
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {employeeRoles.length === 0 ? (
+                    <p style={{ color: 'var(--nm-text-muted)' }}>No roles assigned.</p>
+                  ) : (
+                    employeeRoles.map((role: RoleResponse) => (
+                      <div key={role.roleId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--nm-surface)', borderRadius: 'var(--nm-radius-md)', border: '1px solid var(--nm-border)' }}>
+                        <div>
+                          <p style={{ fontWeight: 'bold' }}>{role.roleName}</p>
+                          <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>{role.roleCode}</p>
+                        </div>
+                        <button 
+                          onClick={() => removeRoleMutation.mutate(role.roleId)}
+                          disabled={removeRoleMutation.isPending}
+                          className={styles.nmBtnIcon} 
+                          style={{ color: 'var(--nm-danger)' }}
+                          title="Remove Role"
+                        >
+                          {removeRoleMutation.isPending && removeRoleMutation.variables === role.roleId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: '24px', borderTop: '1px solid var(--nm-border)', paddingTop: '16px' }}>
+              <h3 style={{ marginBottom: '8px', fontWeight: 'bold' }}>Assign New Role</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select 
+                  value={selectedRoleIdToAssign}
+                  onChange={e => setSelectedRoleIdToAssign(Number(e.target.value))}
+                  className={styles.nmInput} 
+                  style={{ flex: 1 }}
+                >
+                  <option value="" disabled>Select a role...</option>
+                  {allRoles.filter((r: RoleResponse) => !employeeRoles.find((er: RoleResponse) => er.roleId === r.roleId)).map((r: RoleResponse) => (
+                    <option key={r.roleId} value={r.roleId}>{r.roleName}</option>
+                  ))}
+                </select>
+                <button 
+                  onClick={() => { if (selectedRoleIdToAssign) assignRoleMutation.mutate(Number(selectedRoleIdToAssign)); }}
+                  disabled={!selectedRoleIdToAssign || assignRoleMutation.isPending}
+                  className={styles.nmBtnPrimary}
+                >
+                  {assignRoleMutation.isPending ? 'Assigning...' : 'Assign'}
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.modalFooter} style={{ marginTop: '24px' }}>
+              <button onClick={() => setShowRoleModal(false)} className={styles.nmBtnSecondary}>
+                Close
               </button>
             </div>
           </div>

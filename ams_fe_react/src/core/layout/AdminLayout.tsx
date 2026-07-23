@@ -122,12 +122,6 @@ const NAV_ITEMS: NavItem[] = [
     requiredRoles: ['ADMIN'],
   },
   {
-    label: 'Monthly Summary',
-    path: '/attendance/monthly-summary',
-    icon: <ClipboardList {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
-  },
-  {
     label: 'Attendance Email',
     path: '/attendance/attendance-email',
     icon: <Mail {...ICON_SIZE} />,

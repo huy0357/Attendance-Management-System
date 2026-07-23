@@ -12,10 +12,11 @@ const ProfilePage: React.FC = () => {
   const { username, getNormalizedRole } = useAuth();
 
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
+    otp: '',
     newPassword: '',
     confirmPassword: ''
   });
+  const [isOtpSent, setIsOtpSent] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   
@@ -36,21 +37,35 @@ const ProfilePage: React.FC = () => {
     refetchOnWindowFocus: false,
   });
 
-  const changePasswordMutation = useMutation({
+  const requestOtpMutation = useMutation({
+    mutationFn: async (email: string) => {
+      await axiosInstance.post('/auth/forgot-password', { email });
+    },
+    onSuccess: () => {
+      setIsOtpSent(true);
+      setPasswordSuccess('An OTP has been sent to your email.');
+      setPasswordError('');
+    },
+    onError: (err: unknown) => {
+      const errObj = err as any;
+      setPasswordError(errObj?.response?.data?.message || 'Failed to send OTP.');
+      setPasswordSuccess('');
+    }
+  });
+
+  const resetPasswordMutation = useMutation({
     mutationFn: async (data: Record<string, string>) => {
-      // Mocking/calling generic endpoint since exact change password may not be defined yet
-      await axiosInstance.post('/auth/change-password', data);
+      await axiosInstance.post('/auth/reset-password', data);
     },
     onSuccess: () => {
       setPasswordSuccess('Password updated successfully.');
       setPasswordError('');
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordForm({ otp: '', newPassword: '', confirmPassword: '' });
+      setIsOtpSent(false);
     },
     onError: (err: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errObj = err as any;
-      const message = errObj?.response?.data?.message;
-      setPasswordError(message || 'Failed to change password. Please try again.');
+      setPasswordError(errObj?.response?.data?.message || 'Failed to change password. Please try again.');
       setPasswordSuccess('');
     }
   });
@@ -92,7 +107,17 @@ const ProfilePage: React.FC = () => {
     updateProfileMutation.mutate(editForm as any);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleRequestOtp = () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+    if (!profile?.email) {
+      setPasswordError('Your profile does not have an email address.');
+      return;
+    }
+    requestOtpMutation.mutate(profile.email);
+  };
+
+  const handleResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
@@ -106,8 +131,9 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
-    changePasswordMutation.mutate({
-      currentPassword: passwordForm.currentPassword,
+    resetPasswordMutation.mutate({
+      email: profile!.email,
+      otp: passwordForm.otp,
       newPassword: passwordForm.newPassword,
     });
   };
@@ -308,62 +334,82 @@ const ProfilePage: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleChangePassword} className={styles.passwordForm}>
-              <div className={styles.fieldGroup}>
-                <label>Current Password</label>
-                <div style={{ position: 'relative' }}>
-                  <Lock className="w-4 h-4" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--nm-text-muted)' }} />
+            {!isOtpSent ? (
+              <div>
+                <p style={{ color: 'var(--nm-text-muted)', marginBottom: '16px', fontSize: '14px' }}>
+                  Click the button below to request an OTP sent to your email (<b>{profile?.email || 'N/A'}</b>).
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={handleRequestOtp}
+                    disabled={requestOtpMutation.isPending || !profile?.email}
+                    className={styles.nmBtnPrimary}
+                  >
+                    {requestOtpMutation.isPending ? 'Requesting...' : 'Request OTP'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleResetPassword} className={styles.passwordForm}>
+                <div className={styles.fieldGroup}>
+                  <label>OTP from Email</label>
                   <input
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    type="text"
+                    value={passwordForm.otp}
+                    onChange={e => setPasswordForm({ ...passwordForm, otp: e.target.value })}
                     className={styles.nmInput}
-                    style={{ paddingLeft: '40px' }}
                     required
                   />
                 </div>
-              </div>
 
-              <div className={styles.fieldGroup}>
-                <label>New Password</label>
-                <div style={{ position: 'relative' }}>
-                  <Lock className="w-4 h-4" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--nm-text-muted)' }} />
-                  <input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    className={styles.nmInput}
-                    style={{ paddingLeft: '40px' }}
-                    required
-                  />
+                <div className={styles.fieldGroup}>
+                  <label>New Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock className="w-4 h-4" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--nm-text-muted)' }} />
+                    <input
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      className={styles.nmInput}
+                      style={{ paddingLeft: '40px' }}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className={styles.fieldGroup}>
-                <label>Confirm New Password</label>
-                <div style={{ position: 'relative' }}>
-                  <Lock className="w-4 h-4" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--nm-text-muted)' }} />
-                  <input
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                    className={styles.nmInput}
-                    style={{ paddingLeft: '40px' }}
-                    required
-                  />
+                <div className={styles.fieldGroup}>
+                  <label>Confirm New Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock className="w-4 h-4" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--nm-text-muted)' }} />
+                    <input
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      className={styles.nmInput}
+                      style={{ paddingLeft: '40px' }}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                <button
-                  type="submit"
-                  disabled={changePasswordMutation.isPending || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
-                  className={styles.nmBtnPrimary}
-                >
-                  {changePasswordMutation.isPending ? 'Updating...' : <><Save className="w-4 h-4" /> Update Password</>}
-                </button>
-              </div>
-            </form>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsOtpSent(false)}
+                    className={styles.nmBtnSecondary}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetPasswordMutation.isPending || !passwordForm.otp || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                    className={styles.nmBtnPrimary}
+                  >
+                    {resetPasswordMutation.isPending ? 'Updating...' : <><Save className="w-4 h-4" /> Update Password</>}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>
