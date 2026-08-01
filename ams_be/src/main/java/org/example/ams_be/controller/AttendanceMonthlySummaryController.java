@@ -1,10 +1,15 @@
 package org.example.ams_be.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.ams_be.dto.MonthlyAttendanceEmailDto;
+import org.example.ams_be.repository.AttendanceSummaryMonthlyRepository;
+import org.example.ams_be.security.UserPrincipal;
 import org.example.ams_be.service.AttendanceMonthlySummaryService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -13,6 +18,7 @@ import java.util.Map;
 public class AttendanceMonthlySummaryController {
 
     private final AttendanceMonthlySummaryService attendanceMonthlySummaryService;
+    private final AttendanceSummaryMonthlyRepository attendanceSummaryMonthlyRepository;
 
     @PostMapping("/generate")
     public ResponseEntity<?> generate(@RequestParam String month) {
@@ -24,4 +30,32 @@ public class AttendanceMonthlySummaryController {
         ));
     }
 
+    // MỚI — ADMIN/HR: xem summary toàn bộ nhân viên trong tháng
+    // GET /api/monthly-summary/admin?month=2026-07
+    @GetMapping("/admin")
+    public List<MonthlyAttendanceEmailDto> adminGetSummary(@RequestParam String month) {
+        return attendanceSummaryMonthlyRepository.findAllEmailSummaryByMonth(month);
+    }
+
+    // MỚI — xem summary 1 nhân viên cụ thể
+    // GET /api/monthly-summary/employee/5?month=2026-07
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<?> employeeGetSummary(
+            @PathVariable Long employeeId,
+            @RequestParam String month
+    ) {
+        return attendanceSummaryMonthlyRepository.findEmailSummaryByMonthAndEmployee(month, employeeId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // MỚI — nhân viên tự xem summary tháng của mình
+    // GET /api/monthly-summary/me?month=2026-07
+    @GetMapping("/me")
+    public ResponseEntity<?> mySummary(@RequestParam String month, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return attendanceSummaryMonthlyRepository.findEmailSummaryByMonthAndEmployee(month, principal.getEmployeeId())
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 }

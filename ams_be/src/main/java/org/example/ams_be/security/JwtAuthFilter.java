@@ -28,10 +28,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        System.out.println("DEBUG authHeader = " + authHeader);
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-
             try {
+                boolean expired = jwtUtil.isExpired(token);
+                String type = jwtUtil.getType(token);
+                System.out.println("DEBUG expired=" + expired + " type=" + type);
                 if (!jwtUtil.isExpired(token) && "access".equals(jwtUtil.getType(token))) {
                     Long employeeId = jwtUtil.getEmployeeId(token); // có thể null
                     String username = jwtUtil.getUsername(token);
@@ -39,14 +43,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                     UserPrincipal principal = new UserPrincipal(employeeId, username, role);
 
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            principal, null, principal.getAuthorities());
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-            } catch (JwtException ignored) {
-                // token invalid -> không set auth, để Security xử lý 401
+            } catch (JwtException e) {
+                System.out.println("DEBUG JwtException: " + e.getMessage()); // thay vì ignored
             }
+        } else {
+            System.out.println("DEBUG: no Authorization header or wrong prefix");
         }
 
         filterChain.doFilter(request, response);

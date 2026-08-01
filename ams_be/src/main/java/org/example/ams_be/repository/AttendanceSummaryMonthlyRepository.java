@@ -26,6 +26,7 @@ public class AttendanceSummaryMonthlyRepository {
                 leave_days,
                 ot_minutes,
                 late_minutes,
+                early_leave_minutes,
                 absent_days,
                 generated_at
             )
@@ -41,6 +42,7 @@ public class AttendanceSummaryMonthlyRepository {
                     COALESCE(ad.ot_minutes_holiday, 0)
                 ) AS ot_minutes,
                 SUM(COALESCE(ad.late_minutes, 0)) AS late_minutes,
+                SUM(COALESCE(ad.early_leave_minutes, 0)) AS early_leave_minutes,
                 SUM(CASE WHEN ad.status = 'ABSENT' THEN 1 ELSE 0 END) AS absent_days,
                 NOW() AS generated_at
             FROM attendance_daily ad
@@ -53,6 +55,7 @@ public class AttendanceSummaryMonthlyRepository {
                 leave_days = VALUES(leave_days),
                 ot_minutes = VALUES(ot_minutes),
                 late_minutes = VALUES(late_minutes),
+                early_leave_minutes = VALUES(early_leave_minutes),
                 absent_days = VALUES(absent_days),
                 generated_at = VALUES(generated_at)
             """;
@@ -70,6 +73,7 @@ public class AttendanceSummaryMonthlyRepository {
                 leave_days,
                 ot_minutes,
                 late_minutes,
+                early_leave_minutes,
                 absent_days,
                 generated_at
             )
@@ -85,6 +89,7 @@ public class AttendanceSummaryMonthlyRepository {
                     COALESCE(ad.ot_minutes_holiday, 0)
                 ) AS ot_minutes,
                 SUM(COALESCE(ad.late_minutes, 0)) AS late_minutes,
+                SUM(COALESCE(ad.early_leave_minutes, 0)) AS early_leave_minutes,
                 SUM(CASE WHEN ad.status = 'ABSENT' THEN 1 ELSE 0 END) AS absent_days,
                 NOW() AS generated_at
             FROM attendance_daily ad
@@ -98,6 +103,7 @@ public class AttendanceSummaryMonthlyRepository {
                 leave_days = VALUES(leave_days),
                 ot_minutes = VALUES(ot_minutes),
                 late_minutes = VALUES(late_minutes),
+                early_leave_minutes = VALUES(early_leave_minutes),
                 absent_days = VALUES(absent_days),
                 generated_at = VALUES(generated_at)
             """;
@@ -117,6 +123,7 @@ public class AttendanceSummaryMonthlyRepository {
                 m.leave_days,
                 m.absent_days,
                 m.late_minutes,
+                m.early_leave_minutes,
                 m.ot_minutes
             FROM attendance_summary_monthly m
             JOIN employees e ON e.employee_id = m.employee_id
@@ -135,6 +142,7 @@ public class AttendanceSummaryMonthlyRepository {
                                 .leaveDays(rs.getBigDecimal("leave_days"))
                                 .absentDays(rs.getBigDecimal("absent_days"))
                                 .lateMinutes(rs.getInt("late_minutes"))
+                                .earlyLeaveMinutes(rs.getInt("early_leave_minutes"))
                                 .otMinutes(rs.getInt("ot_minutes"))
                                 .build()
                 , monthKey, employeeId);
@@ -154,6 +162,7 @@ public class AttendanceSummaryMonthlyRepository {
                 m.leave_days,
                 m.absent_days,
                 m.late_minutes,
+                m.early_leave_minutes,
                 m.ot_minutes
             FROM attendance_summary_monthly m
             JOIN employees e ON e.employee_id = m.employee_id
@@ -174,6 +183,7 @@ public class AttendanceSummaryMonthlyRepository {
                                 .leaveDays(rs.getBigDecimal("leave_days"))
                                 .absentDays(rs.getBigDecimal("absent_days"))
                                 .lateMinutes(rs.getInt("late_minutes"))
+                                .earlyLeaveMinutes(rs.getInt("early_leave_minutes"))
                                 .otMinutes(rs.getInt("ot_minutes"))
                                 .build()
                 , monthKey);

@@ -50,7 +50,7 @@ public class RequestApplicationService {
 
         for (Requests req : requests) {
             AttendanceCalculationResult updated = applyOne(result, req);
-            if (Boolean.TRUE.equals(updated.getHasRequestApplied())) return updated;
+            if (Boolean.TRUE.equals(updated.isRequestApplied())) return updated;
         }
         return result;
     }
@@ -75,7 +75,7 @@ public class RequestApplicationService {
 
             return copy(r)
                     .status(AttendanceCalcStatus.ON_LEAVE)
-                    .hasRequestApplied(true)
+                    .requestApplied(true)
                     .note(appendNote(r.getNote(), "On leave: " + req.getRequestType() + reason(req)))
                     .build();
         }
@@ -87,7 +87,7 @@ public class RequestApplicationService {
             return copy(r)
                     .lateMinutes(0)
                     .status(AttendanceCalcStatus.PRESENT)
-                    .hasRequestApplied(true)
+                    .requestApplied(true)
                     .note(appendNote(r.getNote(), "Late approved" + reason(req)))
                     .build();
         }
@@ -96,7 +96,7 @@ public class RequestApplicationService {
             return copy(r)
                     .earlyLeaveMinutes(0)
                     .status(AttendanceCalcStatus.PRESENT)
-                    .hasRequestApplied(true)
+                    .requestApplied(true)
                     .note(appendNote(r.getNote(), "Early leave approved" + reason(req)))
                     .build();
         }
@@ -118,7 +118,7 @@ public class RequestApplicationService {
                 .earlyLeaveMinutes(r.getEarlyLeaveMinutes())
                 .workingHours(r.getWorkingHours())
                 .isNightShift(r.getIsNightShift())
-                .hasRequestApplied(r.getHasRequestApplied())
+                .requestApplied(r.isRequestApplied())
                 .note(r.getNote());
     }
 

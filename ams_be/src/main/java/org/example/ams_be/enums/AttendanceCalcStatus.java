@@ -10,5 +10,6 @@ public enum AttendanceCalcStatus {
     LATE,
     EARLY_LEAVE,
     MISSING_LOG,
+    MISSING_SCHEDULE, // MỚI: có chấm công nhưng chưa được xếp ca
     ON_LEAVE
 }
