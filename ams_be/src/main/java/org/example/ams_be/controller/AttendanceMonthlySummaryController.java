@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/monthly-summary")
@@ -54,8 +55,17 @@ public class AttendanceMonthlySummaryController {
     @GetMapping("/me")
     public ResponseEntity<?> mySummary(@RequestParam String month, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return attendanceSummaryMonthlyRepository.findEmailSummaryByMonthAndEmployee(month, principal.getEmployeeId())
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
+        Long empId = principal.getEmployeeId();
+
+        // 1. Thử lấy từ bảng snapshot attendance_summary_monthly trước
+        Optional<MonthlyAttendanceEmailDto> summary = attendanceSummaryMonthlyRepository.findEmailSummaryByMonthAndEmployee(month, empId);
+
+        // 2. Nếu chưa có (tháng hiện tại đang chạy dở), fallback tính realtime từ attendance_daily
+        if (summary.isEmpty()) {
+            summary = attendanceSummaryMonthlyRepository.findRealtimeSummaryByMonthAndEmployee(month, empId);
+        }
+
+        return summary.<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

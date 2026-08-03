@@ -12,17 +12,24 @@ import java.util.List;
 
 public interface FaceEventRepository extends JpaRepository<FaceEvent, Long> {
 
+    // UPDATE FIX 1: Cho phép lấy event chưa dùng HOẶC đã dùng đúng cho processDate này (để phục vụ Rerun)
     @Query("""
         SELECT e FROM FaceEvent e
         WHERE e.eventTime >= :start AND e.eventTime < :end
           AND UPPER(e.matchStatus) = 'MATCH'
-          AND e.consumedForDate IS NULL
-        ORDER BY e.eventTime
+          AND (e.consumedForDate IS NULL OR e.consumedForDate = :processDate)
+        ORDER BY e.eventTime ASC
         """)
-    List<FaceEvent> findUnconsumedMatchedEventsBetween(
+    List<FaceEvent> findEventsForBatch(
             @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
+            @Param("end") LocalDateTime end,
+            @Param("processDate") LocalDate processDate
     );
+
+    // FIX RERUN: Reset consumedForDate về null trước khi rerun ngày đó
+    @Modifying
+    @Query("UPDATE FaceEvent e SET e.consumedForDate = NULL WHERE e.consumedForDate = :processDate")
+    void unmarkConsumedForDate(@Param("processDate") LocalDate processDate);
 
     @Modifying
     @Query("UPDATE FaceEvent e SET e.consumedForDate = :processDate WHERE e.id IN :ids")

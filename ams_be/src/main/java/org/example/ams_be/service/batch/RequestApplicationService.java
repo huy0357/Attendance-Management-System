@@ -83,24 +83,24 @@ public class RequestApplicationService {
     }
 
     private AttendanceCalculationResult applyLateEarly(AttendanceCalculationResult r, Requests req) {
-        if (r.getStatus() == AttendanceCalcStatus.LATE) {
+        int late = r.getLateMinutes();
+        int early = r.getEarlyLeaveMinutes();
+
+        if (r.getStatus() == AttendanceCalcStatus.LATE || r.getStatus() == AttendanceCalcStatus.EARLY_LEAVE) {
+            // Đơn giải trình trễ/sớm
+            late = 0; // Đã duyệt miễn trễ
+            early = 0; // Đã duyệt miễn về sớm
+
+            AttendanceCalcStatus newStatus = (late == 0 && early == 0) ? AttendanceCalcStatus.PRESENT : r.getStatus();
+
             return copy(r)
-                    .lateMinutes(0)
-                    .status(AttendanceCalcStatus.PRESENT)
+                    .lateMinutes(late)
+                    .earlyLeaveMinutes(early)
+                    .status(newStatus)
                     .requestApplied(true)
-                    .note(appendNote(r.getNote(), "Late approved" + reason(req)))
+                    .note(appendNote(r.getNote(), "Approved Late/Early Request" + reason(req)))
                     .build();
         }
-
-        if (r.getStatus() == AttendanceCalcStatus.EARLY_LEAVE) {
-            return copy(r)
-                    .earlyLeaveMinutes(0)
-                    .status(AttendanceCalcStatus.PRESENT)
-                    .requestApplied(true)
-                    .note(appendNote(r.getNote(), "Early leave approved" + reason(req)))
-                    .build();
-        }
-
         return r;
     }
 

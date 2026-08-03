@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,10 +67,11 @@ class AttendanceBatchServiceTest {
                                 .status(AttendanceCalcStatus.LATE)
                                 .build();
 
-                when(logCleaningService.fetchAndCleanLogs(processDate)).thenReturn(List.of(logs));
+                Map<Long, EmployeeSchedule> scheduleMap = Map.of(1L, schedule);
+
                 when(employeeScheduleRepository.findByWorkDate(processDate)).thenReturn(List.of(schedule));
-                when(attendanceCalculationService.calculateAttendance(List.of(logs), java.util.Map.of(1L, schedule),
-                                processDate))
+                when(logCleaningService.fetchAndCleanLogs(processDate, scheduleMap)).thenReturn(List.of(logs));
+                when(attendanceCalculationService.calculateAttendance(List.of(logs), scheduleMap, processDate))
                                 .thenReturn(List.of(calculated));
                 when(requestApplicationService.applyRequests(List.of(calculated), processDate))
                                 .thenReturn(List.of(calculated));
@@ -100,6 +102,8 @@ class AttendanceBatchServiceTest {
                 EmployeeSchedule scheduleTwo = EmployeeSchedule.builder().employeeId(2L).workDate(processDate)
                                 .shiftId(20L).build();
 
+                Map<Long, EmployeeSchedule> scheduleMap = Map.of(1L, scheduleOne, 2L, scheduleTwo);
+
                 AttendanceCalculationResult absent = AttendanceCalculationResult.builder()
                                 .employeeId(1L)
                                 .workDate(processDate)
@@ -119,11 +123,10 @@ class AttendanceBatchServiceTest {
                                 .earlyLeaveMinutes(3)
                                 .build();
 
-                when(logCleaningService.fetchAndCleanLogs(processDate)).thenReturn(List.of());
                 when(employeeScheduleRepository.findByWorkDate(processDate))
                                 .thenReturn(List.of(scheduleOne, scheduleTwo));
-                when(attendanceCalculationService.calculateAttendance(List.of(),
-                                java.util.Map.of(1L, scheduleOne, 2L, scheduleTwo), processDate))
+                when(logCleaningService.fetchAndCleanLogs(processDate, scheduleMap)).thenReturn(List.of());
+                when(attendanceCalculationService.calculateAttendance(List.of(), scheduleMap, processDate))
                                 .thenReturn(List.of(absent, leave));
                 when(requestApplicationService.applyRequests(List.of(absent, leave), processDate))
                                 .thenReturn(List.of(absent, leave));
@@ -165,6 +168,8 @@ class AttendanceBatchServiceTest {
                 EmployeeSchedule scheduleThree = EmployeeSchedule.builder().employeeId(3L).workDate(processDate)
                                 .shiftId(30L).build();
 
+                Map<Long, EmployeeSchedule> scheduleMap = Map.of(1L, scheduleOne, 2L, scheduleTwo, 3L, scheduleThree);
+
                 AttendanceCalculationResult nullStatus = AttendanceCalculationResult.builder()
                                 .employeeId(1L)
                                 .workDate(processDate)
@@ -188,11 +193,10 @@ class AttendanceBatchServiceTest {
                                 .status(AttendanceCalcStatus.PRESENT)
                                 .build();
 
-                when(logCleaningService.fetchAndCleanLogs(processDate)).thenReturn(List.of());
                 when(employeeScheduleRepository.findByWorkDate(processDate))
                                 .thenReturn(List.of(scheduleOne, scheduleTwo, scheduleThree));
-                when(attendanceCalculationService.calculateAttendance(List.of(),
-                                java.util.Map.of(1L, scheduleOne, 2L, scheduleTwo, 3L, scheduleThree), processDate))
+                when(logCleaningService.fetchAndCleanLogs(processDate, scheduleMap)).thenReturn(List.of());
+                when(attendanceCalculationService.calculateAttendance(List.of(), scheduleMap, processDate))
                                 .thenReturn(List.of(nullStatus, earlyLeave, present));
                 when(requestApplicationService.applyRequests(List.of(nullStatus, earlyLeave, present), processDate))
                                 .thenReturn(List.of(nullStatus, earlyLeave, present));
@@ -230,6 +234,9 @@ class AttendanceBatchServiceTest {
                                 .build();
                 EmployeeSchedule second = EmployeeSchedule.builder().employeeId(1L).workDate(processDate).shiftId(20L)
                                 .build();
+
+                Map<Long, EmployeeSchedule> scheduleMap = Map.of(1L, second);
+
                 AttendanceCalculationResult result = AttendanceCalculationResult.builder()
                                 .employeeId(1L)
                                 .workDate(processDate)
@@ -238,10 +245,9 @@ class AttendanceBatchServiceTest {
                                 .status(AttendanceCalcStatus.PRESENT)
                                 .build();
 
-                when(logCleaningService.fetchAndCleanLogs(processDate)).thenReturn(List.of());
                 when(employeeScheduleRepository.findByWorkDate(processDate)).thenReturn(List.of(first, second));
-                when(attendanceCalculationService.calculateAttendance(List.of(), java.util.Map.of(1L, second),
-                                processDate))
+                when(logCleaningService.fetchAndCleanLogs(processDate, scheduleMap)).thenReturn(List.of());
+                when(attendanceCalculationService.calculateAttendance(List.of(), scheduleMap, processDate))
                                 .thenReturn(List.of(result));
                 when(requestApplicationService.applyRequests(List.of(result), processDate)).thenReturn(List.of(result));
                 when(attendanceDailyRepository.findByEmployeeIdAndWorkDate(1L, processDate))
@@ -263,9 +269,9 @@ class AttendanceBatchServiceTest {
                                 .logEntries(null)
                                 .build();
 
-                when(logCleaningService.fetchAndCleanLogs(processDate)).thenReturn(List.of(logs));
                 when(employeeScheduleRepository.findByWorkDate(processDate)).thenReturn(List.of());
-                when(attendanceCalculationService.calculateAttendance(List.of(logs), java.util.Map.of(), processDate))
+                when(logCleaningService.fetchAndCleanLogs(processDate, Map.of())).thenReturn(List.of(logs));
+                when(attendanceCalculationService.calculateAttendance(List.of(logs), Map.of(), processDate))
                                 .thenReturn(List.of());
                 when(requestApplicationService.applyRequests(List.of(), processDate)).thenReturn(List.of());
 

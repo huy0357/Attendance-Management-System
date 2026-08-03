@@ -192,45 +192,57 @@ public class AttendanceCalculationService {
      * Nếu >= mergeGapMinutes -> chốt phiên hiện tại, khoảng giữa 2 phiên là thời gian nghỉ thực tế.
      */
     private List<WorkSession> buildSessions(List<EmployeeLogSummary.LogEntry> entries) {
-        long mergeGap = attendanceProperties.getMergeGapMinutes();
+        if (entries == null || entries.isEmpty()) return Collections.emptyList();
+        List<WorkSession> rawSessions = new ArrayList<>();
 
-        List<WorkSession> sessions = new ArrayList<>();
-        LocalDateTime sessionStart = null;
-        int i = 0;
-
-        while (i < entries.size()) {
+        // Nếu sự kiện không có hướng IN/OUT rõ ràng (UNKNOWN), sắp xếp theo thời gian và tự động gán cặp (IN -> OUT -> IN -> OUT)
+        boolean hasExplicitDirection = entries.stream().anyMatch(e -> "IN".equals(e.getEventType()) || "OUT".equals(e.getEventType()));
+        if (!hasExplicitDirection) {
+            for (int i = 0; i < entries.size(); i += 2) {
+                LocalDateTime start = entries.get(i).getTimestamp();
+                LocalDateTime end = (i + 1 < entries.size()) ? entries.get(i + 1).getTimestamp() : null;
+                rawSessions.add(new WorkSession(start, end));
+            }
+            return rawSessions;
+        }
+        // Xử lý chuẩn khi có IN/OUT rõ ràng
+        LocalDateTime currentStart = null;
+        for (int i = 0; i < entries.size(); i++) {
             var e = entries.get(i);
-
-            if ("IN".equals(e.getEventType()) && sessionStart == null) {
-                sessionStart = e.getTimestamp();
-                i++;
-            } else if ("OUT".equals(e.getEventType()) && sessionStart != null) {
-                LocalDateTime outTime = e.getTimestamp();
-                int j = i + 1;
-                while (j < entries.size() && "OUT".equals(entries.get(j).getEventType())) j++; // bỏ OUT trùng
-
-                boolean merged = false;
-                if (j < entries.size() && "IN".equals(entries.get(j).getEventType())) {
-                    long gap = Duration.between(outTime, entries.get(j).getTimestamp()).toMinutes();
-                    if (gap < mergeGap) {
-                        i = j + 1; // gap ngắn -> coi như vẫn đang làm việc, gộp phiên
-                        merged = true;
-                    }
+            if ("IN".equals(e.getEventType())) {
+                if (currentStart == null) {
+                    currentStart = e.getTimestamp();
                 }
-                if (!merged) {
-                    sessions.add(new WorkSession(sessionStart, outTime));
-                    sessionStart = null;
-                    i = j;
+            } else if ("OUT".equals(e.getEventType())) {
+                if (currentStart != null) {
+                    rawSessions.add(new WorkSession(currentStart, e.getTimestamp()));
+                    currentStart = null;
                 }
-            } else {
-                i++; // sự kiện bất thường (2 IN liên tiếp, OUT khi chưa IN...) - bỏ qua
             }
         }
-
-        if (sessionStart != null) {
-            sessions.add(new WorkSession(sessionStart, null)); // phiên chưa checkout
+        if (currentStart != null) {
+            rawSessions.add(new WorkSession(currentStart, null));
         }
-        return sessions;
+        // Gộp các phiên có khoảng cách nhỏ hơn mergeGapMinutes
+        long mergeGap = attendanceProperties.getMergeGapMinutes();
+        List<WorkSession> mergedSessions = new ArrayList<>();
+        for (WorkSession s : rawSessions) {
+            if (mergedSessions.isEmpty()) {
+                mergedSessions.add(s);
+            } else {
+                WorkSession prev = mergedSessions.get(mergedSessions.size() - 1);
+                if (prev.end() != null && s.start() != null) {
+                    long gap = Duration.between(prev.end(), s.start()).toMinutes();
+                    if (gap < mergeGap) {
+                        // Gộp phiên prev và s lại làm một
+                        mergedSessions.set(mergedSessions.size() - 1, new WorkSession(prev.start(), s.end()));
+                        continue;
+                    }
+                }
+                mergedSessions.add(s);
+            }
+        }
+        return mergedSessions;
     }
 
     private List<Long> sourceIds(List<EmployeeLogSummary.LogEntry> entries) {

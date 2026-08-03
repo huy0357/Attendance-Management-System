@@ -25,18 +25,19 @@ public class LogCleaningService {
     private final FaceEventRepository faceEventRepository;
     private final ShiftTemplateRepository shiftTemplateRepository;
 
+    public void resetConsumedEventsForDate(LocalDate processDate) {
+        faceEventRepository.unmarkConsumedForDate(processDate);
+    }
+
     public List<EmployeeLogSummary> fetchAndCleanLogs(
             LocalDate processDate,
             Map<Long, EmployeeSchedule> schedules
     ) {
         LocalDateTime globalStart = processDate.atStartOfDay();
-        // mở rộng tới 12h trưa hôm sau để chắc chắn bắt được checkout của ca đêm
         LocalDateTime globalEnd = processDate.plusDays(1).atTime(12, 0);
 
-        List<FaceEvent> events = faceEventRepository
-                .findUnconsumedMatchedEventsBetween(globalStart, globalEnd);
-
-        log.info("DEBUG face_events fetched={} (window {} -> {})", events.size(), globalStart, globalEnd);
+        // Gọi method repo mới hỗ trợ Rerun
+        List<FaceEvent> events = faceEventRepository.findEventsForBatch(globalStart, globalEnd, processDate);
 
         if (events.isEmpty()) {
             return Collections.emptyList();
@@ -54,7 +55,6 @@ public class LogCleaningService {
             LocalDateTime windowEnd = globalEnd;
             if (schedule != null) {
                 ShiftTemplate shift = shiftTemplateRepository.findById(schedule.getShiftId()).orElse(null);
-                // ca ngày (không phải ca đêm): không cần nhìn qua sáng hôm sau
                 if (shift != null && !Boolean.TRUE.equals(shift.getIsNightShift())) {
                     windowEnd = processDate.plusDays(1).atStartOfDay();
                 }
@@ -69,11 +69,15 @@ public class LogCleaningService {
             if (employeeEvents.isEmpty()) continue;
 
             List<EmployeeLogSummary.LogEntry> entries = employeeEvents.stream()
-                    .map(fe -> EmployeeLogSummary.LogEntry.builder()
-                            .eventType(fe.getDirection() == null ? null : fe.getDirection().trim().toUpperCase())
-                            .timestamp(fe.getEventTime())
-                            .sourceEventId(fe.getId())
-                            .build())
+                    .map(fe -> {
+                        // FIX: Fallback direction nếu camera đẩy NULL (chấm công khuôn mặt)
+                        String dir = fe.getDirection() != null ? fe.getDirection().trim().toUpperCase() : "UNKNOWN";
+                        return EmployeeLogSummary.LogEntry.builder()
+                                .eventType(dir)
+                                .timestamp(fe.getEventTime())
+                                .sourceEventId(fe.getId())
+                                .build();
+                    })
                     .collect(Collectors.toList());
 
             result.add(EmployeeLogSummary.builder()
@@ -85,7 +89,6 @@ public class LogCleaningService {
         return result;
     }
 
-    /** Gọi sau khi đã lưu attendance_daily, tránh batch ngày hôm sau ăn trùng event ca đêm đã dùng */
     public void markEventsConsumed(List<AttendanceCalculationResult> results, LocalDate processDate) {
         List<Long> consumedIds = results.stream()
                 .flatMap(r -> r.getConsumedEventIds() == null ? Stream.<Long>empty() : r.getConsumedEventIds().stream())
@@ -93,7 +96,6 @@ public class LogCleaningService {
 
         if (!consumedIds.isEmpty()) {
             faceEventRepository.markConsumed(consumedIds, processDate);
-            log.info("Marked {} face_events consumed for date {}", consumedIds.size(), processDate);
         }
     }
 }

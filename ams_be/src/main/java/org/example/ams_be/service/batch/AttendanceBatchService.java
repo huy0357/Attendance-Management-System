@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ams_be.dto.AttendanceCalculationResult;
+import org.example.ams_be.dto.EmployeeLogSummary;
 import org.example.ams_be.entity.AttendanceDaily;
 import org.example.ams_be.entity.EmployeeSchedule;
 import org.example.ams_be.enums.AttendanceCalcStatus;
@@ -38,32 +39,22 @@ public class AttendanceBatchService {
     public void processAttendanceForDate(LocalDate processDate) {
         log.info("Starting attendance batch processing for date: {}", processDate);
 
-        // 1) Fetch schedules TRƯỚC (để LogCleaningService biết ca nào là night shift)
+        // FIX RERUN: Reset trạng thái event cũ của ngày này để đảm bảo Idempotency
+        logCleaningService.resetConsumedEventsForDate(processDate);
+
         Map<Long, EmployeeSchedule> employeeSchedules = employeeScheduleRepository.findByWorkDate(processDate)
                 .stream()
                 .collect(Collectors.toMap(EmployeeSchedule::getEmployeeId, s -> s, (a, b) -> b));
-        log.info("Fetched {} employee schedules for date: {}", employeeSchedules.size(), processDate);
 
-        // 2) Fetch + clean logs (face_events), window theo ca của từng nhân viên
-        List<org.example.ams_be.dto.EmployeeLogSummary> cleanedLogs =
-                logCleaningService.fetchAndCleanLogs(processDate, employeeSchedules);
-        log.info("DEBUG cleanedLogs size={}", cleanedLogs.size());
+        List<EmployeeLogSummary> cleanedLogs = logCleaningService.fetchAndCleanLogs(processDate, employeeSchedules);
 
-        // 3) Calculate attendance
         List<AttendanceCalculationResult> calculationResults =
                 attendanceCalculationService.calculateAttendance(cleanedLogs, employeeSchedules, processDate);
-        log.info("Calculated attendance for {} employees", calculationResults.size());
 
-        // 4) Apply requests
         List<AttendanceCalculationResult> finalResults =
                 requestApplicationService.applyRequests(calculationResults, processDate);
-        log.info("Applied requests for {} employees", finalResults.size());
 
-        // 5) Upsert attendance_daily
         upsertAttendanceDaily(finalResults);
-        log.info("Upserted {} attendance_daily records for date: {}", finalResults.size(), processDate);
-
-        // 6) Đánh dấu face_events đã dùng, tránh batch ngày hôm sau ăn trùng event ca đêm
         logCleaningService.markEventsConsumed(finalResults, processDate);
 
         log.info("Completed attendance batch processing for date: {}", processDate);

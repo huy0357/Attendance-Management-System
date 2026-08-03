@@ -228,7 +228,7 @@ class RequestApplicationServiceTest {
                 .earlyLeaveMinutes(earlyLeaveMinutes)
                 .workingHours(8.0)
                 .isNightShift(false)
-                .isRequestApplied(false)
+                .requestApplied(false)
                 .note(note)
                 .build();
     }

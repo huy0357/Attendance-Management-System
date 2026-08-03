@@ -188,4 +188,44 @@ public class AttendanceSummaryMonthlyRepository {
                                 .build()
                 , monthKey);
     }
+
+    // THÊM METHOD: Tính toán realtime trực tiếp từ attendance_daily nếu tháng requested là tháng hiện tại chưa chốt
+    public Optional<MonthlyAttendanceEmailDto> findRealtimeSummaryByMonthAndEmployee(String monthKey, Long employeeId) {
+        String sql = """
+            SELECT
+                e.employee_id,
+                e.employee_code,
+                e.full_name,
+                e.email,
+                ? AS month_key,
+                COALESCE(SUM(CASE WHEN ad.status = 'PRESENT' THEN 1 ELSE 0 END), 0) AS work_days,
+                COALESCE(SUM(CASE WHEN ad.status = 'LEAVE' THEN 1 ELSE 0 END), 0) AS leave_days,
+                COALESCE(SUM(CASE WHEN ad.status = 'ABSENT' THEN 1 ELSE 0 END), 0) AS absent_days,
+                COALESCE(SUM(ad.late_minutes), 0) AS late_minutes,
+                COALESCE(SUM(ad.early_leave_minutes), 0) AS early_leave_minutes,
+                COALESCE(SUM(COALESCE(ad.ot_minutes_before, 0) + COALESCE(ad.ot_minutes_after, 0) + COALESCE(ad.ot_minutes_holiday, 0)), 0) AS ot_minutes
+            FROM employees e
+            LEFT JOIN attendance_daily ad ON e.employee_id = ad.employee_id AND DATE_FORMAT(ad.work_date, '%Y-%m') = ?
+            WHERE e.employee_id = ?
+            GROUP BY e.employee_id, e.employee_code, e.full_name, e.email
+            """;
+
+        List<MonthlyAttendanceEmailDto> list = jdbcTemplate.query(sql, (rs, rowNum) ->
+                        MonthlyAttendanceEmailDto.builder()
+                                .employeeId(rs.getLong("employee_id"))
+                                .employeeCode(rs.getString("employee_code"))
+                                .employeeName(rs.getString("full_name"))
+                                .email(rs.getString("email"))
+                                .monthKey(rs.getString("month_key"))
+                                .workDays(rs.getBigDecimal("work_days"))
+                                .leaveDays(rs.getBigDecimal("leave_days"))
+                                .absentDays(rs.getBigDecimal("absent_days"))
+                                .lateMinutes(rs.getInt("late_minutes"))
+                                .earlyLeaveMinutes(rs.getInt("early_leave_minutes"))
+                                .otMinutes(rs.getInt("ot_minutes"))
+                                .build(),
+                monthKey, monthKey, employeeId);
+
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
 }
