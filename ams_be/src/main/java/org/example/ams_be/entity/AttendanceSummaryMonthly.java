@@ -46,4 +46,7 @@ public class AttendanceSummaryMonthly {
 
     @Column(name = "generated_at")
     private LocalDateTime generatedAt;
+
+    @Column(name = "early_leave_minutes")
+    private Integer earlyLeaveMinutes;
 }

@@ -60,7 +60,7 @@ class AttendanceCalculationServiceTest {
         assertEquals(0, result.getEarlyLeaveMinutes());
         assertEquals(0.0, result.getWorkingHours());
         assertFalse(result.getIsNightShift());
-        assertFalse(result.getHasRequestApplied());
+        assertFalse(result.isRequestApplied());
         verifyNoInteractions(shiftTemplateRepository);
     }
 

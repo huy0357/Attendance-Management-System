@@ -23,4 +23,5 @@ public class MonthlyAttendanceEmailDto {
     private BigDecimal absentDays;
     private Integer lateMinutes;
     private Integer otMinutes;
+    private Integer earlyLeaveMinutes;
 }

@@ -1,40 +1,43 @@
 package org.example.ams_be.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.ams_be.enums.AttendanceCalcStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode
 public class AttendanceCalculationResult {
+
     private Long employeeId;
     private LocalDate workDate;
-
     private Long shiftId;
+
     private LocalTime scheduledStartTime;
     private LocalTime scheduledEndTime;
+    private Boolean isNightShift;   
 
     private LocalDateTime actualCheckIn;
     private LocalDateTime actualCheckOut;
 
-    // ✅ dùng status nội bộ
     private AttendanceCalcStatus status;
+    private String note;
 
     private Integer lateMinutes;
     private Integer earlyLeaveMinutes;
-
-    // giữ theo logic hiện tại của bạn
     private Double workingHours;
 
-    private Boolean isNightShift;
-    private Boolean hasRequestApplied;
-    private String note;
+    private Integer breakMinutesApplied;
+    private Integer otMinutesBefore;
+    private Integer otMinutesAfter;
+    private Integer otMinutesHoliday;
+    private List<Long> consumedEventIds;
+    private boolean requestApplied; // Boolean (wrapper) -> getter là getHasRequestApplied()
 }

@@ -13,7 +13,7 @@ public class AttendanceMonthlySummaryService {
     public int generateMonthlySummary(String monthKey) {
         validateMonthKey(monthKey);
         return attendanceSummaryMonthlyRepository.upsertByMonth(monthKey);
-    }
+    }   
 
     public int generateMonthlySummaryForOne(String monthKey, Long employeeId) {
         validateMonthKey(monthKey);

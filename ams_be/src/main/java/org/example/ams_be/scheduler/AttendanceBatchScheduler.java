@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Component
 @RequiredArgsConstructor
@@ -15,14 +16,12 @@ public class AttendanceBatchScheduler {
 
     private final AttendanceBatchService attendanceBatchService;
 
-    // chạy mỗi ngày 02:00 sáng
-    @Scheduled(cron = "0 0 2 * * *")
+    // FIX CA ĐÊM: Đổi giờ chạy từ 02:00 AM sang 12:30 PM trưa hàng ngày (sau khi ca đêm 22h-06h kết thúc hoàn toàn)
+    @Scheduled(cron = "0 30 12 * * *")
     public void runDailyAttendanceBatch() {
-
-        LocalDate processDate = LocalDate.now().minusDays(1);
-
-        log.info("Running daily attendance batch for {}", processDate);
-
+        // FIX TIMEZONE: Đảm bảo lấy ngày theo múi giờ Việt Nam ICT
+        LocalDate processDate = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).minusDays(1);
+        log.info("Running daily attendance batch for date: {}", processDate);
         attendanceBatchService.processAttendanceForDate(processDate);
     }
 }

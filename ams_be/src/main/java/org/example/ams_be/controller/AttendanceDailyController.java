@@ -6,19 +6,24 @@ import org.springframework.security.core.Authentication;
 import org.example.ams_be.dto.response.AttendanceDailyResponse;
 import org.example.ams_be.security.UserPrincipal;
 import org.example.ams_be.service.AttendanceDailyService;
+import org.example.ams_be.service.batch.AttendanceBatchService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/attendance-daily")
 public class AttendanceDailyController {
 
-    private final AttendanceDailyService attendanceDailyService;
+    private final AttendanceDailyService attendanceDailyService;  
+    private final AttendanceBatchService attendanceBatchService;
+
 
     // ADMIN/HR: xem bảng công tổng
     // GET /api/attendance-daily/admin?from=2026-02-01&to=2026-02-29&page=0&size=20

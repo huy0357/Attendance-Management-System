@@ -17,7 +17,7 @@ public class AttendanceMonthlyScheduler {
     private final AttendanceMonthlySummaryService attendanceMonthlySummaryService;
     private final AttendanceEmailService attendanceEmailService;
 
-    @Scheduled(cron = "0 10 0 1 * *")
+    @Scheduled(cron = "0 30 3 1 * *") // chạy 03:30 ngày 1, sau daily batch (02:00) của ngày cuối tháng
     public void generateAndSendMonthlyAttendanceEmail() {
         String monthKey = YearMonth.now().minusMonths(1).toString();
 

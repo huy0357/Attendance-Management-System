@@ -37,7 +37,7 @@ class AttendanceCalculationResultTest {
                 dto -> setEarlyLeaveMinutes(dto, 0),
                 dto -> setWorkingHours(dto, 7.5),
                 dto -> setIsNightShift(dto, true),
-                dto -> setHasRequestApplied(dto, true),
+                dto -> setRequestApplied(dto, true),
                 dto -> setNote(dto, "Changed")
         );
     }
@@ -56,7 +56,7 @@ class AttendanceCalculationResultTest {
                 dto -> setEarlyLeaveMinutes(dto, 3),
                 dto -> setWorkingHours(dto, 8.0),
                 dto -> setIsNightShift(dto, false),
-                dto -> setHasRequestApplied(dto, false),
+                dto -> setRequestApplied(dto, false),
                 dto -> setNote(dto, "Initial")
         );
     }
@@ -75,7 +75,7 @@ class AttendanceCalculationResultTest {
                 .earlyLeaveMinutes(3)
                 .workingHours(8.0)
                 .isNightShift(false)
-                .hasRequestApplied(false)
+                .requestApplied(false)
                 .note("Initial")
                 .build();
     }
@@ -92,7 +92,7 @@ class AttendanceCalculationResultTest {
     private AttendanceCalculationResult setEarlyLeaveMinutes(AttendanceCalculationResult dto, Integer value) { dto.setEarlyLeaveMinutes(value); return dto; }
     private AttendanceCalculationResult setWorkingHours(AttendanceCalculationResult dto, Double value) { dto.setWorkingHours(value); return dto; }
     private AttendanceCalculationResult setIsNightShift(AttendanceCalculationResult dto, Boolean value) { dto.setIsNightShift(value); return dto; }
-    private AttendanceCalculationResult setHasRequestApplied(AttendanceCalculationResult dto, Boolean value) { dto.setHasRequestApplied(value); return dto; }
+    private AttendanceCalculationResult setRequestApplied(AttendanceCalculationResult dto, Boolean value) { dto.setRequestApplied(value); return dto; }
     private AttendanceCalculationResult setNote(AttendanceCalculationResult dto, String value) { dto.setNote(value); return dto; }
 
     private static final class NonEqualAttendanceCalculationResult extends AttendanceCalculationResult {
@@ -109,7 +109,7 @@ class AttendanceCalculationResultTest {
             setEarlyLeaveMinutes(base.getEarlyLeaveMinutes());
             setWorkingHours(base.getWorkingHours());
             setIsNightShift(base.getIsNightShift());
-            setHasRequestApplied(base.getHasRequestApplied());
+            setRequestApplied(base.isRequestApplied());
             setNote(base.getNote());
         }
 
