@@ -30,15 +30,20 @@ class AttendanceCalculationResultTest {
                 dto -> setShiftId(dto, 20L),
                 dto -> setScheduledStartTime(dto, LocalTime.of(9, 0)),
                 dto -> setScheduledEndTime(dto, LocalTime.of(18, 0)),
+                dto -> setIsNightShift(dto, true),
                 dto -> setActualCheckIn(dto, LocalDateTime.of(2026, 3, 19, 8, 5)),
                 dto -> setActualCheckOut(dto, LocalDateTime.of(2026, 3, 19, 17, 5)),
                 dto -> setStatus(dto, AttendanceCalcStatus.ABSENT),
+                dto -> setNote(dto, "Changed"),
                 dto -> setLateMinutes(dto, 10),
                 dto -> setEarlyLeaveMinutes(dto, 0),
                 dto -> setWorkingHours(dto, 7.5),
-                dto -> setIsNightShift(dto, true),
-                dto -> setRequestApplied(dto, true),
-                dto -> setNote(dto, "Changed")
+                dto -> setBreakMinutesApplied(dto, 30),
+                dto -> setOtMinutesBefore(dto, 15),
+                dto -> setOtMinutesAfter(dto, 45),
+                dto -> setOtMinutesHoliday(dto, 60),
+                dto -> setConsumedEventIds(dto, List.of(100L, 101L)),
+                dto -> setRequestApplied(dto, false)
         );
     }
 
@@ -49,15 +54,20 @@ class AttendanceCalculationResultTest {
                 dto -> setShiftId(dto, 10L),
                 dto -> setScheduledStartTime(dto, LocalTime.of(8, 0)),
                 dto -> setScheduledEndTime(dto, LocalTime.of(17, 0)),
+                dto -> setIsNightShift(dto, false),
                 dto -> setActualCheckIn(dto, LocalDateTime.of(2026, 3, 19, 8, 0)),
                 dto -> setActualCheckOut(dto, LocalDateTime.of(2026, 3, 19, 17, 0)),
                 dto -> setStatus(dto, AttendanceCalcStatus.PRESENT),
+                dto -> setNote(dto, "Initial"),
                 dto -> setLateMinutes(dto, 5),
                 dto -> setEarlyLeaveMinutes(dto, 3),
                 dto -> setWorkingHours(dto, 8.0),
-                dto -> setIsNightShift(dto, false),
-                dto -> setRequestApplied(dto, false),
-                dto -> setNote(dto, "Initial")
+                dto -> setBreakMinutesApplied(dto, 60),
+                dto -> setOtMinutesBefore(dto, 0),
+                dto -> setOtMinutesAfter(dto, 0),
+                dto -> setOtMinutesHoliday(dto, 0),
+                dto -> setConsumedEventIds(dto, List.of(1L)),
+                dto -> setRequestApplied(dto, true)
         );
     }
 
@@ -68,15 +78,20 @@ class AttendanceCalculationResultTest {
                 .shiftId(10L)
                 .scheduledStartTime(LocalTime.of(8, 0))
                 .scheduledEndTime(LocalTime.of(17, 0))
+                .isNightShift(false)
                 .actualCheckIn(LocalDateTime.of(2026, 3, 19, 8, 0))
                 .actualCheckOut(LocalDateTime.of(2026, 3, 19, 17, 0))
                 .status(AttendanceCalcStatus.PRESENT)
+                .note("Initial")
                 .lateMinutes(5)
                 .earlyLeaveMinutes(3)
                 .workingHours(8.0)
-                .isNightShift(false)
-                .requestApplied(false)
-                .note("Initial")
+                .breakMinutesApplied(60)
+                .otMinutesBefore(0)
+                .otMinutesAfter(0)
+                .otMinutesHoliday(0)
+                .consumedEventIds(List.of(1L))
+                .requestApplied(true)
                 .build();
     }
 
@@ -94,6 +109,11 @@ class AttendanceCalculationResultTest {
     private AttendanceCalculationResult setIsNightShift(AttendanceCalculationResult dto, Boolean value) { dto.setIsNightShift(value); return dto; }
     private AttendanceCalculationResult setRequestApplied(AttendanceCalculationResult dto, Boolean value) { dto.setRequestApplied(value); return dto; }
     private AttendanceCalculationResult setNote(AttendanceCalculationResult dto, String value) { dto.setNote(value); return dto; }
+    private AttendanceCalculationResult setBreakMinutesApplied(AttendanceCalculationResult dto, Integer value) { dto.setBreakMinutesApplied(value); return dto; }
+    private AttendanceCalculationResult setOtMinutesBefore(AttendanceCalculationResult dto, Integer value) { dto.setOtMinutesBefore(value); return dto; }
+    private AttendanceCalculationResult setOtMinutesAfter(AttendanceCalculationResult dto, Integer value) { dto.setOtMinutesAfter(value); return dto; }
+    private AttendanceCalculationResult setOtMinutesHoliday(AttendanceCalculationResult dto, Integer value) { dto.setOtMinutesHoliday(value); return dto; }
+    private AttendanceCalculationResult setConsumedEventIds(AttendanceCalculationResult dto, List<Long> value) { dto.setConsumedEventIds(value); return dto; }
 
     private static final class NonEqualAttendanceCalculationResult extends AttendanceCalculationResult {
         private NonEqualAttendanceCalculationResult(AttendanceCalculationResult base) {
@@ -111,6 +131,11 @@ class AttendanceCalculationResultTest {
             setIsNightShift(base.getIsNightShift());
             setRequestApplied(base.isRequestApplied());
             setNote(base.getNote());
+            setBreakMinutesApplied(base.getBreakMinutesApplied());
+            setOtMinutesBefore(base.getOtMinutesBefore());
+            setOtMinutesAfter(base.getOtMinutesAfter());
+            setOtMinutesHoliday(base.getOtMinutesHoliday());
+            setConsumedEventIds(base.getConsumedEventIds());
         }
 
         @Override

@@ -43,8 +43,8 @@ public class AttendanceCalculationService {
             EmployeeLogSummary logs = logMap.get(employeeId);
             boolean hasLogs = logs != null && logs.getLogEntries() != null && !logs.getLogEntries().isEmpty();
 
-            // Không có ca, không có chấm công -> không có gì để ghi nhận, bỏ qua
-            if (schedule == null && !hasLogs) {
+            // Không có trong danh sách phân ca và không có chấm công -> bỏ qua
+            if (!schedules.containsKey(employeeId) && !hasLogs) {
                 continue;
             }
             if (logs == null) {
@@ -69,8 +69,17 @@ public class AttendanceCalculationService {
                 .workDate(processDate)
                 .requestApplied(false); 
 
-        // Có chấm công nhưng KHÔNG có lịch phân ca -> audit, không tự công nhận công
+        // Có chấm công nhưng KHÔNG có lịch phân ca -> audit
         if (schedule == null) {
+            boolean hasLogs = logSummary.getLogEntries() != null && !logSummary.getLogEntries().isEmpty();
+            if (!hasLogs) {
+                return builder
+                        .status(AttendanceCalcStatus.ABSENT)
+                        .note("No schedule found")
+                        .lateMinutes(0).earlyLeaveMinutes(0).workingHours(0.0)
+                        .isNightShift(false)
+                        .build();
+            }
             return builder
                     .status(AttendanceCalcStatus.MISSING_SCHEDULE)
                     .note("Có " + logSummary.getLogEntries().size() + " lượt quẹt nhưng chưa được xếp ca")
@@ -97,7 +106,7 @@ public class AttendanceCalculationService {
 
         if (logSummary.getLogEntries() == null || logSummary.getLogEntries().isEmpty()) {
             return builder
-                    .status(AttendanceCalcStatus.ABSENT)
+                    .status(AttendanceCalcStatus.MISSING_LOG)
                     .note("No log entries found")
                     .lateMinutes(0).earlyLeaveMinutes(0).workingHours(0.0)
                     .build();
@@ -120,24 +129,32 @@ public class AttendanceCalculationService {
 
         List<WorkSession> sessions = buildSessions(entries);
 
-        if (sessions.isEmpty()) {
+        LocalDateTime firstIn = sessions.stream().map(WorkSession::start).filter(Objects::nonNull).findFirst().orElse(null);
+        LocalDateTime lastOut = sessions.stream().map(WorkSession::end).filter(Objects::nonNull).reduce((a, b) -> b).orElse(null);
+
+        if (firstIn == null && lastOut == null) {
             return builder
-                    .status(AttendanceCalcStatus.MISSING_LOG)
-                    .note("Không tìm được phiên IN/OUT hợp lệ")
+                    .status(AttendanceCalcStatus.ABSENT)
+                    .note("Absent - no logs found")
                     .lateMinutes(0).earlyLeaveMinutes(0).workingHours(0.0)
                     .consumedEventIds(sourceIds(entries))
                     .build();
         }
 
-        LocalDateTime firstIn = sessions.get(0).start();
-        WorkSession lastSession = sessions.get(sessions.size() - 1);
-        boolean stillOpen = lastSession.end() == null; // chưa checkout cuối ngày
-        LocalDateTime lastOut = stillOpen ? null : lastSession.end();
+        if (firstIn == null) {
+            return builder
+                    .actualCheckOut(lastOut)
+                    .status(AttendanceCalcStatus.MISSING_LOG)
+                    .note("Missing check-in")
+                    .lateMinutes(0).earlyLeaveMinutes(0).workingHours(0.0)
+                    .consumedEventIds(sourceIds(entries))
+                    .build();
+        }
 
-        long totalWorkedMinutes = sessions.stream()
-                .filter(s -> s.end() != null)
-                .mapToLong(s -> Duration.between(s.start(), s.end()).toMinutes())
-                .sum();
+        boolean stillOpen = lastOut == null; // chưa checkout cuối ngày
+
+        LocalDateTime effectiveOut = stillOpen ? firstIn : lastOut;
+        long totalWorkedMinutes = Duration.between(firstIn, effectiveOut).toMinutes();
 
         // Grace period
         LocalDateTime graceStart = scheduledStart.plusMinutes(nz(shift.getGraceInMinutes()));
@@ -148,8 +165,9 @@ public class AttendanceCalculationService {
         int earlyLeaveMinutes = (!stillOpen && lastOut.isBefore(graceEnd))
                 ? (int) Duration.between(lastOut, scheduledEnd).toMinutes() : 0;
 
-        // Break: có >= 2 phiên (nghỉ trưa thật) -> không trừ chồng break cố định
-        boolean hasRealBreak = sessions.size() > 1;
+        // Break: có >= 2 phiên hợp lệ hoàn chỉnh (nghỉ trưa thật) -> không trừ chồng break cố định
+        long validSessionCount = sessions.stream().filter(s -> s.start() != null && s.end() != null).count();
+        boolean hasRealBreak = validSessionCount > 1;
         long breakApplied = hasRealBreak ? 0 : nz(shift.getBreakMinutes());
         long actualWorkingMinutes = Math.max(0, totalWorkedMinutes - breakApplied);
 
@@ -165,10 +183,12 @@ public class AttendanceCalculationService {
                 : AttendanceCalcStatus.PRESENT;
 
         StringBuilder note = new StringBuilder();
-        if (stillOpen) note.append("Thiếu check-out cuối ngày. ");
-        if (lateMinutes > 0) note.append("Trễ ").append(lateMinutes).append(" phút. ");
-        if (earlyLeaveMinutes > 0) note.append("Về sớm ").append(earlyLeaveMinutes).append(" phút. ");
-        if (hasRealBreak) note.append("Có ").append(sessions.size() - 1).append(" lần nghỉ giữa ca. ");
+        if (stillOpen) {
+            note.append("Missing check-out");
+        } else {
+            if (lateMinutes > 0) note.append("Late ").append(lateMinutes).append(" minutes. ");
+            if (earlyLeaveMinutes > 0) note.append("Early leave ").append(earlyLeaveMinutes).append(" minutes. ");
+        }
 
         return builder
                 .actualCheckIn(firstIn)
@@ -193,22 +213,32 @@ public class AttendanceCalculationService {
      */
     private List<WorkSession> buildSessions(List<EmployeeLogSummary.LogEntry> entries) {
         if (entries == null || entries.isEmpty()) return Collections.emptyList();
+        List<EmployeeLogSummary.LogEntry> sortedEntries = entries.stream()
+                .filter(e -> e.getTimestamp() != null)
+                .sorted(Comparator.comparing(EmployeeLogSummary.LogEntry::getTimestamp))
+                .toList();
+
+        boolean hasWorkEvents = sortedEntries.stream().anyMatch(e -> "IN".equals(e.getEventType()) || "OUT".equals(e.getEventType()) || "UNKNOWN".equals(e.getEventType()));
+        if (!hasWorkEvents) {
+            return Collections.emptyList();
+        }
+
         List<WorkSession> rawSessions = new ArrayList<>();
 
         // Nếu sự kiện không có hướng IN/OUT rõ ràng (UNKNOWN), sắp xếp theo thời gian và tự động gán cặp (IN -> OUT -> IN -> OUT)
-        boolean hasExplicitDirection = entries.stream().anyMatch(e -> "IN".equals(e.getEventType()) || "OUT".equals(e.getEventType()));
+        boolean hasExplicitDirection = sortedEntries.stream().anyMatch(e -> "IN".equals(e.getEventType()) || "OUT".equals(e.getEventType()));
         if (!hasExplicitDirection) {
-            for (int i = 0; i < entries.size(); i += 2) {
-                LocalDateTime start = entries.get(i).getTimestamp();
-                LocalDateTime end = (i + 1 < entries.size()) ? entries.get(i + 1).getTimestamp() : null;
+            for (int i = 0; i < sortedEntries.size(); i += 2) {
+                LocalDateTime start = sortedEntries.get(i).getTimestamp();
+                LocalDateTime end = (i + 1 < sortedEntries.size()) ? sortedEntries.get(i + 1).getTimestamp() : null;
                 rawSessions.add(new WorkSession(start, end));
             }
             return rawSessions;
         }
         // Xử lý chuẩn khi có IN/OUT rõ ràng
         LocalDateTime currentStart = null;
-        for (int i = 0; i < entries.size(); i++) {
-            var e = entries.get(i);
+        for (int i = 0; i < sortedEntries.size(); i++) {
+            var e = sortedEntries.get(i);
             if ("IN".equals(e.getEventType())) {
                 if (currentStart == null) {
                     currentStart = e.getTimestamp();
@@ -217,6 +247,8 @@ public class AttendanceCalculationService {
                 if (currentStart != null) {
                     rawSessions.add(new WorkSession(currentStart, e.getTimestamp()));
                     currentStart = null;
+                } else {
+                    rawSessions.add(new WorkSession(null, e.getTimestamp()));
                 }
             }
         }
@@ -224,7 +256,7 @@ public class AttendanceCalculationService {
             rawSessions.add(new WorkSession(currentStart, null));
         }
         // Gộp các phiên có khoảng cách nhỏ hơn mergeGapMinutes
-        long mergeGap = attendanceProperties.getMergeGapMinutes();
+        long mergeGap = (attendanceProperties != null && attendanceProperties.getMergeGapMinutes() != 0) ? attendanceProperties.getMergeGapMinutes() : 15L;
         List<WorkSession> mergedSessions = new ArrayList<>();
         for (WorkSession s : rawSessions) {
             if (mergedSessions.isEmpty()) {

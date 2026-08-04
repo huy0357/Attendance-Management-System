@@ -36,7 +36,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 boolean expired = jwtUtil.isExpired(token);
                 String type = jwtUtil.getType(token);
                 System.out.println("DEBUG expired=" + expired + " type=" + type);
-                if (!jwtUtil.isExpired(token) && "access".equals(jwtUtil.getType(token))) {
+                if (!expired && "access".equals(type)) {
                     Long employeeId = jwtUtil.getEmployeeId(token); // có thể null
                     String username = jwtUtil.getUsername(token);
                     String role = jwtUtil.getRole(token);

@@ -34,8 +34,6 @@ public class SecurityConfig {
                                 "/api/auth/reset-password"
                         ).permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/api/accounts").permitAll()
-
                         .requestMatchers("/error").permitAll()
 
                         // Admin only
@@ -47,14 +45,17 @@ public class SecurityConfig {
                         .requestMatchers("/api/shift-templates/**").hasRole("ADMIN")
                         .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
                         .requestMatchers("/api/attendance-daily/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/attendance-daily/debug-run").hasRole("ADMIN")
                         .requestMatchers("/api/attendance-monthly-summary/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/employee-export/**").hasRole("ADMIN")
                         .requestMatchers("/api/attendance-export/**").hasRole("ADMIN")
+                        .requestMatchers("/api/exports/**").hasRole("ADMIN")
 
                         // Manager and Admin
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/api/requests/manager-queue/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/requests/*/approval").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/v1/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
 
                         // Employee, Manager, Admin
                         .requestMatchers("/api/attendance-daily/employee/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
@@ -62,6 +63,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/requests/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
                         .requestMatchers("/api/profile/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
                         .requestMatchers("/api/employee-schedules/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/v1/schedules/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
 
                         // All authenticated users
                         .anyRequest().authenticated()

@@ -226,8 +226,6 @@ public class AuthService {
                     e.getMessage());
             throw e;
         }
-
-        validateOtp(account, otp);
     }
 
     public void resetPassword(String email, String otp, String newPassword) {

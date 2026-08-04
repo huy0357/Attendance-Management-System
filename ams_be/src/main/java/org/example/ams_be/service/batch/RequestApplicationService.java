@@ -87,7 +87,10 @@ public class RequestApplicationService {
         int early = r.getEarlyLeaveMinutes();
 
         if (r.getStatus() == AttendanceCalcStatus.LATE || r.getStatus() == AttendanceCalcStatus.EARLY_LEAVE) {
-            // Đơn giải trình trễ/sớm
+            String noteSuffix = r.getStatus() == AttendanceCalcStatus.LATE
+                    ? "Late approved" + reason(req)
+                    : "Early leave approved" + reason(req);
+
             late = 0; // Đã duyệt miễn trễ
             early = 0; // Đã duyệt miễn về sớm
 
@@ -98,7 +101,7 @@ public class RequestApplicationService {
                     .earlyLeaveMinutes(early)
                     .status(newStatus)
                     .requestApplied(true)
-                    .note(appendNote(r.getNote(), "Approved Late/Early Request" + reason(req)))
+                    .note(appendNote(r.getNote(), noteSuffix))
                     .build();
         }
         return r;
