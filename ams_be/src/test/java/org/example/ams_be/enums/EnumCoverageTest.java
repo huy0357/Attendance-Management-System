@@ -10,7 +10,7 @@ class EnumCoverageTest {
     @Test
     void attendanceCalcStatusValuesAreStable() {
         assertEquals(AttendanceCalcStatus.PRESENT, AttendanceCalcStatus.valueOf("PRESENT"));
-        assertEquals(6, AttendanceCalcStatus.values().length);
+        assertEquals(7, AttendanceCalcStatus.values().length);
     }
 
     @Test

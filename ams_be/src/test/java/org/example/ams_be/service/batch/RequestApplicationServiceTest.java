@@ -79,7 +79,7 @@ class RequestApplicationServiceTest {
         AttendanceCalculationResult updated = requestApplicationService.applyRequests(List.of(result), processDate).get(0);
 
         assertEquals(AttendanceCalcStatus.ON_LEAVE, updated.getStatus());
-        assertTrue(updated.getHasRequestApplied());
+        assertTrue(updated.isRequestApplied());
         assertEquals("No schedule found | On leave: LEAVE - Annual leave", updated.getNote());
         assertEquals(0, updated.getLateMinutes());
         assertEquals(0, updated.getEarlyLeaveMinutes());
@@ -99,7 +99,7 @@ class RequestApplicationServiceTest {
 
         assertEquals(AttendanceCalcStatus.ON_LEAVE, updated.getStatus());
         assertEquals("On leave: LEAVE", updated.getNote());
-        assertTrue(updated.getHasRequestApplied());
+        assertTrue(updated.isRequestApplied());
     }
 
     @Test
@@ -117,7 +117,7 @@ class RequestApplicationServiceTest {
         assertEquals(AttendanceCalcStatus.PRESENT, updated.getStatus());
         assertEquals(0, updated.getLateMinutes());
         assertEquals("Late 15 minutes. | Late approved - Traffic jam", updated.getNote());
-        assertTrue(updated.getHasRequestApplied());
+        assertTrue(updated.isRequestApplied());
     }
 
     @Test
@@ -135,7 +135,7 @@ class RequestApplicationServiceTest {
         assertEquals(AttendanceCalcStatus.PRESENT, updated.getStatus());
         assertEquals(0, updated.getEarlyLeaveMinutes());
         assertEquals("Early leave 25 minutes. | Early leave approved", updated.getNote());
-        assertTrue(updated.getHasRequestApplied());
+        assertTrue(updated.isRequestApplied());
     }
 
     @Test
@@ -151,7 +151,7 @@ class RequestApplicationServiceTest {
         AttendanceCalculationResult updated = requestApplicationService.applyRequests(List.of(result), processDate).get(0);
 
         assertEquals("On leave: LEAVE - Sick", updated.getNote());
-        assertTrue(updated.getHasRequestApplied());
+        assertTrue(updated.isRequestApplied());
     }
 
     @Test
@@ -173,7 +173,7 @@ class RequestApplicationServiceTest {
 
         assertEquals(AttendanceCalcStatus.PRESENT, updated.getStatus());
         assertEquals("Late approved - accepted", updated.getNote());
-        assertTrue(updated.getHasRequestApplied());
+        assertTrue(updated.isRequestApplied());
         assertFalse(updated.getStatus() == AttendanceCalcStatus.ON_LEAVE);
     }
 
@@ -228,7 +228,7 @@ class RequestApplicationServiceTest {
                 .earlyLeaveMinutes(earlyLeaveMinutes)
                 .workingHours(8.0)
                 .isNightShift(false)
-                .hasRequestApplied(false)
+                .requestApplied(false)
                 .note(note)
                 .build();
     }

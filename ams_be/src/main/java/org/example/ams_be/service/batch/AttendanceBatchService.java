@@ -1,5 +1,6 @@
 package org.example.ams_be.service.batch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ams_be.dto.AttendanceCalculationResult;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,41 +33,30 @@ public class AttendanceBatchService {
     private final AttendanceCalculationService attendanceCalculationService;
     private final RequestApplicationService requestApplicationService;
 
+    private final ObjectMapper objectMapper;
+
     @Transactional
     public void processAttendanceForDate(LocalDate processDate) {
         log.info("Starting attendance batch processing for date: {}", processDate);
 
-        // 1) Fetch + clean logs (face_events)
-        List<EmployeeLogSummary> cleanedLogs = logCleaningService.fetchAndCleanLogs(processDate);
-        log.info("DEBUG cleanedLogs size={}", cleanedLogs.size());
-        cleanedLogs.forEach(s -> log.info("DEBUG emp={} entries={}", s.getEmployeeId(),
-                s.getLogEntries() == null ? 0 : s.getLogEntries().size()));
+        // FIX RERUN: Reset trạng thái event cũ của ngày này để đảm bảo Idempotency
+        logCleaningService.resetConsumedEventsForDate(processDate);
 
-        // 2) Fetch schedules by date
         Map<Long, EmployeeSchedule> employeeSchedules = employeeScheduleRepository.findByWorkDate(processDate)
                 .stream()
-                .collect(Collectors.toMap(
-                        EmployeeSchedule::getEmployeeId,
-                        s -> s,
-                        (a, b) -> b
-                ));
-        log.info("Fetched {} employee schedules for date: {}", employeeSchedules.size(), processDate);
+                .collect(Collectors.toMap(EmployeeSchedule::getEmployeeId, s -> s, (a, b) -> b));
 
-        // 3) Calculate attendance
+        List<EmployeeLogSummary> cleanedLogs = logCleaningService.fetchAndCleanLogs(processDate, employeeSchedules);
+
         List<AttendanceCalculationResult> calculationResults =
                 attendanceCalculationService.calculateAttendance(cleanedLogs, employeeSchedules, processDate);
-        log.info("Calculated attendance for {} employees", calculationResults.size());
 
-        // 4) Apply requests
         List<AttendanceCalculationResult> finalResults =
                 requestApplicationService.applyRequests(calculationResults, processDate);
-        log.info("Applied requests for {} employees", finalResults.size());
 
-        // 5) Upsert attendance_daily
         upsertAttendanceDaily(finalResults);
-        log.info("Upserted {} attendance_daily records for date: {}", finalResults.size(), processDate);
+        logCleaningService.markEventsConsumed(finalResults, processDate);
 
-        // 6) face_events không có processed flag => skip mark processed
         log.info("Completed attendance batch processing for date: {}", processDate);
     }
 
@@ -73,7 +64,6 @@ public class AttendanceBatchService {
         List<AttendanceDaily> entities = results.stream()
                 .map(this::toEntity)
                 .map(e -> {
-                    // upsert theo employeeId + workDate
                     attendanceDailyRepository.findByEmployeeIdAndWorkDate(e.getEmployeeId(), e.getWorkDate())
                             .ifPresent(existing -> e.setAttendanceId(existing.getAttendanceId()));
                     return e;
@@ -91,23 +81,37 @@ public class AttendanceBatchService {
                 .workDate(r.getWorkDate())
                 .shiftId(r.getShiftId())
 
-                // DB schema
                 .firstInTime(r.getActualCheckIn())
                 .lastOutTime(r.getActualCheckOut())
                 .workMinutes(workMinutes)
                 .lateMinutes(Optional.ofNullable(r.getLateMinutes()).orElse(0))
                 .earlyLeaveMinutes(Optional.ofNullable(r.getEarlyLeaveMinutes()).orElse(0))
 
-                // các field DB khác nếu chưa tính thì set default
-                .breakMinutes(0)
-                .otMinutesBefore(0)
-                .otMinutesAfter(0)
-                .otMinutesHoliday(0)
+                .breakMinutes(Optional.ofNullable(r.getBreakMinutesApplied()).orElse(0))
+                .otMinutesBefore(Optional.ofNullable(r.getOtMinutesBefore()).orElse(0))
+                .otMinutesAfter(Optional.ofNullable(r.getOtMinutesAfter()).orElse(0))
+                .otMinutesHoliday(Optional.ofNullable(r.getOtMinutesHoliday()).orElse(0))
 
                 .status(toDbStatus(r.getStatus()))
                 .calculatedAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .inputsSnapshotJson(buildSnapshotJson(r))
                 .build();
+    }
+
+    private String buildSnapshotJson(AttendanceCalculationResult r) {
+        try {
+            Map<String, Object> snapshot = new HashMap<>();
+            snapshot.put("note", r.getNote());
+            snapshot.put("status", r.getStatus());
+            snapshot.put("consumedEventIds", r.getConsumedEventIds());
+            snapshot.put("hasRequestApplied", r.isRequestApplied());
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (Exception ex) {
+            log.warn("Failed to build inputs_snapshot_json for employee={}, date={}: {}",
+                    r.getEmployeeId(), r.getWorkDate(), ex.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -118,7 +122,7 @@ public class AttendanceBatchService {
 
         return switch (s) {
             case ON_LEAVE -> AttendanceDaily.AttendanceStatus.LEAVE;
-            case ABSENT, MISSING_LOG -> AttendanceDaily.AttendanceStatus.ABSENT;
+            case ABSENT, MISSING_LOG, MISSING_SCHEDULE -> AttendanceDaily.AttendanceStatus.ABSENT;
             case PRESENT, LATE, EARLY_LEAVE -> AttendanceDaily.AttendanceStatus.PRESENT;
         };
     }

@@ -50,7 +50,7 @@ public class RequestApplicationService {
 
         for (Requests req : requests) {
             AttendanceCalculationResult updated = applyOne(result, req);
-            if (Boolean.TRUE.equals(updated.getHasRequestApplied())) return updated;
+            if (Boolean.TRUE.equals(updated.isRequestApplied())) return updated;
         }
         return result;
     }
@@ -75,7 +75,7 @@ public class RequestApplicationService {
 
             return copy(r)
                     .status(AttendanceCalcStatus.ON_LEAVE)
-                    .hasRequestApplied(true)
+                    .requestApplied(true)
                     .note(appendNote(r.getNote(), "On leave: " + req.getRequestType() + reason(req)))
                     .build();
         }
@@ -83,24 +83,27 @@ public class RequestApplicationService {
     }
 
     private AttendanceCalculationResult applyLateEarly(AttendanceCalculationResult r, Requests req) {
-        if (r.getStatus() == AttendanceCalcStatus.LATE) {
+        int late = r.getLateMinutes();
+        int early = r.getEarlyLeaveMinutes();
+
+        if (r.getStatus() == AttendanceCalcStatus.LATE || r.getStatus() == AttendanceCalcStatus.EARLY_LEAVE) {
+            String noteSuffix = r.getStatus() == AttendanceCalcStatus.LATE
+                    ? "Late approved" + reason(req)
+                    : "Early leave approved" + reason(req);
+
+            late = 0; // Đã duyệt miễn trễ
+            early = 0; // Đã duyệt miễn về sớm
+
+            AttendanceCalcStatus newStatus = (late == 0 && early == 0) ? AttendanceCalcStatus.PRESENT : r.getStatus();
+
             return copy(r)
-                    .lateMinutes(0)
-                    .status(AttendanceCalcStatus.PRESENT)
-                    .hasRequestApplied(true)
-                    .note(appendNote(r.getNote(), "Late approved" + reason(req)))
+                    .lateMinutes(late)
+                    .earlyLeaveMinutes(early)
+                    .status(newStatus)
+                    .requestApplied(true)
+                    .note(appendNote(r.getNote(), noteSuffix))
                     .build();
         }
-
-        if (r.getStatus() == AttendanceCalcStatus.EARLY_LEAVE) {
-            return copy(r)
-                    .earlyLeaveMinutes(0)
-                    .status(AttendanceCalcStatus.PRESENT)
-                    .hasRequestApplied(true)
-                    .note(appendNote(r.getNote(), "Early leave approved" + reason(req)))
-                    .build();
-        }
-
         return r;
     }
 
@@ -118,7 +121,7 @@ public class RequestApplicationService {
                 .earlyLeaveMinutes(r.getEarlyLeaveMinutes())
                 .workingHours(r.getWorkingHours())
                 .isNightShift(r.getIsNightShift())
-                .hasRequestApplied(r.getHasRequestApplied())
+                .requestApplied(r.isRequestApplied())
                 .note(r.getNote());
     }
 
