@@ -61,7 +61,14 @@ const AttendanceDailyPage: React.FC = () => {
   // 1. Employees Dictionary
   const { data: employeesList } = useQuery({
     queryKey: ['scheduleEmployees'],
-    queryFn: () => attendanceDailyApi.getScheduleEmployees(),
+    queryFn: async () => {
+      try {
+        return await attendanceDailyApi.getScheduleEmployees();
+      } catch (err) {
+        console.warn('[AttendanceDailyPage] Could not load employee dictionary:', err);
+        return [];
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 min cache
   });
 

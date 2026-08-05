@@ -16,7 +16,6 @@ import {
   X,
   AlertCircle,
   RefreshCw,
-  TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
   Briefcase
@@ -24,10 +23,10 @@ import {
 import { useAuth } from '../../core/auth/AuthContext';
 import { dashboardApi } from './api/dashboard.api';
 import { useDashboardWebSocket } from './hooks/useDashboardWebSocket';
-import { ExceptionRecord, LivePulseRecord } from '../../shared/models/dashboard.model';
+import { ExceptionRecord } from '../../shared/models/dashboard.model';
 import { cn } from '../../shared/utils/cn';
 import styles from './DashboardPage.module.scss';
-import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
+import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 
 // ── Helpers ────────────────────────────────────────────────────────────
 const avatarGradients = [
@@ -50,10 +49,7 @@ const getAvatarGradient = (name?: string): string => {
   return avatarGradients[idx];
 };
 
-const formatTime = (iso: string | null): string => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-};
+
 
 const formatDateTime = (iso: string | null): string => {
   if (!iso) return '—';
@@ -99,8 +95,8 @@ const itemVariants = {
 };
 
 // Mock data for mini charts inside KPI cards
-const chartDataOk = Array.from({ length: 7 }).map((_, i) => ({ value: 40 + Math.random() * 60 }));
-const chartDataWarn = Array.from({ length: 7 }).map((_, i) => ({ value: 80 - Math.random() * 40 }));
+const chartDataOk = Array.from({ length: 7 }).map(() => ({ value: 40 + Math.random() * 60 }));
+const chartDataWarn = Array.from({ length: 7 }).map(() => ({ value: 80 - Math.random() * 40 }));
 
 // ── Main Page ──────────────────────────────────────────────────────────
 const DashboardPage: React.FC = () => {
@@ -199,7 +195,10 @@ const DashboardPage: React.FC = () => {
   const handleExport = () => {
     // Generate a mock CSV report based on current KPIs
     const headers = "Metric,Value\n";
-    const kpiData = `Total Employees,${kpi?.totalEmployees?.total ?? 0}\nPresent Today,${kpi?.presentToday?.count ?? 0}\nAbsent Today,${kpi?.absentToday?.count ?? 0}\nLate Check-ins,${kpi?.lateCheckins?.count ?? 0}\n`;
+    const totalEmp = kpi?.totalEmployees?.count ?? 0;
+    const presentEmp = kpi?.presentToday?.count ?? 0;
+    const absentEmp = Math.max(0, totalEmp - presentEmp);
+    const kpiData = `Total Employees,${totalEmp}\nPresent Today,${presentEmp}\nAbsent Today,${absentEmp}\nLate Check-ins,${kpi?.lateCheckins?.count ?? 0}\n`;
     
     // Add BOM for Excel UTF-8 support
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + kpiData;
@@ -339,7 +338,7 @@ const DashboardPage: React.FC = () => {
                   )}
                 </div>
                 <div className="mt-4">
-                  <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">{t('dashboard.absentToday')}</p>
+                  <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">{t('dashboard.lateCheckins')}</p>
                   <div className="mt-1 flex items-baseline gap-2">
                     <h3 className="text-3xl font-black font-sans text-slate-800 tracking-tight">{kpi?.lateCheckins?.count ?? '—'}</h3>
                     <span className="text-sm font-medium font-sans text-slate-500">{kpiLateAvgMin}</span>
@@ -437,7 +436,7 @@ const DashboardPage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100/50">
                     <AnimatePresence>
-                      {livePulse.records.map((rec, index) => (
+                      {livePulse.records.map((rec) => (
                         <motion.tr 
                           layout
                           key={rec.id}

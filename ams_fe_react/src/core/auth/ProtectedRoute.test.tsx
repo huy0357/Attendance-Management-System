@@ -7,9 +7,11 @@ import { AuthContext } from './AuthContext';
 
 // ── Mock AuthContext values ───────────────────────────────────────────────────
 const makeAuth = (overrides: Partial<{
+  isInitializing: boolean;
   isAuthenticated: boolean;
   hasAnyRole: (roles: string[]) => boolean;
 }>) => ({
+  isInitializing: false,
   isAuthenticated: false,
   username: null,
   role: null,

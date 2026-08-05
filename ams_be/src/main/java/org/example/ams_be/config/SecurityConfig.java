@@ -36,34 +36,34 @@ public class SecurityConfig {
 
                         .requestMatchers("/error").permitAll()
 
-                        // Admin only
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/employees/**").hasRole("ADMIN")
-                        .requestMatchers("/api/accounts/**").hasRole("ADMIN")
-                        .requestMatchers("/api/departments/**").hasRole("ADMIN")
-                        .requestMatchers("/api/roles/**").hasRole("ADMIN")
-                        .requestMatchers("/api/shift-templates/**").hasRole("ADMIN")
-                        .requestMatchers("/api/audit-logs/**").hasRole("ADMIN")
-                        .requestMatchers("/api/attendance-daily/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/attendance-daily/debug-run").hasRole("ADMIN")
-                        .requestMatchers("/api/attendance-monthly-summary/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/employee-export/**").hasRole("ADMIN")
-                        .requestMatchers("/api/attendance-export/**").hasRole("ADMIN")
-                        .requestMatchers("/api/exports/**").hasRole("ADMIN")
+                        // System Admin only (Account & Role Management)
+                        .requestMatchers("/api/admin/**", "/api/accounts/**", "/api/roles/**").hasRole("ADMIN")
 
-                        // Manager and Admin
-                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers("/api/requests/manager-queue/**").hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/requests/*/approval").hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers("/api/v1/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
+                        // HR and Admin
+                        .requestMatchers("/api/audit-logs/**").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers("/api/attendance-email/**").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers("/api/attendance-daily/debug-run").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers("/api/employee-export/**", "/api/attendance-export/**", "/api/exports/**").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers(HttpMethod.POST, "/api/employees/**", "/api/departments/**", "/api/v1/shifts/**", "/api/monthly-summary/generate").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers(HttpMethod.PUT, "/api/employees/**", "/api/departments/**", "/api/v1/shifts/**").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/shifts/**").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/employees/**", "/api/departments/**", "/api/v1/shifts/**").hasAnyRole("ADMIN", "HR")
 
-                        // Employee, Manager, Admin
-                        .requestMatchers("/api/attendance-daily/employee/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
-                        .requestMatchers("/api/attendance-daily/me").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
-                        .requestMatchers("/api/requests/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
-                        .requestMatchers("/api/profile/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
-                        .requestMatchers("/api/employee-schedules/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
-                        .requestMatchers("/api/v1/schedules/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        // Dashboard, Manager Queue, Approval, Scheduling, Attendance Admin: Admin, HR, Manager
+                        .requestMatchers("/api/v1/dashboard/**").hasAnyRole("MANAGER", "ADMIN", "HR")
+                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN", "HR")
+                        .requestMatchers("/api/requests/manager-queue/**").hasAnyRole("MANAGER", "ADMIN", "HR")
+                        .requestMatchers(HttpMethod.PUT, "/api/requests/*/approval").hasAnyRole("MANAGER", "ADMIN", "HR")
+                        .requestMatchers("/api/attendance-daily/admin/**").hasAnyRole("MANAGER", "ADMIN", "HR")
+                        .requestMatchers("/api/monthly-summary/admin/**", "/api/attendance-monthly-summary/admin/**").hasAnyRole("MANAGER", "ADMIN", "HR")
+
+                        // All Authenticated Users (Employee, Manager, HR, Admin): Read Employees/Departments/Shifts, My Attendance, My Requests, My Profile, Schedules
+                        .requestMatchers(HttpMethod.GET, "/api/employees/**", "/api/departments/**", "/api/v1/shifts/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
+                        .requestMatchers("/api/attendance-daily/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
+                        .requestMatchers("/api/monthly-summary/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
+                        .requestMatchers("/api/requests/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
+                        .requestMatchers("/api/profile/**", "/api/v1/profile/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
+                        .requestMatchers("/api/employee-schedules/**", "/api/v1/schedules/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
 
                         // All authenticated users
                         .anyRequest().authenticated()

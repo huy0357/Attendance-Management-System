@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Network, Plus, Search, Edit2, Trash2, X, AlertTriangle, CheckCircle2, XCircle, LayoutTemplate } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useToast } from '../../../core/toast/ToastContext';
 import { departmentApi, DepartmentDto, DepartmentRequest } from '../api/hrm.api';
 import styles from './DepartmentsPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -38,8 +39,9 @@ const TreeNode: React.FC<{ node: DepartmentDto; level?: number }> = ({ node, lev
 };
 
 const DepartmentsPage: React.FC = () => {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('ADMIN');
+  const { hasAnyRole } = useAuth();
+  const toast = useToast();
+  const canManageDepts = hasAnyRole(['ADMIN', 'HR']);
   const queryClient = useQueryClient();
 
   // --- UI State ---
@@ -158,8 +160,9 @@ const DepartmentsPage: React.FC = () => {
     onSuccess: () => { 
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       closeAdd(); 
+      toast.success('Department created successfully');
     },
-    onError: () => alert('Unable to create department.')
+    onError: () => toast.error('Unable to create department.')
   });
 
   const updateMutation = useMutation({
@@ -184,11 +187,14 @@ const DepartmentsPage: React.FC = () => {
       closeEdit();
       return { prevListData };
     },
-    onError: (err, newData, context: any) => {
+    onError: (_err, _newData, context: any) => {
       if (context?.prevListData) {
         queryClient.setQueryData(['departments', debouncedSearch, page, pageSize], context.prevListData);
       }
-      alert('Unable to update department.');
+      toast.error('Unable to update department.');
+    },
+    onSuccess: () => {
+      toast.success('Department updated successfully');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
@@ -200,13 +206,14 @@ const DepartmentsPage: React.FC = () => {
     onSuccess: () => { 
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       closeDelete(); 
+      toast.success('Department deleted successfully');
     },
     onError: (error: any) => {
       const status = error?.response?.status;
       if (status === 400 || status === 409 || status === 500) {
-        alert('Không thể xóa phòng ban đang có nhân viên hoạt động hoặc có phòng ban con. Vui lòng chuyển nhân sự trước khi xóa!');
+        toast.warning('Unable to delete department: it has active employees or sub-departments.');
       } else {
-        alert('Unable to delete department.');
+        toast.error('Unable to delete department.');
       }
     }
   });
@@ -239,7 +246,7 @@ const DepartmentsPage: React.FC = () => {
           <p className={styles.pageSubtitle}>Company organizational structure</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {isAdmin && !showAddModal && !showEditModal && !showDeleteModal && (
+          {canManageDepts && !showAddModal && !showEditModal && !showDeleteModal && (
             <button
               onClick={openAdd}
               className={styles.nmBtnPrimary}
@@ -323,7 +330,7 @@ const DepartmentsPage: React.FC = () => {
                     <th>Name</th>
                     <th>Parent ID</th>
                     <th>Status</th>
-                    {isAdmin && <th style={{ textAlign: 'right' }}>Actions</th>}
+                    {canManageDepts && <th style={{ textAlign: 'right' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -353,7 +360,7 @@ const DepartmentsPage: React.FC = () => {
                           {dept.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      {isAdmin && (
+                      {canManageDepts && (
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                             <button

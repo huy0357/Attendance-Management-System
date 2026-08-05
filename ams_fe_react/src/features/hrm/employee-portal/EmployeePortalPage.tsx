@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Camera, Edit2, Save, X, Mail, Phone, Calendar, MapPin, Building2, Briefcase, Clock, Shield } from 'lucide-react';
 import { profileApi } from '../api/hrm.api';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useToast } from '../../../core/toast/ToastContext';
 import styles from './EmployeePortalPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
 
 const EmployeePortalPage: React.FC = () => {
   const { hasRole } = useAuth();
+  const toast = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -25,16 +27,18 @@ const EmployeePortalPage: React.FC = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(['myProfile'], data);
       setIsEditing(false);
+      toast.success('Cập nhật hồ sơ cá nhân thành công!');
     },
-    onError: () => alert('Failed to update profile.')
+    onError: () => toast.error('Không thể cập nhật hồ sơ cá nhân.')
   });
 
   const avatarMutation = useMutation({
     mutationFn: (file: File) => profileApi.uploadMyAvatar(file),
     onSuccess: (data) => {
       queryClient.setQueryData(['myProfile'], data);
+      toast.success('Tải lên ảnh đại diện mới thành công!');
     },
-    onError: () => alert('Failed to upload avatar.')
+    onError: () => toast.error('Tải lên ảnh đại diện thất bại.')
   });
 
   const handleEditToggle = () => {
@@ -57,7 +61,7 @@ const EmployeePortalPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
+        toast.warning('Kích thước tập tin hình ảnh phải nhỏ hơn 5MB!');
         return;
       }
       avatarMutation.mutate(file);

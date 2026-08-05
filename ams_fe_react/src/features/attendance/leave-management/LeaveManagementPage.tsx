@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { NavLink } from 'react-router-dom';
-import { ArrowRight, Search, Eye, CheckCircle, Clock, XCircle, AlertCircle, TriangleAlert, X } from 'lucide-react';
+import { Search, Eye, CheckCircle, Clock, XCircle, AlertCircle, TriangleAlert, X } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { requestApi, RequestsResponse } from '../api/attendanceCore.api';
 import styles from './LeaveManagementPage.module.scss';

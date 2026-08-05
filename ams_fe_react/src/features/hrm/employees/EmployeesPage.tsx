@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Search, Eye, Edit2, Trash2, X, AlertTriangle, Shield, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useToast } from '../../../core/toast/ToastContext';
 import { employeeApi, EmployeeDto, EmployeeRequest } from '../api/hrm.api';
 import { adminApi } from '../../admin/api/admin.api';
 import { RoleResponse } from '../../../shared/models/account.model';
@@ -17,8 +18,8 @@ interface UiEmployee extends EmployeeDto {
 }
 
 const EmployeesPage: React.FC = () => {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('ADMIN');
+  const { hasAnyRole } = useAuth();
+  const toast = useToast();
   const queryClient = useQueryClient();
 
   // --- UI State ---
@@ -36,6 +37,7 @@ const EmployeesPage: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const canManageEmployees = hasAnyRole(['ADMIN', 'HR']);
 
   // Selected Employee
   const [selectedEmployee, setSelectedEmployee] = useState<UiEmployee | null>(null);
@@ -44,7 +46,7 @@ const EmployeesPage: React.FC = () => {
   const { data: allRoles = [] } = useQuery({
     queryKey: ['allRoles'],
     queryFn: () => adminApi.getAccountRoles(),
-    enabled: isAdmin
+    enabled: canManageEmployees
   });
 
   const { data: employeeRoles = [], isFetching: isLoadingRoles } = useQuery({
@@ -224,23 +226,33 @@ const EmployeesPage: React.FC = () => {
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data: EmployeeRequest) => employeeApi.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['employees'] }); closeAdd(); },
-    onError: () => alert('Unable to add employee. Please try again.')
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['employees'] }); 
+      closeAdd(); 
+      toast.success('Thêm mới nhân viên thành công!');
+    },
+    onError: () => toast.error('Không thể thêm nhân viên. Vui lòng kiểm tra lại!')
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: EmployeeRequest) => employeeApi.update(Number(selectedEmployee!.id), data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['employees'] }); closeEdit(); },
-    onError: () => alert('Unable to update employee. Please try again.')
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['employees'] }); 
+      closeEdit(); 
+      toast.success('Cập nhật thông tin nhân viên thành công!');
+    },
+    onError: () => toast.error('Cập nhật thông tin nhân viên thất bại!')
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => employeeApi.delete(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['employees'] }); closeDelete(); },
-    onError: () => alert('Unable to delete employee. Please try again.')
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['employees'] }); 
+      closeDelete(); 
+      toast.success('Đã xóa nhân viên thành công!');
+    },
+    onError: () => toast.error('Không thể xóa nhân viên này.')
   });
-
-
 
   const exportMutation = useMutation({
     mutationFn: () => employeeApi.exportEmployees(),
@@ -253,8 +265,9 @@ const EmployeesPage: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toast.success('Tải về tập tin Excel nhân sự thành công!');
     },
-    onError: () => alert('Unable to export employees. Please try again.')
+    onError: () => toast.error('Xuất danh sách nhân viên thất bại.')
   });
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -293,7 +306,7 @@ const EmployeesPage: React.FC = () => {
           <p className={styles.pageSubtitle}>Manage employee records backed by the HR module.</p>
         </div>
         <div className="flex items-center gap-3">
-          {isAdmin && !showAddModal && (
+          {canManageEmployees && !showAddModal && (
             <>
               <button
                 type="button"
@@ -601,7 +614,7 @@ const EmployeesPage: React.FC = () => {
               <button onClick={closeDetails} className={styles.nmBtnSecondary}>
                 Close
               </button>
-              {isAdmin && (
+              {canManageEmployees && (
                 <>
                   <button onClick={() => setShowRoleModal(true)} className={styles.nmBtnPrimary} style={{ background: 'var(--nm-info)', color: '#fff', boxShadow: 'none' }}>
                     <Shield className="h-4 w-4 shrink-0" /> Manage Roles

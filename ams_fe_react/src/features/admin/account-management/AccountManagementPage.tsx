@@ -193,7 +193,7 @@ const AccountManagementPage: React.FC = () => {
 
       return { previousPageData };
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       queryClient.setQueryData(['accountsPage', currentPage, pageSize, sortBy, sortDir, filterStatus, debouncedSearch], context?.previousPageData);
     },
     onSettled: () => {
@@ -363,7 +363,7 @@ const AccountManagementPage: React.FC = () => {
                     <input type="checkbox" hidden checked={user.status === 'active'} disabled={toggleStatusMutation.isPending}
                       onChange={() => toggleStatusMutation.mutate({ 
                         id: Number(user.id), 
-                        req: { roleId: user.roleId, isActive: user.status !== 'active' }
+                        req: { roleId: user.roleId ?? undefined, isActive: user.status !== 'active' }
                       })} 
                     />
                     <span style={{ fontSize: '12px', fontWeight: 'bold', marginLeft: '8px', color: user.status === 'active' ? 'var(--nm-success)' : 'var(--nm-text-muted)' }}>

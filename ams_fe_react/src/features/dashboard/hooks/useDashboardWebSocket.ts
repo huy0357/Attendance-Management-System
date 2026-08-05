@@ -56,7 +56,15 @@ export const useDashboardWebSocket = (enabled: boolean = true) => {
             
             // Update the react-query cache directly to prepend the new record
             queryClient.setQueryData<LivePulseResponse>(['dashboardLivePulse'], (oldData) => {
-              if (!oldData) return { records: [newRecord] };
+              if (!oldData) {
+                return {
+                  records: [newRecord],
+                  hasMore: false,
+                  lastTimestamp: newRecord.checkInTime || '',
+                  totalCount: 1,
+                  realTimeEnabled: true,
+                };
+              }
               
               // Avoid duplicates (in case REST and WS overlap)
               const isDuplicate = oldData.records.some(r => r.id === newRecord.id);

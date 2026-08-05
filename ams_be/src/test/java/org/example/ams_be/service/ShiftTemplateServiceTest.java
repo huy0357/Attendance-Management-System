@@ -274,14 +274,13 @@ class ShiftTemplateServiceTest {
     }
 
     @Test
-    void deleteSetsInactiveAndSavesEntity() {
+    void deleteRemovesEntityFromRepository() {
         ShiftTemplate existing = shift(1L, "DAY", "Day Shift", true);
         when(repo.findById(1L)).thenReturn(Optional.of(existing));
 
         shiftTemplateService.delete(1L);
 
-        assertFalse(existing.getIsActive());
-        verify(repo).save(existing);
+        verify(repo).delete(existing);
     }
 
     @Test

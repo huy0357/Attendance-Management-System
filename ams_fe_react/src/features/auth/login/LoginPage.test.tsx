@@ -6,15 +6,17 @@ import { AuthContext } from '../../../core/auth/AuthContext';
 import LoginPage from './LoginPage';
 
 const makeAuth = (overrides?: Partial<{
-  login: () => Promise<unknown>;
+  isInitializing: boolean;
+  login: (req: any) => Promise<any>;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   verifyOtp: (email: string, otp: string) => Promise<{ message: string }>;
   resetPassword: (email: string, otp: string, pw: string) => Promise<{ message: string }>;
 }>) => ({
+  isInitializing: false,
   isAuthenticated: false,
   username: null,
   role: null,
-  login: vi.fn().mockResolvedValue({}),
+  login: vi.fn().mockResolvedValue({ accessToken: 'mock', tokenType: 'Bearer', expiresInSeconds: 3600, username: 'user', role: 'ADMIN' }),
   logout: vi.fn(),
   forgotPassword: vi.fn().mockResolvedValue({ message: 'OTP sent' }),
   verifyOtp: vi.fn().mockResolvedValue({ message: 'OTP verified' }),

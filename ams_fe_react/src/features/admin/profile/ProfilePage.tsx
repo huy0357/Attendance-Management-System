@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, Key, Mail, Building2, Save, Lock, Camera, Edit2, Phone, Calendar, X, CheckCircle } from 'lucide-react';
+import { Shield, Key, Mail, Building2, Save, Lock, Camera, Edit2, Phone, X } from 'lucide-react';
 import { profileApi } from '../../hrm/api/hrm.api';
 import axiosInstance from '../../../core/api/axiosInstance';
 import { useAuth } from '../../../core/auth/AuthContext';

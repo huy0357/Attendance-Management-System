@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, X, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../../core/auth/AuthContext';
+import { useToast } from '../../../core/toast/ToastContext';
 import { shiftApi, ShiftTemplateResponse, ShiftTemplateUpsertPayload } from '../api/attendanceCore.api';
 import styles from './ShiftTemplatesPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 const ShiftTemplatesPage: React.FC = () => {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('ADMIN');
+  const toast = useToast();
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
 
   // Search parameters
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,7 +92,7 @@ const ShiftTemplatesPage: React.FC = () => {
       setFormErrors([]);
       setShowForm(true);
     } catch {
-      alert('Unable to load shift template.');
+      toast.error('Không thể tải thông tin Ca làm việc.');
     }
   };
 
@@ -109,8 +106,9 @@ const ShiftTemplatesPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shiftTemplates'] });
       setShowForm(false);
+      toast.success('Khởi tạo Ca làm việc thành công!');
     },
-    onError: () => alert('Unable to create shift template.')
+    onError: () => toast.error('Không thể tạo Ca làm việc. Vui lòng kiểm tra lại!')
   });
 
   const updateMutation = useMutation({
@@ -118,8 +116,9 @@ const ShiftTemplatesPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shiftTemplates'] });
       setShowForm(false);
+      toast.success('Cập nhật Ca làm việc thành công!');
     },
-    onError: () => alert('Unable to update shift template.')
+    onError: () => toast.error('Cập nhật Ca làm việc thất bại!')
   });
 
   const activeMutation = useMutation({
@@ -136,11 +135,11 @@ const ShiftTemplatesPage: React.FC = () => {
       }
       return { prevData };
     },
-    onError: (err, variables, context: any) => {
+    onError: (_err, _variables, context: any) => {
       if (context?.prevData) {
         queryClient.setQueryData(['shiftTemplates', debouncedSearch, activeParam], context.prevData);
       }
-      alert('Unable to update active status.');
+      toast.error('Không thể cập nhật trạng thái hoạt động.');
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['shiftTemplates'] }),
   });
@@ -150,13 +149,14 @@ const ShiftTemplatesPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shiftTemplates'] });
       setShowDeleteModal(false);
+      toast.success('Đã xóa Ca làm việc thành công!');
     },
     onError: (error: any) => {
       const status = error?.response?.status;
       if (status === 400 || status === 409 || status === 500) {
-        alert('Không thể xóa Ca làm việc đang được gán lịch cho nhân viên. Vui lòng gỡ lịch trước khi xóa!');
+        toast.warning('Không thể xóa Ca làm việc đang được gán lịch cho nhân viên. Vui lòng gỡ lịch trước khi xóa!');
       } else {
-        alert('Unable to delete shift template. It might be linked to existing schedules.');
+        toast.error('Xóa Ca làm việc thất bại.');
       }
     }
   });
@@ -223,9 +223,7 @@ const ShiftTemplatesPage: React.FC = () => {
     return isNaN(d.getTime()) ? val : d.toLocaleString();
   };
 
-  if (!isAdmin) {
-    return <div style={{ padding: '32px', textAlign: 'center', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Access Denied. You do not have permission to view Shift Templates.</div>;
-  }
+
 
   return (
     <div className="space-y-6 pb-6">
@@ -324,7 +322,7 @@ const ShiftTemplatesPage: React.FC = () => {
                 </td>
                 <td style={{ fontSize: '10px', color: 'var(--nm-text-muted)' }}>{formatDateTime(t.updatedAt)}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', items: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                     <button onClick={() => openEdit(t.shiftId)} className={styles.nmBtnText} title="Edit">
                       Edit
                     </button>

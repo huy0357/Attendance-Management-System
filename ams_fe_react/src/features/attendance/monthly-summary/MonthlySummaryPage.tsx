@@ -52,8 +52,8 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => (
 
 // --- Main Page ---
 const MonthlySummaryPage: React.FC = () => {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('ADMIN');
+  const { hasAnyRole } = useAuth();
+  const isAdmin = hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   const colSpanCount: number = isAdmin ? 9 : 7;
   void colSpanCount; // suppress unused var — used inline below
 

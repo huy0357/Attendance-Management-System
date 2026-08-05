@@ -31,6 +31,9 @@ class AttendanceEmailServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private org.example.ams_be.repository.EmployeeRepository employeeRepository;
+
     @InjectMocks
     private AttendanceEmailService attendanceEmailService;
 
@@ -38,13 +41,14 @@ class AttendanceEmailServiceTest {
     void sendMonthlyAttendanceEmailThrowsWhenSummaryNotFound() {
         when(attendanceSummaryMonthlyRepository.findEmailSummaryByMonthAndEmployee("2026-03", 1L))
                 .thenReturn(Optional.empty());
+        when(employeeRepository.findById(1L)).thenReturn(Optional.empty());
 
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
                 () -> attendanceEmailService.sendMonthlyAttendanceEmail("2026-03", 1L)
         );
 
-        assertEquals("Monthly summary not found for employeeId=1, month=2026-03", ex.getMessage());
+        assertEquals("Employee not found: 1", ex.getMessage());
     }
 
     @Test
@@ -87,12 +91,12 @@ class AttendanceEmailServiceTest {
 
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         verify(emailService).sendHtmlEmail(eq("alice@company.com"),
-                eq("Thong bao tong hop cham cong thang 2026-03"),
+                eq("Thông báo tổng hợp chấm công tháng 2026-03"),
                 bodyCaptor.capture());
         String body = bodyCaptor.getValue();
         org.junit.jupiter.api.Assertions.assertTrue(body.contains("Alice"));
         org.junit.jupiter.api.Assertions.assertTrue(body.contains("20"));
-        org.junit.jupiter.api.Assertions.assertTrue(body.contains("120 phut"));
+        org.junit.jupiter.api.Assertions.assertTrue(body.contains("120 phút"));
     }
 
     @Test
@@ -112,17 +116,24 @@ class AttendanceEmailServiceTest {
 
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         verify(emailService).sendHtmlEmail(eq("alice@company.com"),
-                eq("Thong bao tong hop cham cong thang 2026-03"),
+                eq("Thông báo tổng hợp chấm công tháng 2026-03"),
                 bodyCaptor.capture());
         String body = bodyCaptor.getValue();
         org.junit.jupiter.api.Assertions.assertTrue(body.contains("<b></b> ()"));
         org.junit.jupiter.api.Assertions.assertTrue(body.contains(">0<"));
-        org.junit.jupiter.api.Assertions.assertTrue(body.contains("0 phut"));
+        org.junit.jupiter.api.Assertions.assertTrue(body.contains("0 phút"));
         org.junit.jupiter.api.Assertions.assertFalse(body.contains("null"));
     }
 
     @Test
     void sendMonthlyAttendanceEmailToAllSendsEverySummaryAndContinuesAfterFailure() {
+        org.example.ams_be.dto.EmployeeDto emp1 = new org.example.ams_be.dto.EmployeeDto();
+        emp1.employeeId = 1L; emp1.email = "alice@company.com"; emp1.status = "ACTIVE";
+        org.example.ams_be.dto.EmployeeDto emp2 = new org.example.ams_be.dto.EmployeeDto();
+        emp2.employeeId = 2L; emp2.email = "bob@company.com"; emp2.status = "ACTIVE";
+
+        when(employeeRepository.findAll()).thenReturn(List.of(emp1, emp2));
+
         MonthlyAttendanceEmailDto first = summary();
         MonthlyAttendanceEmailDto second = summary();
         second.setEmployeeId(2L);
@@ -137,11 +148,12 @@ class AttendanceEmailServiceTest {
         attendanceEmailService.sendMonthlyAttendanceEmailToAll("2026-03");
 
         verify(emailService, times(2))
-                .sendHtmlEmail(org.mockito.ArgumentMatchers.anyString(), eq("Thong bao tong hop cham cong thang 2026-03"), org.mockito.ArgumentMatchers.anyString());
+                .sendHtmlEmail(org.mockito.ArgumentMatchers.anyString(), eq("Thông báo tổng hợp chấm công tháng 2026-03"), org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
     void sendMonthlyAttendanceEmailToAllDoesNothingWhenSummaryListEmpty() {
+        when(employeeRepository.findAll()).thenReturn(List.of());
         when(attendanceSummaryMonthlyRepository.findAllEmailSummaryByMonth("2026-03"))
                 .thenReturn(List.of());
 

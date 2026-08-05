@@ -1,8 +1,8 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Clock, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../../core/auth/AuthContext';
-import { scheduleApi, shiftApi, ShiftTemplateResponse, Shift } from '../api/attendanceCore.api';
+import { useToast } from '../../../core/toast/ToastContext';
+import { scheduleApi, shiftApi, ShiftTemplateResponse, Shift, ScheduleEmployee } from '../api/attendanceCore.api';
 import styles from './SchedulingPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
@@ -47,8 +47,7 @@ const deriveShiftType = (isNightShift: boolean, startTime?: string): 'morning' |
 };
 
 const SchedulingPage: React.FC = () => {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('ADMIN');
+  const toast = useToast();
   const queryClient = useQueryClient();
 
   const [weekStart, setWeekStart] = useState<Date>(getStartOfWeek(new Date()));
@@ -199,7 +198,7 @@ const SchedulingPage: React.FC = () => {
     if (!draggedTemplate) return;
     const existing = getShift(empId, day);
     if (existing) {
-       alert('Conflict detected! Employee already has a shift on this day.');
+       toast.warning('Trùng lịch! Nhân viên này đã được phân ca trong ngày.');
        return;
     }
 
@@ -245,9 +244,7 @@ const SchedulingPage: React.FC = () => {
     });
   };
 
-  if (!isAdmin) {
-    return <div style={{ padding: '32px', textAlign: 'center', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Access Denied. You do not have permission to view this page.</div>;
-  }
+
 
   return (
     <div className={styles.schedulingPage}>
@@ -401,7 +398,7 @@ const SchedulingPage: React.FC = () => {
                               }}
                             >
                               {shift ? (
-                                <div className={cn(styles.shiftTag, styles[deriveShiftType(shift.isNightShift, shift.startTime)])}>
+                                <div className={cn(styles.shiftTag, styles[deriveShiftType(Boolean(shift.isNightShift), shift.startTime)])}>
                                   {shift.scheduleSource === 'IMPORT' && (
                                     <span style={{ position: 'absolute', top: '-6px', right: '-4px', background: 'var(--nm-dark)', color: 'white', fontSize: '8px', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold' }}>
                                       IMPORT
@@ -543,7 +540,7 @@ const SchedulingPage: React.FC = () => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 'bold', fontSize: '18px', boxShadow: 'var(--nm-shadow-out)'
                   }}>
-                    {selectedStatsEmployee.name.split(' ').map(p => p[0]).join('').substring(0,2).toUpperCase()}
+                    {selectedStatsEmployee.name.split(' ').map((p: string) => p[0]).join('').substring(0,2).toUpperCase()}
                   </div>
                   <div>
                     <h2 style={{ margin: 0, fontSize: '20px' }}>{selectedStatsEmployee.name}</h2>

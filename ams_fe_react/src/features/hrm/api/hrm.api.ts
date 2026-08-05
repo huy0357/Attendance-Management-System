@@ -95,34 +95,30 @@ export const employeeApi = {
     await axiosInstance.delete(`${API_BASE}/employees/${id}`);
   },
   getPage: async (page: number, size: number, sortBy = 'employee_id', sortDir = 'asc'): Promise<PageResponse<EmployeeDto>> => {
-    // UI is 1-based, Spring Boot PageRequest is 0-based
-    const zeroBasedPage = Math.max(0, page - 1);
-    const params = new URLSearchParams({ page: zeroBasedPage.toString(), size: size.toString(), sortBy, sortDir });
+    // BE EmployeeService expects 1-based page parameter (page 1 is first page)
+    const params = new URLSearchParams({ page: page.toString(), size: size.toString(), sortBy, sortDir });
     const res = await axiosInstance.get(`${API_BASE}/employees/page`, { params });
     const data = res.data?.data || res.data;
     return {
       items: data.items || data.content || [],
       totalItems: data.totalItems || data.totalElements || 0,
       totalPages: data.totalPages || 0,
-      // map back to 1-based for UI if BE returns 0-based
-      page: page,
+      page: data.page || page,
       size: data.size || size,
       hasNext: data.hasNext ?? (!data.last),
       hasPrev: data.hasPrev ?? (!data.first)
     };
   },
   searchByName: async (name: string, page: number, size: number, sortBy = 'employee_id', sortDir = 'asc'): Promise<PageResponse<EmployeeDto>> => {
-    // UI is 1-based, Spring Boot PageRequest is 0-based
-    const zeroBasedPage = Math.max(0, page - 1);
-    const params = new URLSearchParams({ name, page: zeroBasedPage.toString(), size: size.toString(), sortBy, sortDir });
+    // BE EmployeeService expects 1-based page parameter (page 1 is first page)
+    const params = new URLSearchParams({ name, page: page.toString(), size: size.toString(), sortBy, sortDir });
     const res = await axiosInstance.get(`${API_BASE}/employees/search`, { params });
     const data = res.data?.data || res.data;
     return {
       items: data.items || data.content || [],
       totalItems: data.totalItems || data.totalElements || 0,
       totalPages: data.totalPages || 0,
-      // map back to 1-based for UI if BE returns 0-based
-      page: page,
+      page: data.page || page,
       size: data.size || size,
       hasNext: data.hasNext ?? (!data.last),
       hasPrev: data.hasPrev ?? (!data.first)

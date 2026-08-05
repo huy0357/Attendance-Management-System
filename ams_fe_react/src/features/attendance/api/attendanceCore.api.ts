@@ -83,6 +83,7 @@ export interface Shift {
   startTime: string;
   endTime: string;
   type: 'morning' | 'afternoon' | 'night';
+  isNightShift?: boolean;
   shiftId?: number;
   workDate?: string;
   scheduleSource?: 'MANUAL' | 'IMPORT';

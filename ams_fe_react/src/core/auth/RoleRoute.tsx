@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 /** All normalized roles in the system (mirrors backend ROLE_ADMIN, ROLE_MANAGER, ROLE_EMPLOYEE) */
-export type AppRole = 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+export type AppRole = 'ADMIN' | 'HR' | 'MANAGER' | 'EMPLOYEE';
 
 interface RoleRouteProps {
   /** Allowed role strings — normalized comparison (case-insensitive, strips ROLE_ prefix) */

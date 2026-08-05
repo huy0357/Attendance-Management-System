@@ -51,7 +51,7 @@ const PageSpinner = () => (
 // ── Home Redirect Component ───────────────────────────────────────────────────
 const HomeRedirect = () => {
   const { hasAnyRole } = useAuth();
-  if (hasAnyRole(['ADMIN', 'MANAGER'])) {
+  if (hasAnyRole(['ADMIN', 'HR', 'MANAGER'])) {
     return <Navigate to="/dashboard" replace />;
   }
   return <Navigate to="/hrm/employee-portal" replace />;
@@ -69,46 +69,40 @@ const AppRouter: React.FC = () => (
         <Route element={<AdminLayout />}>
           <Route index element={<HomeRedirect />} />
 
-          {/* ── ALL authenticated roles ─────────────────────────────────── */}
+          {/* ── ALL authenticated roles (EMPLOYEE, MANAGER, HR, ADMIN) ───── */}
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/hrm/employee-portal" element={<EmployeePortalPage />} />
           <Route path="/attendance/attendance-daily" element={<AttendanceDailyPage />} />
           <Route path="/attendance/my-schedule" element={<MySchedulePage />} />
           <Route path="/attendance/requests-management" element={<RequestsManagementPage />} />
           <Route path="/attendance/leave-management" element={<LeaveManagementPage />} />
-          {/* Nhân viên tự xem tổng hợp công tháng của mình */}
           <Route path="/attendance/my-monthly-summary" element={<MonthlySummaryPage />} />
 
-          {/* ── MANAGER + ADMIN ──────────────────────────────────────────── */}
-          <Route element={<RoleRoute allowedRoles={['ADMIN', 'MANAGER']} redirectTo="/hrm/employee-portal" />}>
+          {/* ── ADMIN + HR + MANAGER ─────────────────────────────────────── */}
+          <Route element={<RoleRoute allowedRoles={['ADMIN', 'HR', 'MANAGER']} redirectTo="/hrm/employee-portal" />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-          </Route>
-
-          {/* ── ADMIN ONLY ───────────────────────────────────────────────── */}
-          <Route element={<RoleRoute allowedRoles={['ADMIN']} redirectTo="/hrm/employee-portal" />}>
-            {/* HRM */}
-            <Route path="/hrm/employees" element={<EmployeesPage />} />
-            <Route path="/hrm/departments" element={<DepartmentsPage />} />
-
-
-            {/* Attendance - admin views */}
+            <Route path="/attendance/scheduling" element={<SchedulingPage />} />
+            <Route path="/attendance/monthly-summary" element={<MonthlySummaryPage />} />
             <Route path="/attendance/attendance-daily/admin" element={<AttendanceDailyPage />} />
             <Route path="/attendance/attendance-daily/employee/:employeeId" element={<AttendanceDailyPage />} />
-            <Route path="/attendance/scheduling" element={<SchedulingPage />} />
+          </Route>
+
+          {/* ── ADMIN + HR ───────────────────────────────────────────────── */}
+          <Route element={<RoleRoute allowedRoles={['ADMIN', 'HR']} redirectTo="/hrm/employee-portal" />}>
+            <Route path="/hrm/employees" element={<EmployeesPage />} />
+            <Route path="/hrm/departments" element={<DepartmentsPage />} />
             <Route path="/attendance/shift-templates" element={<ShiftTemplatesPage />} />
             <Route path="/attendance/attendance-email" element={<AttendanceEmailPage />} />
-            {/* Admin: Quản lý tổng hợp công tháng toàn công ty */}
-            <Route path="/attendance/monthly-summary" element={<MonthlySummaryPage />} />
-
-            {/* Payroll & Reports */}
-
-            {/* Admin panel */}
-            <Route path="/admin/account-management" element={<AccountManagementPage />} />
             <Route path="/admin/audit-log" element={<AuditLogPage />} />
+            <Route path="/admin/data-exports" element={<DataExportsPage />} />
+          </Route>
+
+          {/* ── SYSTEM ADMIN ONLY ────────────────────────────────────────── */}
+          <Route element={<RoleRoute allowedRoles={['ADMIN']} redirectTo="/hrm/employee-portal" />}>
+            <Route path="/admin/account-management" element={<AccountManagementPage />} />
+            <Route path="/admin/role-management" element={<RoleManagementPage />} />
             <Route path="/admin/settings" element={<SettingsPage />} />
             <Route path="/admin/profile" element={<ProfilePage />} />
-            <Route path="/admin/role-management" element={<RoleManagementPage />} />
-            <Route path="/admin/data-exports" element={<DataExportsPage />} />
             <Route path="/admin/batch-processing" element={<BatchProcessingPage />} />
           </Route>
 

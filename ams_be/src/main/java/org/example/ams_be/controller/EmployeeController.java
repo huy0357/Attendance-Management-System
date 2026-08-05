@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/employees")
-@PreAuthorize("hasRole('ADMIN')")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
@@ -33,11 +32,13 @@ public class EmployeeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeDto> create(@Valid @RequestBody EmployeeRequest request) {
         return ResponseEntity.ok(employeeService.create(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeDto> update(
             @PathVariable Long id,
             @Valid @RequestBody EmployeeRequest request
@@ -47,6 +48,7 @@ public class EmployeeController {
 
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         employeeService.delete(id);
         return ResponseEntity.noContent().build();

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Filter, Eye, Pencil, Trash2, CheckCircle, XCircle, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useToast } from '../../../core/toast/ToastContext';
 import { requestApi, RequestsResponse, RequestsUpsertRequest } from '../api/attendanceCore.api';
 import styles from './RequestsManagementPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -9,6 +10,7 @@ import { cn } from '../../../shared/utils/cn';
 
 const RequestsManagementPage: React.FC = () => {
   const { hasRole, getEmployeeId } = useAuth();
+  const toast = useToast();
   const queryClient = useQueryClient();
 
   const isAdmin = hasRole('ADMIN');
@@ -155,13 +157,13 @@ const RequestsManagementPage: React.FC = () => {
       }
       return { prevData, exactQueryKey };
     },
-    onError: (err, val, context: any) => {
+    onError: (_err, _val, context: any) => {
       if (context?.prevData) {
          queryClient.setQueryData(context.exactQueryKey, context.prevData);
       }
       setErrorMessage('Unable to perform approval action.');
     },
-    onSettled: (data, error, variables, context: any) => {
+    onSettled: (data, error, _variables, context: any) => {
        queryClient.invalidateQueries({ queryKey: context?.exactQueryKey || ['requestsTable'] });
        if (!error && data) {
          setSuccessMessage(`Request ${data.requestId} ${data.status.toLowerCase()} successfully.`);
@@ -211,13 +213,7 @@ const RequestsManagementPage: React.FC = () => {
     return null;
   };
 
-  const calculateTotalHours = (startStr: string, endStr: string) => {
-    if(!startStr || !endStr) return 0;
-    const s = new Date(startStr).getTime();
-    const e = new Date(endStr).getTime();
-    if(isNaN(s) || isNaN(e) || e < s) return 0;
-    return ((e - s) / (1000 * 60 * 60)).toFixed(1);
-  };
+
 
   const handleCreate = (submitAndCreate: boolean) => {
     setFormTouched(true);
@@ -265,7 +261,7 @@ const RequestsManagementPage: React.FC = () => {
     const note = window.prompt(status === 'APPROVED' ? 'Enter approval note (optional):' : 'Enter rejection note (required):');
     if (note === null) return;
     if (status === 'REJECTED' && !note.trim()) {
-      alert('A rejection note is required.');
+      toast.warning('Bắt buộc phải nhập lý do khi từ chối yêu cầu.');
       return;
     }
     approveMutation.mutate({ id: req.requestId, status, note });
@@ -571,7 +567,7 @@ const RequestsManagementPage: React.FC = () => {
             <div className={styles.modalHeader}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2>Request Details</h2>
-                {isFetchingDetails && <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--nm-text-muted)' }} title="Fetching latest details..." />}
+                {isFetchingDetails && <span title="Fetching latest details..."><Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--nm-text-muted)' }} /></span>}
               </div>
               <button onClick={() => { setShowViewModal(false); setViewRequestId(null); setViewRequest(null); }} className={styles.nmBtnIcon}><X className="h-5 w-5" /></button>
             </div>

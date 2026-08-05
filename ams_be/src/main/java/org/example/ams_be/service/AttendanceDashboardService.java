@@ -39,7 +39,6 @@ public class AttendanceDashboardService {
     private final EmployeeRepository employeeRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Cacheable(value = "dashboard-kpi", key = "#date + '_' + (#branchIds != null ? #branchIds.toString() : 'all') + '_' + #timezone")
     public DashboardKpiResponse getKpiMetrics(LocalDate date, List<String> branchIds, String timezone) {
         log.info("Calculating KPI metrics for date: {}, branches: {}, timezone: {}", date, branchIds, timezone);
 

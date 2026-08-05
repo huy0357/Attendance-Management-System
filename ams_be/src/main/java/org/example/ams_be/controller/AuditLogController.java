@@ -17,7 +17,7 @@ public class AuditLogController {
     private final AuditLogService auditLogService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<PageResponse<AuditLog>> getLogs(
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) String action,
@@ -36,7 +36,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<AuditLog> getDetail(@PathVariable Long id) {
         return ResponseEntity.ok(auditLogService.getLogDetail(id));
     }

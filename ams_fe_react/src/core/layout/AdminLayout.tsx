@@ -14,13 +14,14 @@ import {
   Settings,
   ChevronRight,
   LogOut,
-  Search,
   Bell,
   Menu,
   BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSettings } from '../../shared/hooks/useSettings';
+import { useQuery } from '@tanstack/react-query';
+import { profileApi } from '../../features/hrm/api/hrm.api';
 import Chatbot from '../../features/chatbot/components/Chatbot';
 import styles from './AdminLayout.module.scss';
 import { cn } from '../../shared/utils/cn';
@@ -52,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: 'nav.dashboard',
     path: '/dashboard',
     icon: <LayoutDashboard {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN', 'MANAGER'],
+    requiredRoles: ['ADMIN', 'HR', 'MANAGER'],
     sectionLabelKey: 'nav.sections.main',
   },
 
@@ -94,49 +95,49 @@ const NAV_ITEMS: NavItem[] = [
     icon: <BarChart3 {...ICON_SIZE} />,
   },
 
-  // ── ADMIN ONLY — HRM ─────────────────────────────────────────────
+  // ── HRM Management ──────────────────────────────────────────────
   {
     labelKey: 'nav.employees',
     path: '/hrm/employees',
     icon: <Users {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
+    requiredRoles: ['ADMIN', 'HR'],
     sectionLabelKey: 'nav.sections.hrm',
   },
   {
     labelKey: 'nav.departments',
     path: '/hrm/departments',
     icon: <Building {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
+    requiredRoles: ['ADMIN', 'HR'],
   },
 
-  // ── ADMIN ONLY — Attendance Management ───────────────────────────
+  // ── Attendance Management ──────────────────────────────────────────
   {
     labelKey: 'nav.scheduling',
     path: '/attendance/scheduling',
     icon: <Calendar {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
+    requiredRoles: ['ADMIN', 'HR', 'MANAGER'],
     sectionLabelKey: 'nav.sections.attendanceMgmt',
   },
   {
     labelKey: 'nav.shiftTemplates',
     path: '/attendance/shift-templates',
     icon: <Calendar {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
+    requiredRoles: ['ADMIN', 'HR'],
   },
   {
     labelKey: 'nav.monthlySummary',
     path: '/attendance/monthly-summary',
     icon: <BarChart3 {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
+    requiredRoles: ['ADMIN', 'HR', 'MANAGER'],
   },
   {
     labelKey: 'nav.attendanceEmail',
     path: '/attendance/attendance-email',
     icon: <Mail {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
+    requiredRoles: ['ADMIN', 'HR'],
   },
 
-  // ── ADMIN ONLY — System ──────────────────────────────────────────
+  // ── System Administration ─────────────────────────────────────────
   {
     labelKey: 'nav.accounts',
     path: '/admin/account-management',
@@ -148,7 +149,7 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: 'nav.auditLogs',
     path: '/admin/audit-log',
     icon: <ClipboardList {...ICON_SIZE} />,
-    requiredRoles: ['ADMIN'],
+    requiredRoles: ['ADMIN', 'HR'],
   },
   {
     labelKey: 'nav.settings',
@@ -207,6 +208,30 @@ const AdminLayout: React.FC = () => {
   const normalizedRole = getNormalizedRole();
   const displayRoleLabel = getRoleLabel(normalizedRole);
   const displayInitials = getDisplayInitials(displayUsername);
+
+  // ── Live Clock & Date State ────────────────────────────────────────────────
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ── User Profile Query (Avatar & Full Name) ─────────────────────────────
+  const { data: userProfile } = useQuery({
+    queryKey: ['myProfile'],
+    queryFn: () => profileApi.getMyProfile(),
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const avatarUrl = userProfile?.avatarUrl;
+  const fullName = userProfile?.fullName || displayUsername;
+
+  const getGreeting = (hour: number) => {
+    if (hour >= 5 && hour < 12) return 'Buổi sáng tốt lành';
+    if (hour >= 12 && hour < 18) return 'Buổi chiều làm việc hiệu quả';
+    return 'Buổi tối an lành';
+  };
 
   // ── 403 Forbidden Toast Listener ─────────────────────────────────────────
   const [forbiddenToasts, setForbiddenToasts] = useState<ForbiddenToast[]>([]);
@@ -346,16 +371,31 @@ const AdminLayout: React.FC = () => {
               <Menu size={18} />
             </button>
 
-            {/* Search — inset Neumorphism */}
-            <div className={styles['ams-search-wrap']}>
-              <Search size={15} className={styles['ams-search-icon']} />
-              <input
-                type="search"
-                id="ams-global-search"
-                placeholder={t('header.search')}
-                className={styles['ams-search-input']}
-                aria-label="Global search"
-              />
+            {/* Greeting Pill */}
+            <div className={styles['ams-header-greeting']}>
+              <span className={styles['ams-greeting-wave']}>👋</span>
+              <span>
+                {getGreeting(now.getHours())}, <strong>{fullName}</strong>!
+              </span>
+            </div>
+          </div>
+
+          {/* Center: Live Digital Clock & System Status */}
+          <div className={styles['ams-header-center']}>
+            <div className={styles['ams-clock-widget']}>
+              <Clock size={14} className={styles['ams-clock-icon']} />
+              <span className={styles['ams-clock-time']}>
+                {now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span className={styles['ams-clock-divider']}>•</span>
+              <span className={styles['ams-clock-date']}>
+                {now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+              </span>
+            </div>
+
+            <div className={styles['ams-status-badge']}>
+              <span className={styles['ams-status-dot']} />
+              <span>Hệ thống Sẵn sàng</span>
             </div>
           </div>
 
@@ -403,7 +443,11 @@ const AdminLayout: React.FC = () => {
               aria-label="User menu"
             >
               <div className={styles['ams-avatar']}>
-                <span className={styles['ams-avatar-initials']}>{displayInitials}</span>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={fullName} className={styles['ams-avatar-img']} />
+                ) : (
+                  <span className={styles['ams-avatar-initials']}>{displayInitials}</span>
+                )}
               </div>
             </button>
 

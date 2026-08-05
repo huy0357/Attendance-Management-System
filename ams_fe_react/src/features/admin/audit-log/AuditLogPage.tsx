@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Download, Shield, Search, Eye, Plus, Edit2, Trash2, LogIn, LogOut, Check, X, Lock, Unlock, AlertCircle, Loader2 } from 'lucide-react';
+import { useToast } from '../../../core/toast/ToastContext';
 import { adminApi, AuditLog, AuditLogAction } from '../api/admin.api';
 import styles from './AuditLogPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -58,6 +59,7 @@ const formatJsonDisplay = (val: unknown) => {
 };
 
 const AuditLogPage: React.FC = () => {
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterModule, setFilterModule] = useState('All Modules');
@@ -93,7 +95,6 @@ const AuditLogPage: React.FC = () => {
 
   const filteredLogs = useMemo(() => {
     let res = logs;
-    // Note: module & action are already filtered by backend query params
     if (filterUser !== 'All Users') res = res.filter(r => r.userName === filterUser);
     
     if (startDate) res = res.filter(r => r.timestamp >= startDate);
@@ -118,7 +119,24 @@ const AuditLogPage: React.FC = () => {
   ];
 
   const exportLogs = () => {
-    alert('Exporting audit logs functionality will be implemented here.');
+    if (!logs.length) {
+      toast.info('Không có dữ liệu nhật ký hệ thống để xuất.');
+      return;
+    }
+    const headers = "ID,Timestamp,User,Action,Module,Record ID,IP Address\n";
+    const csvRows = logs.map(l => 
+      `"${l.id}","${l.timestamp}","${l.userName}","${l.action}","${l.module}","${l.recordId}","${l.ipAddress || ''}"`
+    ).join("\n");
+    const blob = new Blob(["\uFEFF" + headers + csvRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Xuất dữ liệu nhật ký hệ thống (CSV) thành công!');
   };
 
   return (
@@ -290,7 +308,7 @@ const AuditLogPage: React.FC = () => {
                 <h2>Audit Log Details</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                   <p>{displayLog.id}</p>
-                  {isFetchingDetails && <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--nm-text-muted)' }} title="Fetching latest details..." />}
+                  {isFetchingDetails && <span title="Fetching latest details..."><Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--nm-text-muted)' }} /></span>}
                 </div>
               </div>
               <button onClick={() => { setShowDetailsModal(false); setSelectedLogId(null); setSelectedLog(null); }} className={styles.nmBtnIcon}>

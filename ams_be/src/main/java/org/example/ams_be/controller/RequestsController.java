@@ -48,7 +48,7 @@ public class RequestsController {
      * GET /api/requests/manager-queue?managerId=8&status=SUBMITTED
      */
     @GetMapping("/manager-queue")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'HR')")
     public ResponseEntity<PageResponse<RequestsResponse>> getManagerQueue(
             @RequestParam("managerId") Long managerId,
             @RequestParam(value = "status", required = false) RequestStatus status,
@@ -117,7 +117,7 @@ public class RequestsController {
      * 9. Duyệt hoặc Từ chối đơn
      */
     @PutMapping("/{id}/approval")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'HR')")
     public ResponseEntity<RequestsResponse> approveOrReject(
             @PathVariable("id") Long id,
             @RequestBody RequestsApprovalRequest request) {
