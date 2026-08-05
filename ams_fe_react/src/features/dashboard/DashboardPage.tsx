@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../core/auth/AuthContext';
 import { dashboardApi } from './api/dashboard.api';
+import { useDashboardWebSocket } from './hooks/useDashboardWebSocket';
 import { ExceptionRecord, LivePulseRecord } from '../../shared/models/dashboard.model';
 import { cn } from '../../shared/utils/cn';
 import styles from './DashboardPage.module.scss';
@@ -110,6 +111,10 @@ const DashboardPage: React.FC = () => {
 
   // MANAGER also needs team-level KPI visibility (attendance overview, live pulse)
   const canSeeAdminDashboardActions = hasAnyRole(['ADMIN', 'MANAGER']);
+  
+  // Enable websocket for live updates
+  useDashboardWebSocket(canSeeAdminDashboardActions);
+
   // Self-service cards only for pure EMPLOYEE role
   const canSeeSelfServiceDashboardActions = hasRole('EMPLOYEE') && !hasRole('ADMIN') && !hasRole('MANAGER');
 
@@ -434,11 +439,17 @@ const DashboardPage: React.FC = () => {
                     <AnimatePresence>
                       {livePulse.records.map((rec, index) => (
                         <motion.tr 
+                          layout
                           key={rec.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ delay: index * 0.05 }}
+                          initial={{ opacity: 0, y: -20, backgroundColor: 'rgba(59, 130, 246, 0.15)' }}
+                          animate={{ opacity: 1, y: 0, backgroundColor: 'transparent' }}
+                          exit={{ opacity: 0, y: 20 }}
+                          transition={{ 
+                            layout: { type: 'spring', stiffness: 300, damping: 30 },
+                            opacity: { duration: 0.4 },
+                            y: { type: 'spring', stiffness: 400, damping: 25 },
+                            backgroundColor: { duration: 1.5, delay: 0.2 }
+                          }}
                           className="group hover:bg-slate-50/50 transition-colors"
                         >
                           <td className="px-6 py-4">

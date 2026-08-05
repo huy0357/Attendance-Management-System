@@ -17,6 +17,7 @@ import {
   Search,
   Bell,
   Menu,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSettings } from '../../shared/hooks/useSettings';
@@ -87,6 +88,11 @@ const NAV_ITEMS: NavItem[] = [
     path: '/attendance/leave-management',
     icon: <ClipboardList {...ICON_SIZE} />,
   },
+  {
+    labelKey: 'nav.myMonthlySummary',
+    path: '/attendance/my-monthly-summary',
+    icon: <BarChart3 {...ICON_SIZE} />,
+  },
 
   // ── ADMIN ONLY — HRM ─────────────────────────────────────────────
   {
@@ -115,6 +121,12 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: 'nav.shiftTemplates',
     path: '/attendance/shift-templates',
     icon: <Calendar {...ICON_SIZE} />,
+    requiredRoles: ['ADMIN'],
+  },
+  {
+    labelKey: 'nav.monthlySummary',
+    path: '/attendance/monthly-summary',
+    icon: <BarChart3 {...ICON_SIZE} />,
     requiredRoles: ['ADMIN'],
   },
   {

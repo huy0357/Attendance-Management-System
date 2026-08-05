@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Search, X, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
@@ -37,6 +37,7 @@ const AttendanceDailyPage: React.FC = () => {
   const { employeeId } = useParams<{ employeeId: string }>();
   const navigate = useNavigate();
 
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'all' | 'me'>(isAdmin ? 'all' : 'me');
 
   const today = new Date();
@@ -210,6 +211,33 @@ const AttendanceDailyPage: React.FC = () => {
     setIsMonthlyModalOpen(true);
   };
 
+  // --- Debug Run Modal State ---
+  const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
+  const [debugDate, setDebugDate] = useState(new Date().toISOString().slice(0, 10));
+  const [debugSuccessMsg, setDebugSuccessMsg] = useState('');
+  const [debugErrorMsg, setDebugErrorMsg] = useState('');
+
+  const debugMutation = useMutation({
+    mutationFn: () => attendanceDailyApi.runAttendanceBatchForDate(debugDate),
+    onSuccess: (data) => {
+      setDebugErrorMsg('');
+      setDebugSuccessMsg(data?.message || 'Chạy batch tính công thành công.');
+      setTimeout(() => setDebugSuccessMsg(''), 3500);
+      queryClient.invalidateQueries({ queryKey: ['attendanceDaily'] });
+    },
+    onError: (err: any) => {
+      setDebugSuccessMsg('');
+      setDebugErrorMsg(err.response?.data?.message || err.message || 'Lỗi khi chạy tính công.');
+    }
+  });
+
+  const openDebugModal = () => {
+    setDebugDate(new Date().toISOString().slice(0, 10));
+    setDebugSuccessMsg('');
+    setDebugErrorMsg('');
+    setIsDebugModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────── HEADER ──────────────────────────────── */}
@@ -276,9 +304,12 @@ const AttendanceDailyPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Monthly Report — ADMIN only (batch generate + export) */}
+        {/* Admin Actions */}
         {isAdmin && (
-          <div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className={styles.nmBtnSecondary} onClick={openDebugModal}>
+              Chạy Debug (Thủ công)
+            </button>
             <button className={styles.nmBtnPrimary} onClick={openMonthlyModal} style={{ background: 'var(--nm-info)', boxShadow: 'none' }}>
               <Download className="w-4 h-4" />
               Monthly Report
@@ -490,6 +521,74 @@ const AttendanceDailyPage: React.FC = () => {
                 >
                   {exportMutation.isPending && <Loader2 className="animate-spin w-4 h-4" />}
                   {exportMutation.isPending ? 'Exporting...' : 'Export'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* ──────────────────────────────── DEBUG MODAL ──────────────────────────────── */}
+      {isDebugModalOpen && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className={cn(styles.nmCard, 'w-full max-w-md')} style={{ padding: '24px' }}>
+              
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={styles.pageTitle} style={{ fontSize: '1.25rem', marginBottom: 0 }}>
+                  Chạy Debug Tính Công (Thủ công)
+                </h3>
+                <button onClick={() => setIsDebugModalOpen(false)} className={styles.nmBtnSecondary} style={{ padding: '6px', borderRadius: '50%' }}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="mb-6 space-y-4">
+                <p className={styles.pageSubtitle} style={{ color: 'var(--nm-text)' }}>
+                  Chọn ngày để chạy lại tiến trình tính công (attendance batch). Tiến trình này sẽ quét lại toàn bộ giờ quét thẻ và cập nhật lại trạng thái Đi Trễ / Về Sớm / Tăng Ca cho ngày đó.
+                </p>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-gray-500 uppercase">Ngày chạy debug:</label>
+                  <input
+                    type="date"
+                    value={debugDate}
+                    onChange={(e) => setDebugDate(e.target.value)}
+                    className={styles.nmInput}
+                  />
+                </div>
+
+                {debugErrorMsg && (
+                  <div className="p-3 mt-2 text-sm font-bold text-red-600 bg-red-50 rounded-md">
+                    {debugErrorMsg}
+                  </div>
+                )}
+                {debugSuccessMsg && (
+                  <div className="p-3 mt-2 text-sm font-bold text-green-600 bg-green-50 rounded-md">
+                    {debugSuccessMsg}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button 
+                  onClick={() => setIsDebugModalOpen(false)} 
+                  className={styles.nmBtnSecondary}
+                  disabled={debugMutation.isPending}
+                >
+                  Đóng
+                </button>
+                <button 
+                  onClick={() => debugMutation.mutate()} 
+                  className={styles.nmBtnPrimary}
+                  style={{ background: 'var(--nm-primary)' }}
+                  disabled={debugMutation.isPending}
+                >
+                  {debugMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Đang chạy...</>
+                  ) : (
+                    'Chạy Batch'
+                  )}
                 </button>
               </div>
             </div>

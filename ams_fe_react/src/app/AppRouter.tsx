@@ -25,6 +25,7 @@ const SchedulingPage = lazy(() => import('../features/attendance/scheduling/Sche
 const ShiftTemplatesPage = lazy(() => import('../features/attendance/shift-templates/ShiftTemplatesPage'));
 const AttendanceEmailPage = lazy(() => import('../features/attendance/attendance-email/AttendanceEmailPage'));
 const MySchedulePage = lazy(() => import('../features/attendance/my-schedule/MySchedulePage'));
+const MonthlySummaryPage = lazy(() => import('../features/attendance/monthly-summary/MonthlySummaryPage'));
 
 // Admin
 const AccountManagementPage = lazy(() => import('../features/admin/account-management/AccountManagementPage'));
@@ -75,6 +76,8 @@ const AppRouter: React.FC = () => (
           <Route path="/attendance/my-schedule" element={<MySchedulePage />} />
           <Route path="/attendance/requests-management" element={<RequestsManagementPage />} />
           <Route path="/attendance/leave-management" element={<LeaveManagementPage />} />
+          {/* Nhân viên tự xem tổng hợp công tháng của mình */}
+          <Route path="/attendance/my-monthly-summary" element={<MonthlySummaryPage />} />
 
           {/* ── MANAGER + ADMIN ──────────────────────────────────────────── */}
           <Route element={<RoleRoute allowedRoles={['ADMIN', 'MANAGER']} redirectTo="/hrm/employee-portal" />}>
@@ -94,6 +97,8 @@ const AppRouter: React.FC = () => (
             <Route path="/attendance/scheduling" element={<SchedulingPage />} />
             <Route path="/attendance/shift-templates" element={<ShiftTemplatesPage />} />
             <Route path="/attendance/attendance-email" element={<AttendanceEmailPage />} />
+            {/* Admin: Quản lý tổng hợp công tháng toàn công ty */}
+            <Route path="/attendance/monthly-summary" element={<MonthlySummaryPage />} />
 
             {/* Payroll & Reports */}
 
