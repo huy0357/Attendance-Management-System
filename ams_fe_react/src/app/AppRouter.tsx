@@ -76,7 +76,7 @@ const AppRouter: React.FC = () => (
           <Route path="/attendance/my-schedule" element={<MySchedulePage />} />
           <Route path="/attendance/requests-management" element={<RequestsManagementPage />} />
           <Route path="/attendance/leave-management" element={<LeaveManagementPage />} />
-          <Route path="/attendance/my-monthly-summary" element={<MonthlySummaryPage />} />
+          <Route path="/attendance/my-monthly-summary" element={<MonthlySummaryPage isPersonalOnly={true} />} />
 
           {/* ── ADMIN + HR + MANAGER ─────────────────────────────────────── */}
           <Route element={<RoleRoute allowedRoles={['ADMIN', 'HR', 'MANAGER']} redirectTo="/hrm/employee-portal" />}>

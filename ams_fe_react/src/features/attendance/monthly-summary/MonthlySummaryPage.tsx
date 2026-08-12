@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Download,
@@ -51,13 +52,21 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => (
   </div>
 );
 
+interface MonthlySummaryPageProps {
+  isPersonalOnly?: boolean;
+}
+
 // --- Main Page ---
-const MonthlySummaryPage: React.FC = () => {
+const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly: isPersonalOnlyProp }) => {
+  const location = useLocation();
   const { hasAnyRole } = useAuth();
   const { t } = useTranslation();
+  
+  const isPersonalMode = Boolean(isPersonalOnlyProp) || location.pathname.includes('my-monthly-summary');
   const isAdmin = hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
-  const colSpanCount: number = isAdmin ? 9 : 7;
-  void colSpanCount; // suppress unused var — used inline below
+  const showAdminView = isAdmin && !isPersonalMode;
+
+  const colSpanCount: number = showAdminView ? 9 : 7;
 
   const [selectedMonth, setSelectedMonth] = useState(getMonthVal(new Date()));
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -74,9 +83,9 @@ const MonthlySummaryPage: React.FC = () => {
     error,
     refetch,
   } = useQuery<MonthlySummaryResponse | MonthlySummaryResponse[]>({
-    queryKey: ['monthlySummary', selectedMonth, isAdmin],
+    queryKey: ['monthlySummary', selectedMonth, showAdminView],
     queryFn: () =>
-      isAdmin
+      showAdminView
         ? monthlySummaryApi.getAdminSummary(selectedMonth)
         : monthlySummaryApi.getMySummary(selectedMonth),
     retry: false,
@@ -152,17 +161,17 @@ const MonthlySummaryPage: React.FC = () => {
         <div>
           <h1 className={styles.pageTitle}>
             <Calendar className="w-6 h-6" />
-            {t('monthlySummary.title')}
+            {isPersonalMode ? t('nav.myMonthlySummary') : t('monthlySummary.title')}
           </h1>
           <p className={styles.pageSubtitle}>
-            {isAdmin
+            {showAdminView
               ? t('monthlySummary.adminSubtitle')
               : t('monthlySummary.employeeSubtitle')}
           </p>
         </div>
 
         {/* ── Actions (Admin only) ───────────────────────────── */}
-        {isAdmin && (
+        {showAdminView && (
           <div className={styles.actions}>
             <button
               className={`${styles.btn} ${styles.btnSecondary}`}
@@ -227,7 +236,7 @@ const MonthlySummaryPage: React.FC = () => {
       </div>
 
       {/* ── Stats (Admin aggregate) ───────────────────────────────────── */}
-      {isAdmin && rows.length > 0 && (
+      {showAdminView && rows.length > 0 && (
         <div className={styles.statsGrid}>
           <StatCard
             label={t('monthlySummary.statTotalEmp')}
@@ -256,13 +265,43 @@ const MonthlySummaryPage: React.FC = () => {
         </div>
       )}
 
+      {/* ── Stats (Personal mode) ─────────────────────────────────────── */}
+      {isPersonalMode && rows.length > 0 && (
+        <div className={styles.statsGrid}>
+          <StatCard
+            label={t('monthlySummary.colWorkDays')}
+            value={Number(rows[0]?.workDays || 0).toFixed(1)}
+            icon={<TrendingUp className="w-5 h-5" />}
+            color="var(--nm-success)"
+          />
+          <StatCard
+            label={t('monthlySummary.colLeaveDays')}
+            value={Number(rows[0]?.leaveDays || 0).toFixed(1)}
+            icon={<Calendar className="w-5 h-5" />}
+            color="var(--nm-primary)"
+          />
+          <StatCard
+            label={t('monthlySummary.colAbsentDays')}
+            value={Number(rows[0]?.absentDays || 0).toFixed(1)}
+            icon={<AlertTriangle className="w-5 h-5" />}
+            color="var(--nm-danger)"
+          />
+          <StatCard
+            label={t('monthlySummary.colOT')}
+            value={formatMinutes(rows[0]?.otMinutes)}
+            icon={<Clock className="w-5 h-5" />}
+            color="var(--nm-warning)"
+          />
+        </div>
+      )}
+
       {/* ── Table ────────────────────────────────────────────────────── */}
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr>
-              {isAdmin && <th>{t('monthlySummary.colEmpCode')}</th>}
-              {isAdmin && <th>{t('monthlySummary.colEmpName')}</th>}
+              {showAdminView && <th>{t('monthlySummary.colEmpCode')}</th>}
+              {showAdminView && <th>{t('monthlySummary.colEmpName')}</th>}
               <th>{t('monthlySummary.colMonth')}</th>
               <th>{t('monthlySummary.colWorkDays')}</th>
               <th>{t('monthlySummary.colLeaveDays')}</th>
@@ -276,7 +315,7 @@ const MonthlySummaryPage: React.FC = () => {
             {/* Loading */}
             {isLoading ? (
               <tr>
-                <td colSpan={isAdmin ? 9 : 7} className={styles.emptyCell}>
+                <td colSpan={colSpanCount} className={styles.emptyCell}>
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>{t('monthlySummary.loadingData')}</span>
                 </td>
@@ -286,7 +325,7 @@ const MonthlySummaryPage: React.FC = () => {
             {/* Error */}
             {(!isLoading && !!error) ? (
               <tr>
-                <td colSpan={isAdmin ? 9 : 7} className={styles.emptyCell}>
+                <td colSpan={colSpanCount} className={styles.emptyCell}>
                   <AlertCircle className="w-8 h-8" style={{ color: 'var(--nm-danger)' }} />
                   <span style={{ color: 'var(--nm-danger)', fontWeight: 'bold' }}>
                     {error instanceof Error ? error.message : t('monthlySummary.errorData')}
@@ -298,14 +337,14 @@ const MonthlySummaryPage: React.FC = () => {
             {/* Empty */}
             {(!isLoading && !error && rows.length === 0) ? (
               <tr>
-                <td colSpan={isAdmin ? 9 : 7} className={styles.emptyCellWrapper}>
+                <td colSpan={colSpanCount} className={styles.emptyCellWrapper}>
                   <div className={styles.emptyCell}>
                     <div className={styles.emptyIconWrap}>
                       <Calendar className="w-10 h-10" />
                     </div>
                     <div className={styles.emptyTextWrap}>
                       <h3 className={styles.emptyTitle}>{t('monthlySummary.emptyTitle')}</h3>
-                      {isAdmin ? (
+                      {showAdminView ? (
                         <p className={styles.emptySubtitle}>
                           {t('monthlySummary.emptyAdminSubtitle')}
                         </p>
@@ -320,7 +359,6 @@ const MonthlySummaryPage: React.FC = () => {
               </tr>
             ) : null}
 
-
             {/* Data rows */}
             {!isLoading &&
               rows.map((row) => {
@@ -330,14 +368,14 @@ const MonthlySummaryPage: React.FC = () => {
 
                 return (
                   <tr key={`${row.employeeId}-${row.monthKey}`}>
-                    {isAdmin && (
+                    {showAdminView && (
                       <td>
                         <span className={styles.codeTag}>
                           {row.employeeCode || `EMP-${row.employeeId}`}
                         </span>
                       </td>
                     )}
-                    {isAdmin && (
+                    {showAdminView && (
                       <td>
                         <div className={styles.employeeCell}>
                           <div className={styles.avatar}>
