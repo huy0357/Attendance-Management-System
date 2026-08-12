@@ -3,6 +3,7 @@ package org.example.ams_be.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -16,12 +17,17 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${spring.mail.username}")
+    private String mailUsername;
+
     public void sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             try {
-                helper.setFrom("attendance.system.company@gmail.com", "HR Attendance System");
+                // From address MUST match the authenticated SMTP account (spring.mail.username)
+                // Gmail rejects emails where From differs from the login account
+                helper.setFrom(mailUsername, "HR Attendance System");
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }
