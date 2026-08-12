@@ -47,9 +47,9 @@ export const attendanceEmailApi = {
       month: month.trim(),
       regenerate: String(Boolean(regenerate))
     });
-    const res = await axiosInstance.post('/attendance-email/send-all', undefined, { 
+    const res = await axiosInstance.post('/attendance-email/send-all', null, { 
       params,
-      headers: { 'Content-Type': null } 
+      timeout: 60000,
     });
     return res.data?.data || res.data;
   },
@@ -63,9 +63,9 @@ export const attendanceEmailApi = {
       employeeId: employeeId.toString(),
       regenerate: String(Boolean(regenerate))
     });
-    const res = await axiosInstance.post('/attendance-email/send', undefined, { 
+    const res = await axiosInstance.post('/attendance-email/send', null, { 
       params,
-      headers: { 'Content-Type': null } 
+      timeout: 60000,
     });
     return res.data?.data || res.data;
   },

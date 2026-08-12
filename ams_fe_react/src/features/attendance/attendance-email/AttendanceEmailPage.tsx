@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../../core/toast/ToastContext';
 import { attendanceEmailApi, AttendanceEmailEmployee } from './attendance-email.api';
 import { CheckCircle2, XCircle, Search, Loader2, Send } from 'lucide-react';
 import styles from './AttendanceEmailPage.module.scss';
@@ -9,6 +10,7 @@ import { cn } from '../../../shared/utils/cn';
 const AttendanceEmailPage: React.FC = () => {
   const { hasRole, hasAnyRole } = useAuth();
   const { t } = useTranslation();
+  const { toast } = useToast();
   
   const canManageAttendanceEmails = hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   const canSelectAttendanceEmailRecipient = hasRole('ADMIN');
@@ -76,7 +78,9 @@ const AttendanceEmailPage: React.FC = () => {
   const sendToEmployee = async (employee: AttendanceEmailEmployee) => {
     const normalizedMonth = month;
     if (!normalizedMonth) {
-      setErrorMessage('Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).');
+      const msg = 'Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).';
+      setErrorMessage(msg);
+      toast.error(msg);
       setSuccessMessage('');
       return;
     }
@@ -90,7 +94,10 @@ const AttendanceEmailPage: React.FC = () => {
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      setSuccessMessage(response?.message || `Đã gửi email thành công cho ${employee.fullName}.`);
+      const msg = response?.message || `Đã gửi email thành công cho ${employee.fullName}.`;
+      setSuccessMessage(msg);
+      toast.success(msg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
       console.error('[Send Employee Error]', error);
       let finalMsg = `Không thể gửi email cho ${employee.fullName}.`;
@@ -103,10 +110,12 @@ const AttendanceEmailPage: React.FC = () => {
       }
 
       setErrorMessage(finalMsg);
+      toast.error(finalMsg);
       setSuccessMessage('');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Tự động tắt sau 5 giây
-      setTimeout(() => setErrorMessage(''), 5000);
+      // Tự động tắt sau 7 giây
+      setTimeout(() => setErrorMessage(''), 7000);
     } finally {
       setSendingEmployeeId(null);
     }
@@ -115,7 +124,9 @@ const AttendanceEmailPage: React.FC = () => {
   const sendToAllEmployees = async () => {
     const normalizedMonth = month;
     if (!normalizedMonth) {
-      setErrorMessage('Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).');
+      const msg = 'Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).';
+      setErrorMessage(msg);
+      toast.error(msg);
       setSuccessMessage('');
       return;
     }
@@ -126,17 +137,21 @@ const AttendanceEmailPage: React.FC = () => {
 
     try {
       const response = await attendanceEmailApi.sendToAll(normalizedMonth, regenerate);
-      // Strict validation: if there's any sign of failure in the payload despite a 200 OK
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      setSuccessMessage(response?.message || 'Đã gửi email báo cáo công tháng cho toàn bộ nhân viên thành công.');
+      const msg = response?.message || 'Đã gửi email báo cáo công tháng cho toàn bộ nhân viên thành công.';
+      setSuccessMessage(msg);
+      toast.success(msg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
       console.error('[Send All Error]', error);
       const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
       const finalMsg = serverMsg || error?.message || 'Unable to send attendance emails to all employees.';
       setErrorMessage(finalMsg);
-      setSuccessMessage(''); // Ensure success is totally wiped
+      toast.error(finalMsg);
+      setSuccessMessage('');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSendingAll(false);
     }
