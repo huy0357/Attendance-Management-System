@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Filter, Eye, Pencil, Trash2, CheckCircle, XCircle, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../../../core/toast/ToastContext';
 import { requestApi, RequestsResponse, RequestsUpsertRequest } from '../api/attendanceCore.api';
 import styles from './RequestsManagementPage.module.scss';
@@ -10,6 +11,7 @@ import { cn } from '../../../shared/utils/cn';
 
 const RequestsManagementPage: React.FC = () => {
   const { hasRole, getEmployeeId } = useAuth();
+  const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -287,18 +289,18 @@ const RequestsManagementPage: React.FC = () => {
     <div className="space-y-6 pb-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className={styles.pageTitle}>Requests Management</h1>
+          <h1 className={styles.pageTitle}>{t('requestsManagement.title')}</h1>
           <p className={styles.pageSubtitle}>
             {isAdmin
-              ? 'Review and manage all employee requests.'
+              ? t('requestsManagement.adminSubtitle')
               : isManager
-              ? 'Review and manage your team requests.'
-              : 'Create and track your requests in one place.'}
+              ? t('requestsManagement.managerSubtitle')
+              : t('requestsManagement.employeeSubtitle')}
           </p>
         </div>
         {canCreateRequest && (
           <button onClick={openCreate} className={styles.nmBtnPrimary}>
-            <Plus className="h-4 w-4 shrink-0" /> Create Request
+            <Plus className="h-4 w-4 shrink-0" /> {t('requestsManagement.createBtn')}
           </button>
         )}
       </div>
@@ -330,19 +332,19 @@ const RequestsManagementPage: React.FC = () => {
       <div className={styles.filterBar}>
         <div className={styles.filterGrid}>
           <div className={styles.fieldGroup}>
-            <label>Search</label>
+            <label>{t('header.search')}</label>
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder={canApproveRequests ? "Search by title, reason, request ID, or employee name..." : "Search by title, reason, or request ID..."}
+              placeholder={t('requestsManagement.searchPlaceholder')}
               className={styles.nmInput}
             />
           </div>
           <div className={styles.fieldGroup}>
-            <label>Type</label>
+            <label>{t('requestsManagement.filterType')}</label>
             <select value={requestTypeFilter} onChange={e => setRequestTypeFilter(e.target.value)} className={styles.nmInput}>
-              <option value="">All Types</option>
+              <option value="">{t('requestsManagement.filterAll')}</option>
               <option value="LEAVE">LEAVE</option>
               <option value="REMOTE">REMOTE</option>
               <option value="OVERTIME">OVERTIME</option>
@@ -350,9 +352,9 @@ const RequestsManagementPage: React.FC = () => {
             </select>
           </div>
           <div className={styles.fieldGroup}>
-            <label>Status</label>
+            <label>{t('requestsManagement.filterStatus')}</label>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={styles.nmInput}>
-              <option value="">All Statuses</option>
+              <option value="">{t('requestsManagement.filterAll')}</option>
               <option value="DRAFT">DRAFT</option>
               <option value="SUBMITTED">SUBMITTED</option>
               <option value="APPROVED">APPROVED</option>
@@ -363,7 +365,7 @@ const RequestsManagementPage: React.FC = () => {
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
           <button onClick={clearFilters} className={styles.nmBtnText}>
-            <Filter className="h-4 w-4 shrink-0" /> Clear Filters
+            <Filter className="h-4 w-4 shrink-0" /> {t('shiftTemplates.cancel')}
           </button>
         </div>
       </div>
@@ -372,21 +374,21 @@ const RequestsManagementPage: React.FC = () => {
         <table className={styles.nmTable}>
           <thead>
             <tr>
-              <th>Request ID</th>
-              {canApproveRequests && <th>Employee</th>}
-              <th>Type</th>
-              <th>Title</th>
-              <th>Reason</th>
+              <th>{t('requestsManagement.colRequestId')}</th>
+              {canApproveRequests && <th>{t('requestsManagement.colEmployee')}</th>}
+              <th>{t('requestsManagement.colType')}</th>
+              <th>{t('requestsManagement.colTitle')}</th>
+              <th>{t('monthlySummary.emailAllTooltip').slice(0, 0)}Reason</th>
               <th>Start</th>
               <th>End</th>
-              <th>Submitted At</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('requestsManagement.colSubmittedAt')}</th>
+              <th>{t('requestsManagement.colStatus')}</th>
+              <th style={{ textAlign: 'right' }}>{t('requestsManagement.colActions')}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={10} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>Loading requests...</td></tr>
+              <tr><td colSpan={10} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>{t('requestsManagement.loading')}</td></tr>
             )}
             {!isLoading && filteredRequests.map(r => (
               <tr key={r.requestId}>

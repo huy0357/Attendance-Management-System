@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Search, X, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { attendanceDailyApi } from './api/attendance-daily.api';
 import styles from './AttendanceDailyPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -33,6 +34,7 @@ const getMonthVal = (date: Date): string => {
 
 const AttendanceDailyPage: React.FC = () => {
   const { hasRole } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = hasRole('ADMIN');
   const { employeeId } = useParams<{ employeeId: string }>();
   const navigate = useNavigate();
@@ -262,9 +264,9 @@ const AttendanceDailyPage: React.FC = () => {
           )}
           <div>
             <h1 className={styles.pageTitle}>
-              {employeeId ? `Attendance for ${getEmployeeName(Number(employeeId))}` : 'Time & Attendance Logs'}
+              {employeeId ? `${t('attendanceDaily.title')} - ${getEmployeeName(Number(employeeId))}` : t('attendanceDaily.title')}
             </h1>
-            <p className={styles.pageSubtitle}>Review calculated attendance records for the selected date range.</p>
+            <p className={styles.pageSubtitle}>{t('attendanceDaily.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -275,13 +277,13 @@ const AttendanceDailyPage: React.FC = () => {
             className={activeTab === 'all' ? styles.active : ''} 
             onClick={() => handleTabChange('all')}
           >
-            All Employees
+            {t('attendanceDaily.tabAll')}
           </button>
           <button 
             className={activeTab === 'me' ? styles.active : ''} 
             onClick={() => handleTabChange('me')}
           >
-            My Attendance
+            {t('attendanceDaily.tabMe')}
           </button>
         </div>
       )}
@@ -290,7 +292,7 @@ const AttendanceDailyPage: React.FC = () => {
       <div className={styles.filterBar}>
         <div className={styles.filterGroup}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--nm-text-muted)', textTransform: 'uppercase' }}>Range:</span>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--nm-text-muted)', textTransform: 'uppercase' }}>{t('attendanceDaily.range')}</span>
             <input 
               type="date" 
               value={from} 
@@ -299,7 +301,7 @@ const AttendanceDailyPage: React.FC = () => {
               className={styles.nmInput}
               style={{ width: 'auto' }}
             />
-            <span style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>to</span>
+            <span style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>{t('attendanceDaily.to')}</span>
             <input 
               type="date" 
               value={to} 
@@ -315,11 +317,11 @@ const AttendanceDailyPage: React.FC = () => {
         {isAdmin && (
           <div style={{ display: 'flex', gap: '8px' }}>
             <button className={styles.nmBtnSecondary} onClick={openDebugModal}>
-              Chạy Debug (Thủ công)
+              {t('attendanceDaily.btnDebug')}
             </button>
             <button className={styles.nmBtnPrimary} onClick={openMonthlyModal} style={{ background: 'var(--nm-info)', boxShadow: 'none' }}>
               <Download className="w-4 h-4" />
-              Monthly Report
+              {t('attendanceDaily.btnMonthly')}
             </button>
           </div>
         )}
@@ -344,12 +346,12 @@ const AttendanceDailyPage: React.FC = () => {
         <table className={styles.nmTable}>
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Employee</th>
-              <th>Check-in Time</th>
-              <th>Check-out Time</th>
-              <th>Total Work Hours</th>
-              <th>Status</th>
+              <th>{t('attendanceDaily.colDate')}</th>
+              <th>{t('attendanceDaily.colEmp')}</th>
+              <th>{t('attendanceDaily.colCheckIn')}</th>
+              <th>{t('attendanceDaily.colCheckOut')}</th>
+              <th>{t('attendanceDaily.colWorkHours')}</th>
+              <th>{t('attendanceDaily.colStatus')}</th>
             </tr>
           </thead>
           <tbody>
@@ -360,7 +362,7 @@ const AttendanceDailyPage: React.FC = () => {
                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                        <Loader2 className="animate-spin w-5 h-5" />
-                       <span>Fetching data...</span>
+                       <span>{t('attendanceDaily.loading')}</span>
                     </div>
                  </td>
               </tr>
@@ -372,8 +374,8 @@ const AttendanceDailyPage: React.FC = () => {
                  <td colSpan={6} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                      <Search className="text-gray-400 w-12 h-12 mb-2" />
-                     <p style={{ fontWeight: 'bold' }}>No attendance records found for this period</p>
-                     <p style={{ fontSize: '14px' }}>Try adjusting the date range or employee filter.</p>
+                     <p style={{ fontWeight: 'bold' }}>{t('attendanceDaily.emptyTitle')}</p>
+                     <p style={{ fontSize: '14px' }}>{t('attendanceDaily.emptySubtitle')}</p>
                    </div>
                  </td>
               </tr>
@@ -432,7 +434,7 @@ const AttendanceDailyPage: React.FC = () => {
         {/* ──────────────────────────────── PAGINATION ──────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderTop: '2px solid rgba(0,0,0,0.05)', background: 'var(--nm-surface)' }}>
           <div style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>
-            Showing {records.length} of {totalElements} records
+            {t('common.showingRecords', { count: records.length, total: totalElements })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>

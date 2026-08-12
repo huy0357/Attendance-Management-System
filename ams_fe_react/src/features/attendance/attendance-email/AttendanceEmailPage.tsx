@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { attendanceEmailApi, AttendanceEmailEmployee } from './attendance-email.api';
 import { CheckCircle2, XCircle, Search, Loader2, Send } from 'lucide-react';
 import styles from './AttendanceEmailPage.module.scss';
@@ -7,6 +8,7 @@ import { cn } from '../../../shared/utils/cn';
 
 const AttendanceEmailPage: React.FC = () => {
   const { hasRole, hasAnyRole } = useAuth();
+  const { t } = useTranslation();
   
   const canManageAttendanceEmails = hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   const canSelectAttendanceEmailRecipient = hasRole('ADMIN');
@@ -74,7 +76,7 @@ const AttendanceEmailPage: React.FC = () => {
   const sendToEmployee = async (employee: AttendanceEmailEmployee) => {
     const normalizedMonth = month;
     if (!normalizedMonth) {
-      setErrorMessage('Please select a valid month (yyyy-MM format).');
+      setErrorMessage('Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).');
       setSuccessMessage('');
       return;
     }
@@ -88,10 +90,10 @@ const AttendanceEmailPage: React.FC = () => {
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      setSuccessMessage(response?.message || `Email sent to ${employee.fullName} successfully.`);
+      setSuccessMessage(response?.message || `Đã gửi email thành công cho ${employee.fullName}.`);
     } catch (error: any) {
       console.error('[Send Employee Error]', error);
-      let finalMsg = `Unable to send email to ${employee.fullName}.`;
+      let finalMsg = `Không thể gửi email cho ${employee.fullName}.`;
 
       if ((error?.response?.data?.message || '').toLowerCase().includes('not found')) {
          finalMsg = "Không tìm thấy dữ liệu tổng kết tháng của nhân viên này. Vui lòng tick chọn 'Recalculate attendance summary before sending' và thử lại!";
@@ -113,7 +115,7 @@ const AttendanceEmailPage: React.FC = () => {
   const sendToAllEmployees = async () => {
     const normalizedMonth = month;
     if (!normalizedMonth) {
-      setErrorMessage('Please select a valid month (yyyy-MM format).');
+      setErrorMessage('Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).');
       setSuccessMessage('');
       return;
     }
@@ -128,7 +130,7 @@ const AttendanceEmailPage: React.FC = () => {
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      setSuccessMessage(response?.message || 'Emails sent to all employees successfully.');
+      setSuccessMessage(response?.message || 'Đã gửi email báo cáo công tháng cho toàn bộ nhân viên thành công.');
     } catch (error: any) {
       console.error('[Send All Error]', error);
       const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
@@ -158,8 +160,8 @@ const AttendanceEmailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className={styles.pageTitle}>Attendance Email</h1>
-        <p className={styles.pageSubtitle}>Send monthly attendance summary emails to individual employees or to everyone.</p>
+        <h1 className={styles.pageTitle}>{t('attendanceEmail.title')}</h1>
+        <p className={styles.pageSubtitle}>{t('attendanceEmail.subtitle')}</p>
       </div>
 
       {successMessage && (
@@ -188,13 +190,13 @@ const AttendanceEmailPage: React.FC = () => {
 
       <div className={styles.nmCard}>
         <div className={styles.nmCardHeader}>
-          <h2>Configuration & Global Actions</h2>
-          <p>Select the target month, configure settings, and optionally send emails to all employees at once.</p>
+          <h2>{t('attendanceEmail.configTitle')}</h2>
+          <p>{t('attendanceEmail.configDesc')}</p>
         </div>
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: '16px', alignItems: 'end' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '10px', fontWeight: 'bold', color: 'var(--nm-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Month</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '10px', fontWeight: 'bold', color: 'var(--nm-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('attendanceEmail.selectMonth')}</label>
               <input
                 type="month"
                 value={month}
@@ -214,7 +216,7 @@ const AttendanceEmailPage: React.FC = () => {
                   ) : (
                      <Send className="h-4 w-4 shrink-0 text-blue-600" />
                   )}
-                  {isSendingAll ? 'Sending...' : 'Send To All Employees'}
+                  {isSendingAll ? t('attendanceEmail.sendingAll') : t('attendanceEmail.sendAllBtn')}
                 </button>
               </div>
             )}
@@ -228,7 +230,7 @@ const AttendanceEmailPage: React.FC = () => {
                 onChange={(e) => setRegenerate(e.target.checked)}
               />
               <span>
-                <b>Recalculate attendance summary</b> before sending emails
+                {t('attendanceEmail.recalculate')}
               </span>
             </label>
           </div>
@@ -238,8 +240,8 @@ const AttendanceEmailPage: React.FC = () => {
       {canSelectAttendanceEmailRecipient && (
         <div className={styles.nmCard}>
           <div className={styles.nmCardHeader}>
-            <h2>Send to Individual Employee</h2>
-            <p>Search for a specific employee and send their attendance email directly.</p>
+            <h2>{t('attendanceEmail.individualTitle')}</h2>
+            <p>{t('attendanceEmail.individualDesc')}</p>
           </div>
 
           <div style={{ paddingBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -250,7 +252,7 @@ const AttendanceEmailPage: React.FC = () => {
                 value={employeeQuery}
                 onChange={(e) => setEmployeeQuery(e.target.value)}
                 onKeyUp={(e) => e.key === 'Enter' && onEmployeeSearch()}
-                placeholder="Search by employee name or code..."
+                placeholder={t('attendanceEmail.searchPlaceholder')}
                 className={styles.nmInput}
               />
             </div>
@@ -260,7 +262,7 @@ const AttendanceEmailPage: React.FC = () => {
               className={styles.nmBtnPrimary}
             >
               {isSearchingEmployees && <Loader2 className="h-3 w-3 animate-spin" />}
-              {isSearchingEmployees ? 'Searching...' : 'Search'}
+              {isSearchingEmployees ? t('attendanceEmail.searching') : t('attendanceEmail.searchBtn')}
             </button>
           </div>
 
@@ -268,21 +270,21 @@ const AttendanceEmailPage: React.FC = () => {
             <table className={styles.nmTable}>
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Full Name</th>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>{t('attendanceEmail.colCode')}</th>
+                  <th>{t('attendanceEmail.colName')}</th>
+                  <th>{t('attendanceEmail.colEmail')}</th>
+                  <th>{t('attendanceEmail.colStatus')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('attendanceEmail.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {isSearchingEmployees ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>Loading employees...</td>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>{t('attendanceEmail.loadingEmployees')}</td>
                   </tr>
                 ) : employees.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>No employees found.</td>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>{t('attendanceEmail.noEmployees')}</td>
                   </tr>
                 ) : (
                   employees.map((employee) => (
@@ -307,7 +309,7 @@ const AttendanceEmailPage: React.FC = () => {
                           ) : (
                             <Send className="h-3 w-3" />
                           )}
-                          {sendingEmployeeId === employee.employeeId ? 'Sending...' : 'Send Email'}
+                          {sendingEmployeeId === employee.employeeId ? t('attendanceEmail.sending') : t('attendanceEmail.sendBtn')}
                         </button>
                       </td>
                     </tr>
@@ -319,7 +321,7 @@ const AttendanceEmailPage: React.FC = () => {
 
           <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>
-              Showing <span style={{ fontWeight: 'bold', color: 'var(--nm-text)' }}>{employees.length}</span> of <span style={{ fontWeight: 'bold', color: 'var(--nm-text)' }}>{employeeSearchTotalItems}</span> employees
+              {t('common.showingEmployees', { count: employees.length, total: employeeSearchTotalItems })}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button
@@ -328,16 +330,16 @@ const AttendanceEmailPage: React.FC = () => {
                 className={styles.nmBtnSecondary}
                 style={{ padding: '6px 12px' }}
               >
-                Prev
+                {t('common.prev')}
               </button>
-              <span style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>Page {employeeSearchPage} / {employeeSearchTotalPages || 1}</span>
+              <span style={{ fontSize: '14px', color: 'var(--nm-text-secondary)' }}>{t('common.pageOf', { current: employeeSearchPage, total: employeeSearchTotalPages || 1 })}</span>
               <button
                 onClick={nextEmployeePage}
                 disabled={employeeSearchPage >= employeeSearchTotalPages || isSearchingEmployees}
                 className={styles.nmBtnSecondary}
                 style={{ padding: '6px 12px' }}
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>

@@ -66,16 +66,12 @@ export const useDashboardWebSocket = (enabled: boolean = true) => {
                 };
               }
               
+              const currentRecords = Array.isArray(oldData.records) ? oldData.records : [];
               // Avoid duplicates (in case REST and WS overlap)
-              const isDuplicate = oldData.records.some(r => r.id === newRecord.id);
+              const isDuplicate = currentRecords.some(r => r?.id === newRecord?.id);
               if (isDuplicate) return oldData;
 
-              const updatedRecords = [newRecord, ...oldData.records];
-              // Keep only the latest 20 records to match the limit
-              if (updatedRecords.length > 20) {
-                updatedRecords.length = 20;
-              }
-              
+              const updatedRecords = [newRecord, ...currentRecords].slice(0, 20);
               return { ...oldData, records: updatedRecords };
             });
           }

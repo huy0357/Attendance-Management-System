@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Camera, Edit2, Save, X, Mail, Phone, Calendar, MapPin, Building2, Briefcase, Clock, Shield } from 'lucide-react';
 import { profileApi } from '../api/hrm.api';
 import { useAuth } from '../../../core/auth/AuthContext';
@@ -9,6 +10,7 @@ import { cn } from '../../../shared/utils/cn';
 
 const EmployeePortalPage: React.FC = () => {
   const { hasRole } = useAuth();
+  const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,19 +129,19 @@ const EmployeePortalPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Contact INFO */}
           <div className={styles.nmCard}>
-            <h2 className={styles.cardTitle}>Contact Info</h2>
+            <h2 className={styles.cardTitle}>{t('profile.contactInfo')}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className={styles.contactItem}>
                 <Mail className="h-5 w-5" />
                 <div>
-                  <p className={styles.label}>Email Address</p>
+                  <p className={styles.label}>{t('profile.email')}</p>
                   <p className={styles.value}>{profile.email || '-'}</p>
                 </div>
               </div>
               <div className={styles.contactItem}>
                 <Phone className="h-5 w-5" />
                 <div style={{ width: '100%' }}>
-                  <p className={styles.label}>Phone Number</p>
+                  <p className={styles.label}>{t('profile.phone')}</p>
                   {isEditing ? (
                     <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={styles.nmInput} style={{ marginTop: '4px' }} />
                   ) : (
@@ -150,7 +152,7 @@ const EmployeePortalPage: React.FC = () => {
               <div className={styles.contactItem}>
                 <MapPin className="h-5 w-5" />
                 <div>
-                  <p className={styles.label}>Employee Code</p>
+                  <p className={styles.label}>{t('profile.employeeCode')}</p>
                   <p className={styles.value}>{profile.employeeCode || '-'}</p>
                 </div>
               </div>
@@ -159,7 +161,7 @@ const EmployeePortalPage: React.FC = () => {
 
           {/* Account Settings */}
           <div className={styles.nmCard}>
-            <h2 className={styles.cardTitle}>Account Security</h2>
+            <h2 className={styles.cardTitle}>{t('profile.accountSecurity')}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -167,15 +169,15 @@ const EmployeePortalPage: React.FC = () => {
                      <Shield className="h-5 w-5" />
                    </div>
                    <div>
-                     <p className={styles.value}>Account Status</p>
-                     <p className={styles.label} style={{ marginTop: '2px', marginBottom: 0 }}>{profile.isActive ? 'Active Member' : 'Inactive'}</p>
+                     <p className={styles.value}>{t('profile.accountStatus')}</p>
+                     <p className={styles.label} style={{ marginTop: '2px', marginBottom: 0 }}>{profile.isActive ? t('profile.activeMember') : t('accounts.inactive')}</p>
                    </div>
                  </div>
                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: profile.isActive ? 'var(--nm-success)' : 'var(--nm-danger)', boxShadow: 'var(--nm-shadow-out)' }}></span>
                </div>
                <div style={{ paddingTop: '16px', borderTop: '2px solid rgba(0,0,0,0.05)' }}>
                   <p style={{ fontSize: '10px', color: 'var(--nm-text-muted)', textAlign: 'center', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                    Contact HR to change your account linked email or password.
+                    {t('profile.contactHrNotice')}
                   </p>
                </div>
             </div>
@@ -186,10 +188,10 @@ const EmployeePortalPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* PERSONAL INFO */}
           <div className={styles.nmCard}>
-            <h2 className={styles.cardTitle}>Personal Information</h2>
+            <h2 className={styles.cardTitle}>{t('profile.personalInfo')}</h2>
             <div className={styles.personalGrid}>
               <div className={styles.fieldGroup}>
-                <label>Full Name</label>
+                <label>{t('profile.fullName')}</label>
                 {isEditing ? (
                   <input type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={styles.nmInput} />
                 ) : (
@@ -197,20 +199,22 @@ const EmployeePortalPage: React.FC = () => {
                 )}
               </div>
               <div className={styles.fieldGroup}>
-                <label>Gender</label>
+                <label>{t('profile.gender')}</label>
                 {isEditing ? (
                   <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className={styles.nmInput}>
                     <option value="">Select Gender</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
+                    <option value="MALE">{t('profile.male')}</option>
+                    <option value="FEMALE">{t('profile.female')}</option>
                     <option value="OTHER">Other</option>
                   </select>
                 ) : (
-                  <p style={{ textTransform: 'capitalize' }}>{profile.gender ? profile.gender.toLowerCase() : '-'}</p>
+                  <p style={{ textTransform: 'capitalize' }}>
+                    {(profile.gender || '').toUpperCase() === 'MALE' ? t('profile.male') : (profile.gender || '').toUpperCase() === 'FEMALE' ? t('profile.female') : profile.gender || '-'}
+                  </p>
                 )}
               </div>
               <div className={styles.fieldGroup}>
-                <label>Date of Birth</label>
+                <label>{t('profile.dateOfBirth')}</label>
                 {isEditing ? (
                   <input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className={styles.nmInput} />
                 ) : (
@@ -218,7 +222,7 @@ const EmployeePortalPage: React.FC = () => {
                 )}
               </div>
               <div className={styles.fieldGroup}>
-                <label>Username</label>
+                <label>{t('profile.username')}</label>
                 <p className={styles.readOnlyValue} style={{ fontFamily: 'var(--font-mono)' }}>{profile.username || '-'}</p>
               </div>
             </div>
@@ -227,42 +231,42 @@ const EmployeePortalPage: React.FC = () => {
           {/* EMPLOYMENT INFO */}
           {hasRole('ADMIN') && (
             <div className={styles.nmCard}>
-              <h2 className={styles.cardTitle}>Employment Details (Admin View)</h2>
+              <h2 className={styles.cardTitle}>{t('profile.employmentTitle')}</h2>
               <div className={styles.personalGrid}>
                 <div className={styles.contactItem} style={{ marginBottom: 0 }}>
                   <Building2 className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
                   <div>
-                    <p className={styles.label}>Department</p>
+                    <p className={styles.label}>{t('profile.department')}</p>
                     <p className={styles.value}>{profile.departmentId ? `Dept ID: ${profile.departmentId}` : 'Not assigned'}</p>
                   </div>
                 </div>
                 <div className={styles.contactItem} style={{ marginBottom: 0 }}>
                   <Briefcase className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
                   <div>
-                    <p className={styles.label}>Manager</p>
+                    <p className={styles.label}>{t('profile.manager')}</p>
                     <p className={styles.value}>{profile.managerId ? `Manager ID: ${profile.managerId}` : 'Direct Report to Admin'}</p>
                   </div>
                 </div>
                 <div className={styles.contactItem} style={{ marginBottom: 0 }}>
                   <Calendar className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
                   <div>
-                    <p className={styles.label}>Hire Date</p>
+                    <p className={styles.label}>{t('profile.hireDate')}</p>
                     <p className={styles.value}>{profile.hireDate ? profile.hireDate.slice(0,10) : '-'}</p>
                   </div>
                 </div>
                 <div className={styles.contactItem} style={{ marginBottom: 0 }}>
                   <Clock className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
                   <div>
-                    <p className={styles.label}>Status</p>
+                    <p className={styles.label}>{t('profile.status')}</p>
                     <span className={cn(styles.employmentBadge, profile.status === 'ACTIVE' ? 'active' : 'inactive')} style={{ marginTop: '4px' }}>
-                      {profile.status || 'Unknown'}
+                      {profile.status === 'ACTIVE' ? t('accounts.active') : profile.status || 'Unknown'}
                     </span>
                   </div>
                 </div>
               </div>
               <div className={styles.noticeBox}>
                 <p>
-                  Notice: Employment details are managed by HR. If you see any discrepancies, please contact your administrator.
+                  {t('profile.notice')}
                 </p>
               </div>
             </div>

@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { monthlySummaryApi } from './api/monthly-summary.api';
 import { MonthlySummaryResponse } from '../../../shared/models/monthly-summary.model';
 import styles from './MonthlySummaryPage.module.scss';
@@ -53,6 +54,7 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => (
 // --- Main Page ---
 const MonthlySummaryPage: React.FC = () => {
   const { hasAnyRole } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   const colSpanCount: number = isAdmin ? 9 : 7;
   void colSpanCount; // suppress unused var — used inline below
@@ -94,19 +96,19 @@ const MonthlySummaryPage: React.FC = () => {
   // --- Mutations ---
   const generateMutation = useMutation({
     mutationFn: () => monthlySummaryApi.generateSummary(selectedMonth),
-    onSuccess: (res) => {
-      showToast('success', `✅ Chốt công thành công! Đã xử lý ${res.affectedRows} nhân viên.`);
+    onSuccess: () => {
+      showToast('success', t('monthlySummary.toastGenerateSuccess'));
       refetch();
     },
     onError: (err: any) =>
-      showToast('error', err?.response?.data?.message || err.message || 'Không thể chốt công.'),
+      showToast('error', err?.response?.data?.message || err.message || t('monthlySummary.toastGenerateError')),
   });
 
   const emailAllMutation = useMutation({
     mutationFn: () => monthlySummaryApi.sendEmailAll(selectedMonth),
-    onSuccess: () => showToast('success', '✅ Đã gửi email báo cáo cho toàn bộ nhân viên!'),
+    onSuccess: () => showToast('success', t('monthlySummary.toastEmailSuccess')),
     onError: (err: any) =>
-      showToast('error', err?.response?.data?.message || err.message || 'Không thể gửi email.'),
+      showToast('error', err?.response?.data?.message || err.message || t('monthlySummary.toastEmailError')),
   });
 
   const exportMutation = useMutation({
@@ -120,10 +122,10 @@ const MonthlySummaryPage: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast('success', '✅ Xuất file Excel thành công!');
+      showToast('success', t('monthlySummary.toastExportSuccess'));
     },
     onError: (err: any) =>
-      showToast('error', err?.response?.data?.message || err.message || 'Không thể xuất file.'),
+      showToast('error', err?.response?.data?.message || err.message || t('monthlySummary.toastExportError')),
   });
 
   const isBusy =
@@ -150,12 +152,12 @@ const MonthlySummaryPage: React.FC = () => {
         <div>
           <h1 className={styles.pageTitle}>
             <Calendar className="w-6 h-6" />
-            Tổng Hợp Công Tháng
+            {t('monthlySummary.title')}
           </h1>
           <p className={styles.pageSubtitle}>
             {isAdmin
-              ? 'Xem, chốt và xuất báo cáo công tháng toàn công ty.'
-              : 'Xem tổng hợp dữ liệu chấm công tháng của bạn.'}
+              ? t('monthlySummary.adminSubtitle')
+              : t('monthlySummary.employeeSubtitle')}
           </p>
         </div>
 
@@ -166,42 +168,42 @@ const MonthlySummaryPage: React.FC = () => {
               className={`${styles.btn} ${styles.btnSecondary}`}
               onClick={() => generateMutation.mutate()}
               disabled={isBusy}
-              title="Chốt & Ghi lại dữ liệu công tháng vào DB"
+              title={t('monthlySummary.generateTooltip')}
             >
               {generateMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Chốt Công Tháng
+              {t('monthlySummary.generateBtn')}
             </button>
 
             <button
               className={`${styles.btn} ${styles.btnInfo}`}
               onClick={() => emailAllMutation.mutate()}
               disabled={isBusy}
-              title="Gửi email báo cáo công cho toàn bộ nhân viên"
+              title={t('monthlySummary.emailAllTooltip')}
             >
               {emailAllMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Mail className="w-4 h-4" />
               )}
-              Gửi Email Tất Cả
+              {t('monthlySummary.emailAllBtn')}
             </button>
 
             <button
               className={`${styles.btn} ${styles.btnSuccess}`}
               onClick={() => exportMutation.mutate()}
               disabled={isBusy}
-              title="Tải về file Excel báo cáo công tháng"
+              title={t('monthlySummary.exportExcelTooltip')}
             >
               {exportMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
-              Xuất Excel
+              {t('monthlySummary.exportExcelBtn')}
             </button>
           </div>
         )}
@@ -211,7 +213,7 @@ const MonthlySummaryPage: React.FC = () => {
       <div className={styles.filterBar}>
         <div className={styles.filterGroup}>
           <label htmlFor="monthly-summary-month-picker" className={styles.filterLabel}>
-            Chọn Tháng:
+            {t('monthlySummary.selectMonth')}
           </label>
           <input
             id="monthly-summary-month-picker"
@@ -228,25 +230,25 @@ const MonthlySummaryPage: React.FC = () => {
       {isAdmin && rows.length > 0 && (
         <div className={styles.statsGrid}>
           <StatCard
-            label="Tổng Nhân viên"
+            label={t('monthlySummary.statTotalEmp')}
             value={rows.length}
             icon={<Users className="w-5 h-5" />}
             color="var(--nm-primary)"
           />
           <StatCard
-            label="Tổng ngày công"
+            label={t('monthlySummary.statTotalWorkDays')}
             value={totalWorkDays.toFixed(1)}
             icon={<TrendingUp className="w-5 h-5" />}
             color="var(--nm-success)"
           />
           <StatCard
-            label="Tổng ngày vắng"
+            label={t('monthlySummary.statTotalAbsent')}
             value={totalAbsent.toFixed(1)}
             icon={<AlertTriangle className="w-5 h-5" />}
             color="var(--nm-danger)"
           />
           <StatCard
-            label="Tổng giờ OT"
+            label={t('monthlySummary.statTotalOT')}
             value={formatMinutes(totalOT)}
             icon={<Clock className="w-5 h-5" />}
             color="var(--nm-warning)"
@@ -259,15 +261,15 @@ const MonthlySummaryPage: React.FC = () => {
         <table className={styles.table}>
           <thead>
             <tr>
-              {isAdmin && <th>Mã NV</th>}
-              {isAdmin && <th>Tên Nhân Viên</th>}
-              <th>Tháng</th>
-              <th>Ngày Công</th>
-              <th>Ngày Nghỉ Phép</th>
-              <th>Ngày Vắng</th>
-              <th>Đi Muộn</th>
-              <th>Về Sớm</th>
-              <th>Tăng Ca (OT)</th>
+              {isAdmin && <th>{t('monthlySummary.colEmpCode')}</th>}
+              {isAdmin && <th>{t('monthlySummary.colEmpName')}</th>}
+              <th>{t('monthlySummary.colMonth')}</th>
+              <th>{t('monthlySummary.colWorkDays')}</th>
+              <th>{t('monthlySummary.colLeaveDays')}</th>
+              <th>{t('monthlySummary.colAbsentDays')}</th>
+              <th>{t('monthlySummary.colLate')}</th>
+              <th>{t('monthlySummary.colEarly')}</th>
+              <th>{t('monthlySummary.colOT')}</th>
             </tr>
           </thead>
           <tbody>
@@ -276,7 +278,7 @@ const MonthlySummaryPage: React.FC = () => {
               <tr>
                 <td colSpan={isAdmin ? 9 : 7} className={styles.emptyCell}>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Đang tải dữ liệu...</span>
+                  <span>{t('monthlySummary.loadingData')}</span>
                 </td>
               </tr>
             ) : null}
@@ -287,7 +289,7 @@ const MonthlySummaryPage: React.FC = () => {
                 <td colSpan={isAdmin ? 9 : 7} className={styles.emptyCell}>
                   <AlertCircle className="w-8 h-8" style={{ color: 'var(--nm-danger)' }} />
                   <span style={{ color: 'var(--nm-danger)', fontWeight: 'bold' }}>
-                    {error instanceof Error ? error.message : 'Không thể tải dữ liệu. Vui lòng thử lại.'}
+                    {error instanceof Error ? error.message : t('monthlySummary.errorData')}
                   </span>
                 </td>
               </tr>
@@ -302,14 +304,14 @@ const MonthlySummaryPage: React.FC = () => {
                       <Calendar className="w-10 h-10" />
                     </div>
                     <div className={styles.emptyTextWrap}>
-                      <h3 className={styles.emptyTitle}>Chưa có dữ liệu tổng hợp cho tháng này.</h3>
+                      <h3 className={styles.emptyTitle}>{t('monthlySummary.emptyTitle')}</h3>
                       {isAdmin ? (
                         <p className={styles.emptySubtitle}>
-                          Bấm <strong>"Chốt Công Tháng"</strong> để tạo dữ liệu tổng hợp.
+                          {t('monthlySummary.emptyAdminSubtitle')}
                         </p>
                       ) : (
                         <p className={styles.emptySubtitle}>
-                          Vui lòng quay lại sau khi admin đã chốt công.
+                          {t('monthlySummary.emptyEmpSubtitle')}
                         </p>
                       )}
                     </div>

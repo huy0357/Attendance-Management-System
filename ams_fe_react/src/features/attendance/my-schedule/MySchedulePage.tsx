@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { scheduleApi } from '../api/attendanceCore.api';
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const getStartOfWeek = (d: Date) => {
   const date = new Date(d);
@@ -37,9 +36,12 @@ const deriveShiftColor = (isNightShift: boolean, startTime: string) => {
 
 const MySchedulePage: React.FC = () => {
   const { getEmployeeId } = useAuth();
+  const { t } = useTranslation();
   const employeeId = getEmployeeId();
   
   const [weekStart, setWeekStart] = useState<Date>(getStartOfWeek(new Date()));
+
+  const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
   const { data: shifts = [], isLoading } = useQuery({
     queryKey: ['myScheduleShifts', employeeId, formatDate(weekStart)],
@@ -63,8 +65,8 @@ const MySchedulePage: React.FC = () => {
             <CalendarDays style={{ width: '24px', height: '24px' }} />
           </div>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--nm-text)', margin: 0 }}>My Schedule</h1>
-            <p style={{ color: 'var(--nm-text-muted)', fontSize: '14px', margin: 0 }}>View your assigned weekly shifts</p>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--nm-text)', margin: 0 }}>{t('mySchedule.title')}</h1>
+            <p style={{ color: 'var(--nm-text-muted)', fontSize: '14px', margin: 0 }}>{t('mySchedule.subtitle')}</p>
           </div>
         </div>
 
@@ -74,7 +76,7 @@ const MySchedulePage: React.FC = () => {
             className="nm-button-secondary"
             style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--nm-surface)', boxShadow: 'var(--nm-shadow-out)', color: 'var(--nm-text)', fontWeight: 'bold', cursor: 'pointer' }}
           >
-            Today
+            {t('mySchedule.today')}
           </button>
           <div style={{ display: 'flex', background: 'var(--nm-surface)', borderRadius: '8px', boxShadow: 'var(--nm-shadow-out)' }}>
             <button 
@@ -107,7 +109,7 @@ const MySchedulePage: React.FC = () => {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px' }}>
-            {DAYS.map((day, i) => {
+            {dayKeys.map((dayKey, i) => {
               const currentDayDate = addDays(weekStart, i);
               const formattedDateStr = formatDate(currentDayDate);
               // In Shift interface, 'day' maps to 0-6 index
@@ -128,7 +130,7 @@ const MySchedulePage: React.FC = () => {
                   transition: 'transform 0.2s',
                 }}>
                   <div style={{ marginBottom: '16px', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '12px', textAlign: 'center' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '16px', color: isToday ? 'var(--nm-primary)' : 'var(--nm-text)', marginBottom: '4px' }}>{day}</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '16px', color: isToday ? 'var(--nm-primary)' : 'var(--nm-text)', marginBottom: '4px' }}>{t(`mySchedule.days.${dayKey}`)}</div>
                     <div style={{ fontSize: '13px', color: 'var(--nm-text-muted)' }}>{formattedDateStr}</div>
                   </div>
                   
@@ -161,7 +163,7 @@ const MySchedulePage: React.FC = () => {
                       })()
                     ) : (
                       <div style={{ color: 'var(--nm-text-muted)', fontSize: '13px', fontStyle: 'italic', textAlign: 'center' }}>
-                        No shift scheduled
+                        {t('mySchedule.noShift')}
                       </div>
                     )}
                   </div>

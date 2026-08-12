@@ -59,8 +59,9 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     try {
       const authData = await login({ username: values.username.trim(), password: values.password });
-      const role = authData.role?.toUpperCase().replace(/^ROLE_/, '') || '';
-      if (role === 'ADMIN' || role === 'MANAGER') {
+      const rawRole = authData?.role || (Array.isArray((authData as any)?.roles) ? (authData as any).roles[0] : '') || '';
+      const role = String(rawRole).toUpperCase().replace(/^ROLE_/, '');
+      if (role === 'ADMIN' || role === 'MANAGER' || role === 'HR') {
         navigate('/dashboard');
       } else {
         navigate('/hrm/employee-portal');

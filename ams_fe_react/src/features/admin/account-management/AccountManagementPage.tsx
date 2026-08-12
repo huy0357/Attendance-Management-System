@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Plus, Search, Edit2, Trash2, X, AlertTriangle, Users, CheckCircle, ShieldAlert } from 'lucide-react';
 import { adminApi, UserAccountRecord } from '../api/admin.api';
 import { employeeApi } from '../../hrm/api/hrm.api';
@@ -10,6 +11,7 @@ import { cn } from '../../../shared/utils/cn';
 
 const AccountManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -211,12 +213,12 @@ const AccountManagementPage: React.FC = () => {
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 className={styles.pageTitle}>Account Management</h1>
-          <p className={styles.pageSubtitle}>Manage system access and authentication</p>
+          <h1 className={styles.pageTitle}>{t('accounts.title')}</h1>
+          <p className={styles.pageSubtitle}>{t('accounts.subtitle')}</p>
         </div>
         <button onClick={openAddUser} className={styles.nmBtnPrimary}>
           <Plus className="h-4 w-4 shrink-0" />
-          Add User
+          {t('accounts.addBtn')}
         </button>
       </div>
       
@@ -233,7 +235,7 @@ const AccountManagementPage: React.FC = () => {
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--nm-surface-deep)', boxShadow: 'var(--nm-shadow-in)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--nm-info)' }}>
               <Users className="h-5 w-5" />
             </div>
-            <p className={styles.kpiLabel}>Total Users</p>
+            <p className={styles.kpiLabel}>{t('accounts.totalUsers')}</p>
           </div>
           <p className={styles.kpiValue} style={{ paddingLeft: '8px' }}>{totalUsers}</p>
         </div>
@@ -242,7 +244,7 @@ const AccountManagementPage: React.FC = () => {
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--nm-surface-deep)', boxShadow: 'var(--nm-shadow-in)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--nm-success)' }}>
               <CheckCircle className="h-5 w-5" />
             </div>
-            <p className={styles.kpiLabel}>Active</p>
+            <p className={styles.kpiLabel}>{t('accounts.active')}</p>
           </div>
           <p className={styles.kpiValue} style={{ paddingLeft: '8px' }}>{activeUserCount}</p>
         </div>
@@ -251,7 +253,7 @@ const AccountManagementPage: React.FC = () => {
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--nm-surface-deep)', boxShadow: 'var(--nm-shadow-in)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--nm-text-muted)' }}>
               <X className="h-5 w-5" />
             </div>
-            <p className={styles.kpiLabel}>Inactive</p>
+            <p className={styles.kpiLabel}>{t('accounts.inactive')}</p>
           </div>
           <p className={styles.kpiValue} style={{ paddingLeft: '8px' }}>{inactiveUserCount}</p>
         </div>
@@ -260,7 +262,7 @@ const AccountManagementPage: React.FC = () => {
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--nm-surface-deep)', boxShadow: 'var(--nm-shadow-in)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--nm-danger)' }}>
               <ShieldAlert className="h-5 w-5" />
             </div>
-            <p className={styles.kpiLabel}>Admins</p>
+            <p className={styles.kpiLabel}>{t('accounts.admins')}</p>
           </div>
           <p className={styles.kpiValue} style={{ paddingLeft: '8px' }}>{adminUserCount}</p>
         </div>
@@ -270,31 +272,31 @@ const AccountManagementPage: React.FC = () => {
       <div className={styles.filterBar}>
         <div className={styles.searchWrapper}>
           <Search className="h-4 w-4" />
-          <input type="text" placeholder="Search by username..." value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }} className={styles.nmInput} />
+          <input type="text" placeholder={t('accounts.searchPlaceholder')} value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }} className={styles.nmInput} />
         </div>
         <select value={filterRole} onChange={e => { setFilterRole(e.target.value); setCurrentPage(1); }} className={styles.nmInput} style={{ width: 'auto', textTransform: 'uppercase', fontSize: '12px', fontWeight: 'bold' }}>
-          <option value="all">ALL ROLES</option>
+          <option value="all">{t('accounts.allRoles')}</option>
           <option value="admin">ADMIN</option>
           <option value="employee">EMPLOYEE</option>
         </select>
         <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }} className={styles.nmInput} style={{ width: 'auto', textTransform: 'uppercase', fontSize: '12px', fontWeight: 'bold' }}>
-          <option value="all">ALL STATUS</option>
-          <option value="active">ACTIVE</option>
-          <option value="inactive">INACTIVE</option>
+          <option value="all">{t('accounts.allStatus')}</option>
+          <option value="active">{t('accounts.active')}</option>
+          <option value="inactive">{t('accounts.inactive')}</option>
         </select>
         <select value={sortBy} onChange={e => { setSortBy(e.target.value as any); setCurrentPage(1); }} className={styles.nmInput} style={{ width: 'auto', fontSize: '12px' }}>
-          <option value="accountId">Sort: Account ID</option>
+          <option value="accountId">{t('accounts.sortBy')}</option>
           <option value="username">Sort: Username</option>
           <option value="isActive">Sort: Status</option>
           <option value="createdAt">Sort: Created At</option>
           <option value="lastLoginAt">Sort: Last Login</option>
         </select>
         <select value={sortDir} onChange={e => { setSortDir(e.target.value as any); setCurrentPage(1); }} className={styles.nmInput} style={{ width: 'auto', textTransform: 'uppercase', fontSize: '12px', fontWeight: 'bold' }}>
-          <option value="desc">DESC</option>
-          <option value="asc">ASC</option>
+          <option value="desc">{t('accounts.desc')}</option>
+          <option value="asc">{t('accounts.asc')}</option>
         </select>
         <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }} className={styles.nmInput} style={{ width: 'auto', fontSize: '12px' }}>
-          {[10, 20, 50].map(sz => <option key={sz} value={sz}>{sz} / page</option>)}
+          {[10, 20, 50].map(sz => <option key={sz} value={sz}>{t('accounts.perPage', { count: sz })}</option>)}
         </select>
       </div>
 
@@ -303,11 +305,11 @@ const AccountManagementPage: React.FC = () => {
         <table className={styles.nmTable}>
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Last Login</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('accounts.colUsername')}</th>
+              <th>{t('accounts.colRole')}</th>
+              <th>{t('accounts.colStatus')}</th>
+              <th>{t('accounts.colLastLogin')}</th>
+              <th style={{ textAlign: 'right' }}>{t('accounts.colActions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -372,7 +374,7 @@ const AccountManagementPage: React.FC = () => {
                   </label>
                 </td>
                 <td style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>
-                  {user.lastLogin}
+                  {user.lastLogin === 'Never' ? t('accounts.never') : user.lastLogin}
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
@@ -391,7 +393,7 @@ const AccountManagementPage: React.FC = () => {
 
         {/* PAGINATION */}
         <div className={styles.nmPagination} style={{ padding: '16px' }}>
-          <div>Showing {filteredUsers.length} of {totalItems} users</div>
+          <div>{t('common.showingUsers', { count: filteredUsers.length, total: totalItems })}</div>
           <div className={styles.paginationActions}>
             <button 
               disabled={currentPage <= 1 || isLoading} 

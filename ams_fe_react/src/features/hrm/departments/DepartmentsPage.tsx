@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Network, Plus, Search, Edit2, Trash2, X, AlertTriangle, CheckCircle2, XCircle, LayoutTemplate } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../../../core/toast/ToastContext';
 import { departmentApi, DepartmentDto, DepartmentRequest } from '../api/hrm.api';
 import styles from './DepartmentsPage.module.scss';
@@ -40,6 +41,7 @@ const TreeNode: React.FC<{ node: DepartmentDto; level?: number }> = ({ node, lev
 
 const DepartmentsPage: React.FC = () => {
   const { hasAnyRole } = useAuth();
+  const { t } = useTranslation();
   const toast = useToast();
   const canManageDepts = hasAnyRole(['ADMIN', 'HR']);
   const queryClient = useQueryClient();
@@ -242,8 +244,8 @@ const DepartmentsPage: React.FC = () => {
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 className={styles.pageTitle}>Departments</h1>
-          <p className={styles.pageSubtitle}>Company organizational structure</p>
+          <h1 className={styles.pageTitle}>{t('departments.title')}</h1>
+          <p className={styles.pageSubtitle}>{t('departments.subtitle')}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {canManageDepts && !showAddModal && !showEditModal && !showDeleteModal && (
@@ -252,7 +254,7 @@ const DepartmentsPage: React.FC = () => {
               className={styles.nmBtnPrimary}
             >
               <Plus className="h-4 w-4 shrink-0" />
-              Add Department
+              {t('departments.addBtn')}
             </button>
           )}
         </div>
@@ -265,7 +267,7 @@ const DepartmentsPage: React.FC = () => {
             <Network className="h-6 w-6" />
           </div>
           <div>
-            <p className={styles.kpiLabel}>Total Departments</p>
+            <p className={styles.kpiLabel}>{t('departments.totalDepartments')}</p>
             <p className={styles.kpiValue}>{stats.total}</p>
           </div>
         </div>
@@ -274,7 +276,7 @@ const DepartmentsPage: React.FC = () => {
             <CheckCircle2 className="h-6 w-6" />
           </div>
           <div>
-            <p className={styles.kpiLabel}>Active</p>
+            <p className={styles.kpiLabel}>{t('departments.statActive')}</p>
             <p className={styles.kpiValue}>{stats.active}</p>
           </div>
         </div>
@@ -283,7 +285,7 @@ const DepartmentsPage: React.FC = () => {
             <XCircle className="h-6 w-6" />
           </div>
           <div>
-            <p className={styles.kpiLabel}>Inactive</p>
+            <p className={styles.kpiLabel}>{t('departments.statInactive')}</p>
             <p className={styles.kpiValue}>{stats.inactive}</p>
           </div>
         </div>
@@ -296,13 +298,13 @@ const DepartmentsPage: React.FC = () => {
             onClick={() => setActiveTab('list')}
             className={activeTab === 'list' ? styles.active : ''}
           >
-            List View
+            {t('departments.listView')}
           </button>
           <button
             onClick={() => setActiveTab('tree')}
             className={activeTab === 'tree' ? styles.active : ''}
           >
-            Tree View
+            {t('departments.treeView')}
           </button>
         </div>
 
@@ -313,7 +315,7 @@ const DepartmentsPage: React.FC = () => {
                 <Search className="h-4 w-4" />
                 <input
                   type="text"
-                  placeholder="Search departments..."
+                  placeholder={t('departments.searchPlaceholder')}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className={styles.nmInput}
@@ -325,18 +327,18 @@ const DepartmentsPage: React.FC = () => {
               <table className={styles.nmTable}>
                 <thead>
                   <tr>
-                    <th>Department ID</th>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Parent ID</th>
-                    <th>Status</th>
-                    {canManageDepts && <th style={{ textAlign: 'right' }}>Actions</th>}
+                    <th>{t('departments.colId')}</th>
+                    <th>{t('departments.colCode')}</th>
+                    <th>{t('departments.colName')}</th>
+                    <th>{t('departments.colParent')}</th>
+                    <th>{t('departments.colStatus')}</th>
+                    {canManageDepts && <th style={{ textAlign: 'right' }}>{t('departments.colActions')}</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {isLoading && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>Loading departments...</td>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>{t('departments.loading')}</td>
                     </tr>
                   )}
                   {!isLoading && departmentsList.length === 0 && (
@@ -344,7 +346,7 @@ const DepartmentsPage: React.FC = () => {
                       <td colSpan={6} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <AlertTriangle className="h-10 w-10 text-gray-400 mb-3" />
-                          <p style={{ fontWeight: 'bold' }}>No departments found matching your criteria.</p>
+                          <p style={{ fontWeight: 'bold' }}>{t('departments.empty')}</p>
                         </div>
                       </td>
                     </tr>
@@ -357,7 +359,7 @@ const DepartmentsPage: React.FC = () => {
                       <td>{dept.parentDepartmentId || '-'}</td>
                       <td>
                         <span className={cn(styles.nmBadge, dept.isActive ? styles.nmBadgeActive : styles.nmBadgeInactive)}>
-                          {dept.isActive ? 'Active' : 'Inactive'}
+                          {dept.isActive ? t('departments.statusActive') : t('departments.statusInactive')}
                         </span>
                       </td>
                       {canManageDepts && (
@@ -390,7 +392,7 @@ const DepartmentsPage: React.FC = () => {
             {totalPages > 1 && (
               <div className={styles.nmPagination}>
                 <div>
-                  Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, totalItems)} of {totalItems} results
+                  {t('common.showingResults', { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, totalItems), total: totalItems })}
                 </div>
                 <div className={styles.paginationActions}>
                   <button

@@ -200,31 +200,35 @@
   }
 }
 
-.nmBtnText {
+.nmBtnIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  background: transparent;
-  color: var(--nm-text);
-  font-family: var(--font-primary);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
-  padding: 8px 12px;
+  width: 32px;
+  height: 32px;
+  background: var(--nm-surface);
+  color: var(--nm-text-secondary);
   border-radius: var(--nm-radius-md);
   border: none;
   cursor: pointer;
+  box-shadow: var(--nm-shadow-sm);
   transition: var(--nm-transition);
 
   &:hover {
-    background: var(--nm-surface-deep);
+    color: var(--nm-primary);
+    box-shadow: var(--nm-shadow-out);
   }
-  
-  &.danger {
+
+  &.danger:hover {
     color: var(--nm-danger);
   }
-  &.primary {
-    color: var(--nm-primary);
+
+  &.warning:hover {
+    color: #d97706;
+  }
+
+  &:active {
+    box-shadow: var(--nm-shadow-active);
   }
 }
 
@@ -232,20 +236,46 @@
 .nmBadge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  gap: 6px;
+  padding: 4px 12px;
   font-family: var(--font-primary);
-  font-size: 10px;
-  font-weight: var(--fw-bold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border-radius: var(--nm-radius-full);
-  background: var(--nm-surface);
-  box-shadow: var(--nm-shadow-in);
-}
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 
-.active { color: var(--nm-success); }
-.inactive { color: var(--nm-text-muted); }
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  &.active {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08);
+
+    &::before {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+    }
+  }
+
+  &.inactive {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+
+    &::before {
+      background: #94a3b8;
+    }
+  }
+}
 
 /* ── Table Layout ────────────────────────────────────────────────────────── */
 .nmTableWrapper {

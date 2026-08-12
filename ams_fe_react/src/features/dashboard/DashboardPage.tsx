@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +26,6 @@ import { useDashboardWebSocket } from './hooks/useDashboardWebSocket';
 import { ExceptionRecord } from '../../shared/models/dashboard.model';
 import { cn } from '../../shared/utils/cn';
 import styles from './DashboardPage.module.scss';
-import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 
 // ── Helpers ────────────────────────────────────────────────────────────
 const avatarGradients = [
@@ -45,11 +44,34 @@ const getInitials = (name?: string): string => {
 
 const getAvatarGradient = (name?: string): string => {
   if (!name) return avatarGradients[0];
-  const idx = Math.abs(name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)) % avatarGradients.length;
-  return avatarGradients[idx];
+  const code = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return avatarGradients[code % avatarGradients.length];
 };
 
+const translateExceptionText = (text?: any, language?: string): string => {
+  if (!text) return '';
+  const str = String(text);
+  if (language !== 'vi') return str;
+  
+  if (str.includes('has been late')) {
+    return str.replace(/Employee has been late (\d+) times this month/, 'Nhân viên đã đi muộn $1 lần trong tháng này');
+  }
+  if (str.includes('Anti-spoofing system detected')) {
+    return 'Hệ thống phát hiện nghi vấn gian lận chấm công';
+  }
+  if (str.includes('checked in but forgot to check out')) {
+    return 'Nhân viên đã check-in nhưng quên check-out ngày hôm qua';
+  }
+  if (str.includes('Personal leave request')) {
+    return str.replace(/Personal leave request for (\d+) days/, 'Yêu cầu nghỉ phép cá nhân $1 ngày');
+  }
+  if (str === 'LATE_CHECKIN') return 'Đi muộn';
+  if (str === 'MISSING_CHECKOUT') return 'Thiếu check-out';
+  if (str === 'LOCATION_MISMATCH') return 'Sai vị trí chấm công';
+  if (str === 'FACE_UNMATCHED') return 'Khuôn mặt không khớp';
 
+  return str;
+};
 
 const formatDateTime = (iso: string | null): string => {
   if (!iso) return '—';
@@ -103,7 +125,7 @@ const DashboardPage: React.FC = () => {
   const { hasRole, hasAnyRole } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // MANAGER also needs team-level KPI visibility (attendance overview, live pulse)
   const canSeeAdminDashboardActions = hasAnyRole(['ADMIN', 'MANAGER']);
@@ -211,10 +233,13 @@ const DashboardPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // -- Computed KPI --
+  // -- Computed KPI & Safe Lists --
   const kpiAttendancePercent = kpi?.presentToday?.percentage != null ? kpi.presentToday.percentage.toFixed(1) + '%' : '—';
   const kpiLateAvgMin = kpi?.lateCheckins?.averageDelayMinutes != null ? `${kpi.lateCheckins.averageDelayMinutes}m avg` : '—';
   const kpiNewThisMonth = kpi?.totalEmployees?.newThisMonth;
+
+  const livePulseList = useMemo(() => Array.isArray(livePulse?.records) ? livePulse.records : [], [livePulse]);
+  const exceptionsList = useMemo(() => Array.isArray(exceptionsData?.exceptions) ? exceptionsData.exceptions : [], [exceptionsData]);
 
   return (
     <div className={styles.pageContainer}>
@@ -310,11 +335,9 @@ const DashboardPage: React.FC = () => {
               </div>
               {/* Mini aesthetics chart */}
               <div className="absolute bottom-0 left-0 w-full h-12 opacity-30 pointer-events-none">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartDataOk}>
-                    <Area type="monotone" dataKey="value" stroke="#059669" fill="#10b981" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <svg className="w-full h-12" viewBox="0 0 100 30" preserveAspectRatio="none">
+                  <path d="M0,25 Q20,10 40,18 T80,8 T100,15 L100,30 L0,30 Z" fill="#10b981" stroke="#059669" strokeWidth="2" />
+                </svg>
               </div>
             </motion.div>
 
@@ -346,11 +369,9 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
               <div className="absolute bottom-0 left-0 w-full h-12 opacity-30 pointer-events-none">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartDataWarn}>
-                    <Area type="monotone" dataKey="value" stroke="#d97706" fill="#fbbf24" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <svg className="w-full h-12" viewBox="0 0 100 30" preserveAspectRatio="none">
+                  <path d="M0,15 Q25,25 50,12 T75,20 T100,5 L100,30 L0,30 Z" fill="#fbbf24" stroke="#d97706" strokeWidth="2" />
+                </svg>
               </div>
             </motion.div>
 
@@ -361,11 +382,11 @@ const DashboardPage: React.FC = () => {
                   <AlertTriangle className="h-6 w-6 text-rose-600" />
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold font-sans text-rose-600">
-                  Urgent
+                  {t('dashboard.urgent')}
                 </span>
               </div>
               <div className="mt-4 relative z-10">
-                <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">Exceptions</p>
+                <p className="text-[13px] font-bold font-sans text-slate-500 uppercase tracking-wider">{t('dashboard.exceptions')}</p>
                 <div className="mt-1 flex items-baseline gap-2">
                   <h3 className="text-3xl font-black font-sans text-slate-800 tracking-tight">{kpi?.exceptions?.count ?? '—'}</h3>
                 </div>
@@ -409,17 +430,17 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-base font-bold font-sans text-slate-800 leading-tight">Live Pulse</h3>
-                  <p className="text-xs font-medium font-sans text-slate-500 mt-0.5">Real-time terminal stream</p>
+                  <h3 className="text-base font-bold font-sans text-slate-800 leading-tight">{t('dashboard.livePulse')}</h3>
+                  <p className="text-xs font-medium font-sans text-slate-500 mt-0.5">{t('dashboard.realtimeStream')}</p>
                 </div>
               </div>
               <span className="px-3 py-1 bg-slate-100/50 text-slate-600 text-[10px] font-bold font-sans rounded-full tracking-wider uppercase border border-slate-200">
-                {livePulse?.records?.length ?? 0} Today
+                {t('dashboard.todayCount', { count: livePulseList.length })}
               </span>
             </div>
 
             <div className={cn(styles.pulseTableWrapper, "flex-1")}>
-              {!livePulse?.records?.length ? (
+              {livePulseList.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                   <RefreshCw className="h-10 w-10 mb-4 opacity-20" />
                   <p className="font-medium text-sm">Awaiting check-ins...</p>
@@ -428,15 +449,15 @@ const DashboardPage: React.FC = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200/60">
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Employee</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Time</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Location</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">Status</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">{t('dashboard.colEmployee')}</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">{t('dashboard.colTime')}</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">{t('dashboard.colLocation')}</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest bg-transparent">{t('dashboard.colStatus')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100/50">
                     <AnimatePresence>
-                      {livePulse.records.map((rec) => (
+                      {livePulseList.map((rec) => (
                         <motion.tr 
                           layout
                           key={rec.id}
@@ -453,15 +474,15 @@ const DashboardPage: React.FC = () => {
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
-                              <div className={cn("h-10 w-10 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm bg-gradient-to-br", getAvatarGradient(rec.employee.name))}>
-                                {getInitials(rec.employee.name)}
+                              <div className={cn("h-10 w-10 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm bg-gradient-to-br", getAvatarGradient(rec.employee?.name))}>
+                                {getInitials(rec.employee?.name)}
                               </div>
                               <div>
                                 <p className="text-sm font-bold text-slate-800 font-sans group-hover:text-indigo-600 transition-colors">
-                                  {rec.employee.name}
+                                  {rec.employee?.name}
                                 </p>
                                 <p className="text-[13px] font-medium text-slate-500 font-sans mt-0.5">
-                                  {rec.employee.department}
+                                  {rec.employee?.department}
                                 </p>
                               </div>
                             </div>
@@ -484,14 +505,14 @@ const DashboardPage: React.FC = () => {
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                                 </span>
-                                Late
+                                {t('dashboard.late')}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white shadow-sm border border-emerald-100 text-[13px] font-bold font-sans text-emerald-600">
                                 <span className="relative flex h-2 w-2">
                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 </span>
-                                On Time
+                                {t('dashboard.onTime')}
                               </span>
                             )}
                           </td>
@@ -505,7 +526,7 @@ const DashboardPage: React.FC = () => {
             
             <div className="p-4 border-t border-slate-100/50 bg-slate-50/50 flex justify-center rounded-b-2xl">
               <button onClick={goToAttendanceDaily} className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-white shadow-sm border border-slate-200 text-[13px] font-bold font-sans text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors outline-none cursor-pointer">
-                View All Activity <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                {t('dashboard.viewAllActivity')} <ArrowUpRight className="h-4 w-4 text-slate-400" />
               </button>
             </div>
           </motion.div>
@@ -523,19 +544,19 @@ const DashboardPage: React.FC = () => {
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold font-sans text-slate-800 leading-tight">Attention Required</h3>
-                  <p className="text-xs font-medium font-sans text-slate-500 mt-0.5">Unresolved exceptions</p>
+                  <h3 className="text-base font-bold font-sans text-slate-800 leading-tight">{t('dashboard.attentionRequired')}</h3>
+                  <p className="text-xs font-medium font-sans text-slate-500 mt-0.5">{t('dashboard.unresolvedExceptions')}</p>
                 </div>
               </div>
-              {exceptionsData?.exceptions?.length ? (
+              {exceptionsList.length > 0 ? (
                 <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold font-sans rounded-full tracking-wider uppercase border border-rose-200">
-                  {exceptionsData.exceptions.length} Pending
+                  {t('dashboard.pendingCount', { count: exceptionsList.length })}
                 </span>
               ) : null}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: '480px' }}>
-              {!exceptionsData?.exceptions?.length ? (
+              {exceptionsList.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8 text-slate-400">
                   <CheckCircle2 className="h-12 w-12 mb-4 text-emerald-400/50" />
                   <p className="font-semibold text-slate-600">Everything looks great</p>
@@ -543,7 +564,7 @@ const DashboardPage: React.FC = () => {
                 </div>
               ) : (
                 <AnimatePresence>
-                  {exceptionsData.exceptions.map((ex) => (
+                  {exceptionsList.map((ex) => (
                     <motion.div
                       layout
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -553,21 +574,21 @@ const DashboardPage: React.FC = () => {
                       onClick={() => openResolveModal(ex)}
                       className={styles.exceptionHoverRow}
                     >
-                      <div className={cn("h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm bg-gradient-to-br", getAvatarGradient(ex.employee.name))}>
-                        {getInitials(ex.employee.name)}
+                      <div className={cn("h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm bg-gradient-to-br", getAvatarGradient(ex.employee?.name))}>
+                        {getInitials(ex.employee?.name)}
                       </div>
                       <div className="flex-1 min-w-0 py-1">
                         <p className="text-sm font-bold text-slate-800 font-sans truncate">
-                          {ex.employee.name}
+                          {ex.employee?.name}
                         </p>
                         <p className="text-[13px] font-medium text-slate-500 font-sans mt-1 line-clamp-2 leading-relaxed">
-                          {ex.description || ex.exceptionType}
+                          {translateExceptionText(ex.description || ex.exceptionType, i18n.language)}
                         </p>
                       </div>
                       <div className={cn(
                         "shrink-0 h-2 w-2 mt-1.5 rounded-full",
-                        ex.severity.toLowerCase() === 'high' ? "bg-rose-500 animate-pulse" : 
-                        ex.severity.toLowerCase() === 'medium' ? "bg-amber-500" : "bg-blue-500"
+                        (ex.severity || '').toLowerCase() === 'high' ? "bg-rose-500 animate-pulse" : 
+                        (ex.severity || '').toLowerCase() === 'medium' ? "bg-amber-500" : "bg-blue-500"
                       )} />
                     </motion.div>
                   ))}
@@ -643,8 +664,8 @@ const DashboardPage: React.FC = () => {
                       <span className="font-semibold text-slate-500">Severity</span>
                       <span className={cn(
                         "px-2.5 py-0.5 rounded-md font-bold text-xs uppercase tracking-wider",
-                        resolvingException.severity.toLowerCase() === 'high' ? 'bg-rose-100 text-rose-700' :
-                        resolvingException.severity.toLowerCase() === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                        (resolvingException.severity || '').toLowerCase() === 'high' ? 'bg-rose-100 text-rose-700' :
+                        (resolvingException.severity || '').toLowerCase() === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
                       )}>
                         {resolvingException.severity}
                       </span>
@@ -659,7 +680,7 @@ const DashboardPage: React.FC = () => {
                       <div className="pt-2">
                         <span className="block font-semibold text-slate-500 mb-1">Details</span>
                         <p className="text-slate-700 bg-white p-3 border border-slate-200 rounded-lg leading-relaxed">
-                          {resolvingException.description}
+                          {translateExceptionText(resolvingException.description, i18n.language)}
                         </p>
                       </div>
                     )}

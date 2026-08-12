@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, X, Loader2 } from 'lucide-react';
+import { Plus, Search, X, Loader2, Edit2, Power, Trash2 } from 'lucide-react';
 import { useToast } from '../../../core/toast/ToastContext';
+import { useTranslation } from 'react-i18next';
 import { shiftApi, ShiftTemplateResponse, ShiftTemplateUpsertPayload } from '../api/attendanceCore.api';
 import styles from './ShiftTemplatesPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -9,6 +10,7 @@ import { cn } from '../../../shared/utils/cn';
 
 const ShiftTemplatesPage: React.FC = () => {
   const toast = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // Search parameters
@@ -229,11 +231,11 @@ const ShiftTemplatesPage: React.FC = () => {
     <div className="space-y-6 pb-6">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 className={styles.pageTitle}>Shift Templates</h1>
-          <p className={styles.pageSubtitle}>Manage shift template definitions from the backend shift template API.</p>
+          <h1 className={styles.pageTitle}>{t('shiftTemplates.title')}</h1>
+          <p className={styles.pageSubtitle}>{t('shiftTemplates.description')}</p>
         </div>
         <button onClick={openCreate} className={styles.nmBtnPrimary}>
-          <Plus className="h-4 w-4" /> Add Template
+          <Plus className="h-4 w-4" /> {t('shiftTemplates.newTemplate')}
         </button>
       </div>
 
@@ -246,15 +248,15 @@ const ShiftTemplatesPage: React.FC = () => {
       {/* STATS */}
       <div className={styles.kpiGrid}>
         <div className={styles.kpiCard}>
-          <p className={styles.kpiLabel}>Total Templates</p>
+          <p className={styles.kpiLabel}>{t('shiftTemplates.totalTemplates')}</p>
           <p className={styles.kpiValue}>{totalTemplates}</p>
         </div>
         <div className={styles.kpiCard}>
-          <p className={styles.kpiLabel}>Active</p>
+          <p className={styles.kpiLabel}>{t('shiftTemplates.activeCount')}</p>
           <p className={cn(styles.kpiValue, styles.active)}>{activeCount}</p>
         </div>
         <div className={styles.kpiCard}>
-          <p className={styles.kpiLabel}>Inactive</p>
+          <p className={styles.kpiLabel}>{t('shiftTemplates.inactiveCount')}</p>
           <p className={cn(styles.kpiValue, styles.inactive)}>{inactiveCount}</p>
         </div>
       </div>
@@ -265,7 +267,7 @@ const ShiftTemplatesPage: React.FC = () => {
           <Search className="h-4 w-4" />
           <input
             type="text"
-            placeholder="Search by shift code or name..."
+            placeholder={t('shiftTemplates.search')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className={styles.nmInput}
@@ -277,9 +279,9 @@ const ShiftTemplatesPage: React.FC = () => {
           className={styles.nmInput}
           style={{ width: '200px' }}
         >
-          <option value="">All statuses</option>
-          <option value="true">Active only</option>
-          <option value="false">Inactive only</option>
+          <option value="">{t('shiftTemplates.showInactive')}</option>
+          <option value="true">{t('shiftTemplates.active')}</option>
+          <option value="false">{t('shiftTemplates.inactive')}</option>
         </select>
       </div>
 
@@ -288,16 +290,16 @@ const ShiftTemplatesPage: React.FC = () => {
         <table className={styles.nmTable}>
           <thead>
             <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Time</th>
-              <th>Break</th>
-              <th>Grace In/Out</th>
-              <th>Min Work</th>
-              <th>Night Shift</th>
-              <th>Status</th>
-              <th>Updated At</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('shiftTemplates.shiftCode')}</th>
+              <th>{t('shiftTemplates.shiftName')}</th>
+              <th>{t('shiftTemplates.time')}</th>
+              <th>{t('shiftTemplates.break')}</th>
+              <th>{t('shiftTemplates.grace')}</th>
+              <th>{t('shiftTemplates.minWork')}</th>
+              <th>{t('shiftTemplates.isNight')}</th>
+              <th>{t('shiftTemplates.status')}</th>
+              <th>{t('shiftTemplates.updatedAt')}</th>
+              <th style={{ textAlign: 'right' }}>{t('shiftTemplates.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -306,32 +308,32 @@ const ShiftTemplatesPage: React.FC = () => {
                 <td colSpan={10} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>Loading shift templates...</td>
               </tr>
             )}
-            {!isLoading && templates.map(t => (
-              <tr key={t.shiftId}>
-                <td style={{ fontWeight: 'bold' }}>{t.shiftCode}</td>
-                <td>{t.shiftName}</td>
-                <td style={{ fontFamily: 'var(--font-mono)' }}>{t.startTime?.substring(0,5)} - {t.endTime?.substring(0,5)}</td>
-                <td>{t.breakMinutes}m</td>
-                <td>{t.graceInMinutes} / {t.graceOutMinutes}m</td>
-                <td>{t.minWorkMinutes}m</td>
-                <td>{t.isNightShift ? 'Yes' : 'No'}</td>
+            {!isLoading && templates.map(tItem => (
+              <tr key={tItem.shiftId}>
+                <td style={{ fontWeight: 'bold' }}>{tItem.shiftCode}</td>
+                <td>{tItem.shiftName}</td>
+                <td style={{ fontFamily: 'var(--font-mono)' }}>{tItem.startTime?.substring(0,5)} - {tItem.endTime?.substring(0,5)}</td>
+                <td>{tItem.breakMinutes}m</td>
+                <td>{tItem.graceInMinutes} / {tItem.graceOutMinutes}m</td>
+                <td>{tItem.minWorkMinutes}m</td>
+                <td>{tItem.isNightShift ? t('shiftTemplates.yes') : t('shiftTemplates.no')}</td>
                 <td>
-                  <span className={cn(styles.nmBadge, t.isActive ? styles.active : styles.inactive)}>
-                    {t.isActive ? 'Active' : 'Inactive'}
+                  <span className={cn(styles.nmBadge, tItem.isActive ? styles.active : styles.inactive)}>
+                    {tItem.isActive ? t('shiftTemplates.active') : t('shiftTemplates.inactive')}
                   </span>
                 </td>
-                <td style={{ fontSize: '10px', color: 'var(--nm-text-muted)' }}>{formatDateTime(t.updatedAt)}</td>
+                <td style={{ fontSize: '10px', color: 'var(--nm-text-muted)' }}>{formatDateTime(tItem.updatedAt)}</td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                    <button onClick={() => openEdit(t.shiftId)} className={styles.nmBtnText} title="Edit">
-                      Edit
+                    <button onClick={() => openEdit(tItem.shiftId)} className={styles.nmBtnIcon} title={t('shiftTemplates.edit')}>
+                      <Edit2 className="h-4 w-4" />
                     </button>
-                    <button onClick={() => activeMutation.mutate({ id: t.shiftId, active: !t.isActive })} className={cn(styles.nmBtnText, styles.primary)}>
-                      {t.isActive ? 'Set inactive' : 'Set active'}
+                    <button onClick={() => activeMutation.mutate({ id: tItem.shiftId, active: !tItem.isActive })} className={cn(styles.nmBtnIcon, 'warning')} title={tItem.isActive ? t('shiftTemplates.setInactive') : t('shiftTemplates.setActive')}>
+                      <Power className="h-4 w-4" />
                     </button>
-                    {t.isActive && (
-                      <button onClick={() => { setTemplateToDelete(t); setShowDeleteModal(true); }} className={cn(styles.nmBtnText, styles.danger)}>
-                        Delete
+                    {tItem.isActive && (
+                      <button onClick={() => { setTemplateToDelete(tItem); setShowDeleteModal(true); }} className={cn(styles.nmBtnIcon, 'danger')} title={t('shiftTemplates.delete')}>
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     )}
                   </div>

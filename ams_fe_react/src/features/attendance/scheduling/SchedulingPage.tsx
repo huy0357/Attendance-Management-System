@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Clock, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../../../core/toast/ToastContext';
 import { scheduleApi, shiftApi, ShiftTemplateResponse, Shift, ScheduleEmployee } from '../api/attendanceCore.api';
 import styles from './SchedulingPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
-
-const DUMMY_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const getStartOfWeek = (d: Date) => {
   const date = new Date(d);
@@ -48,8 +48,10 @@ const deriveShiftType = (isNightShift: boolean, startTime?: string): 'morning' |
 
 const SchedulingPage: React.FC = () => {
   const toast = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
+  const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const [weekStart, setWeekStart] = useState<Date>(getStartOfWeek(new Date()));
   const [searchTerm, setSearchTerm] = useState('');
   const [hideEmptyRows, setHideEmptyRows] = useState(false);
@@ -251,15 +253,15 @@ const SchedulingPage: React.FC = () => {
       <div className="space-y-6">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 className={styles.pageTitle}>Work Schedule Assignment</h1>
-            <p className={styles.pageSubtitle}>Assign active shift templates to employees by work date.</p>
+            <h1 className={styles.pageTitle}>{t('scheduling.title')}</h1>
+            <p className={styles.pageSubtitle}>{t('scheduling.subtitle')}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={() => setWeekStart(addDays(weekStart, -7))} className={styles.nmBtnSecondary} style={{ padding: '8px 12px', fontSize: 'var(--fs-xs)' }}>Previous</button>
-            <button onClick={() => setWeekStart(getStartOfWeek(new Date()))} className={styles.nmBtnSecondary} style={{ padding: '8px 12px', fontSize: 'var(--fs-xs)' }}>Today</button>
-            <button onClick={() => setWeekStart(addDays(weekStart, 7))} className={styles.nmBtnSecondary} style={{ padding: '8px 12px', fontSize: 'var(--fs-xs)' }}>Next</button>
+            <button onClick={() => setWeekStart(addDays(weekStart, -7))} className={styles.nmBtnSecondary} style={{ padding: '8px 12px', fontSize: 'var(--fs-xs)' }}>{t('scheduling.prev')}</button>
+            <button onClick={() => setWeekStart(getStartOfWeek(new Date()))} className={styles.nmBtnSecondary} style={{ padding: '8px 12px', fontSize: 'var(--fs-xs)' }}>{t('scheduling.today')}</button>
+            <button onClick={() => setWeekStart(addDays(weekStart, 7))} className={styles.nmBtnSecondary} style={{ padding: '8px 12px', fontSize: 'var(--fs-xs)' }}>{t('scheduling.next')}</button>
             <button onClick={() => setShowAssignRangeModal(true)} className={styles.nmBtnPrimary}>
-              Assign Range
+              {t('scheduling.assignRange')}
             </button>
           </div>
         </div>
@@ -273,7 +275,7 @@ const SchedulingPage: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search employee name or code"
+            placeholder={t('scheduling.searchPlaceholder')}
             className={styles.nmInput}
             style={{ width: 'auto', minWidth: '300px' }}
           />
@@ -283,7 +285,7 @@ const SchedulingPage: React.FC = () => {
               checked={hideEmptyRows}
               onChange={e => setHideEmptyRows(e.target.checked)}
             />
-            Hide employees without shifts this week
+            {t('scheduling.hideNoShift')}
           </label>
         </div>
       </div>
@@ -293,7 +295,7 @@ const SchedulingPage: React.FC = () => {
           <div className={styles.nmCardInset}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--fs-sm)', fontWeight: 'bold', color: 'var(--nm-text)', marginBottom: '16px' }}>
               <Clock className="w-5 h-5" />
-              Active Shift Templates
+              {t('scheduling.activeTemplates')}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {templates.map(t => (
@@ -310,21 +312,20 @@ const SchedulingPage: React.FC = () => {
               ))}
             </div>
             {templates.length === 0 && <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--nm-text-muted)', marginTop: '16px' }}>No active shift templates available.</p>}
-            {templates.length > 0 && <p style={{ fontSize: '10px', color: 'var(--nm-text-muted)', marginTop: '16px', fontStyle: 'italic', lineHeight: '1.4' }}>Drag a template into one day for quick assignment, or use Assign Range for multi-day scheduling.</p>}
           </div>
 
           <div className={styles.nmCardInset}>
-            <h3 style={{ fontSize: 'var(--fs-sm)', fontWeight: 'bold', color: 'var(--nm-text)', marginBottom: '16px' }}>Coverage Stats</h3>
+            <h3 style={{ fontSize: 'var(--fs-sm)', fontWeight: 'bold', color: 'var(--nm-text)', marginBottom: '16px' }}>{t('scheduling.coverageStats')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--fs-sm)', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--nm-text-muted)' }}>Total Shifts</span>
+                  <span style={{ color: 'var(--nm-text-muted)' }}>{t('scheduling.totalShifts')}</span>
                   <span style={{ fontWeight: 'bold' }}>{shifts.length}</span>
                 </div>
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--fs-sm)' }}>
-                  <span style={{ color: 'var(--nm-text-muted)' }}>Imported</span>
+                  <span style={{ color: 'var(--nm-text-muted)' }}>{t('scheduling.imported')}</span>
                   <span style={{ fontWeight: 'bold', color: 'var(--nm-info)' }}>{shifts.filter(s => s.scheduleSource === 'IMPORT').length}</span>
                 </div>
               </div>
@@ -338,11 +339,11 @@ const SchedulingPage: React.FC = () => {
               <thead>
                 <tr>
                   <th className={styles.stickyColumn} style={{ width: '180px', background: 'var(--nm-surface)' }}>
-                    Employee
+                    {t('scheduling.empCol')}
                   </th>
-                  {DUMMY_DAYS.map((day, i) => (
+                  {dayKeys.map((dayKey, i) => (
                     <th key={i} style={{ textAlign: 'center', minWidth: '120px' }}>
-                      {day} <br/><span style={{ fontSize: '10px', fontWeight: 'normal' }}>{formatDate(addDays(weekStart, i))}</span>
+                      {t(`mySchedule.days.${dayKey}`)} <br/><span style={{ fontSize: '10px', fontWeight: 'normal' }}>{formatDate(addDays(weekStart, i))}</span>
                     </th>
                   ))}
                 </tr>
@@ -360,8 +361,8 @@ const SchedulingPage: React.FC = () => {
                           {group.collapsed ? '+' : '-'} {group.departmentName}
                         </button>
                       </td>
-                      <td colSpan={DUMMY_DAYS.length} style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>
-                        {group.employees.length} employees - {group.shiftCount} shifts this week
+                      <td colSpan={dayKeys.length} style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>
+                        {t('scheduling.empCount', { count: group.employees.length })} - {t('scheduling.shiftsThisWeek', { count: group.shiftCount })}
                       </td>
                     </tr>
                     {!group.collapsed && group.employees.map(employee => (
@@ -379,7 +380,7 @@ const SchedulingPage: React.FC = () => {
                             <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>{employee.department}</p>
                           </div>
                         </td>
-                        {DUMMY_DAYS.map((_, dayIndex) => {
+                        {dayKeys.map((_, dayIndex) => {
                           const shift = getShift(employee.id, dayIndex);
                           const isHovered = isDragOver(employee.id, dayIndex);
                           
@@ -422,7 +423,7 @@ const SchedulingPage: React.FC = () => {
                 {visibleGroups.length === 0 && (
                   <tr>
                     <td className={styles.stickyColumn} style={{ padding: '32px 16px', fontSize: 'var(--fs-sm)', color: 'var(--nm-text-muted)' }}>No employees match current filters.</td>
-                    <td colSpan={DUMMY_DAYS.length}></td>
+                    <td colSpan={dayKeys.length}></td>
                   </tr>
                 )}
               </tbody>

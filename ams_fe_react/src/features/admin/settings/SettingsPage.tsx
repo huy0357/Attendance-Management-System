@@ -125,7 +125,7 @@ const SettingsPage: React.FC = () => {
                 onChange={(e) => setCompactSidebar(e.target.checked)}
               />
               <span className={styles.track}></span>
-              <span className={styles.label}>{compactSidebar ? 'ON' : 'OFF'}</span>
+              <span className={styles.label}>{compactSidebar ? t('settings.statusOn') : t('settings.statusOff')}</span>
             </label>
           </div>
 
@@ -144,7 +144,7 @@ const SettingsPage: React.FC = () => {
                 onChange={(e) => setReduceMotion(e.target.checked)}
               />
               <span className={styles.track}></span>
-              <span className={styles.label}>{reduceMotion ? 'ON' : 'OFF'}</span>
+              <span className={styles.label}>{reduceMotion ? t('settings.statusOn') : t('settings.statusOff')}</span>
             </label>
           </div>
         </section>

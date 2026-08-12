@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Download, Shield, Search, Eye, Plus, Edit2, Trash2, LogIn, LogOut, Check, X, Lock, Unlock, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '../../../core/toast/ToastContext';
 import { adminApi, AuditLog, AuditLogAction } from '../api/admin.api';
@@ -60,6 +61,7 @@ const formatJsonDisplay = (val: unknown) => {
 
 const AuditLogPage: React.FC = () => {
   const toast = useToast();
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterModule, setFilterModule] = useState('All Modules');
@@ -112,10 +114,10 @@ const AuditLogPage: React.FC = () => {
   }, [logs, filterUser, startDate, endDate, searchQuery]);
 
   const stats = [
-    { label: 'Total Logs', value: logs.length, color: 'var(--nm-primary)', icon: 'shield' },
-    { label: 'Critical Events', value: logs.filter(l => l.action === 'delete').length, color: 'var(--nm-danger)', icon: 'alert-circle' },
-    { label: 'Login Events', value: logs.filter(l => l.action === 'login' || l.action === 'logout').length, color: 'var(--nm-info)', icon: 'log-in' },
-    { label: 'Modifications', value: logs.filter(l => l.action === 'create' || l.action === 'update').length, color: 'var(--nm-success)', icon: 'edit-2' },
+    { label: t('auditLogs.totalLogs'), value: logs.length, color: 'var(--nm-info)', icon: 'shield' },
+    { label: t('auditLogs.criticalEvents'), value: logs.filter(l => l.action === 'delete' || l.action === 'reject').length, color: 'var(--nm-danger)', icon: 'alert-circle' },
+    { label: t('auditLogs.loginEvents'), value: logs.filter(l => l.action === 'login' || l.action === 'logout').length, color: 'var(--nm-primary)', icon: 'log-in' },
+    { label: t('auditLogs.modifications'), value: logs.filter(l => l.action === 'create' || l.action === 'update').length, color: 'var(--nm-success)', icon: 'edit-2' }
   ];
 
   const exportLogs = () => {
@@ -144,11 +146,11 @@ const AuditLogPage: React.FC = () => {
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 className={styles.pageTitle}>Audit Log</h1>
-          <p className={styles.pageSubtitle}>Track all system changes and user activities</p>
+          <h1 className={styles.pageTitle}>{t('auditLogs.title')}</h1>
+          <p className={styles.pageSubtitle}>{t('auditLogs.subtitle')}</p>
         </div>
         <button className={styles.nmBtnPrimary} onClick={exportLogs}>
-          <Download className="w-5 h-5 shrink-0" /> Export Logs
+          <Download className="w-5 h-5 shrink-0" /> {t('auditLogs.exportBtn')}
         </button>
       </div>
 
@@ -175,10 +177,9 @@ const AuditLogPage: React.FC = () => {
           <Shield className="w-6 h-6" />
         </div>
         <div>
-          <h3>Audit Compliance</h3>
+          <h3>{t('auditLogs.complianceTitle')}</h3>
           <p>
-            All system activities are logged with full traceability. Logs include user identity, timestamp, IP address,
-            before/after values, and are tamper-proof for compliance and security auditing.
+            {t('auditLogs.complianceDesc')}
           </p>
         </div>
       </div>
@@ -188,25 +189,25 @@ const AuditLogPage: React.FC = () => {
         <div className={styles.filterRow}>
           <div className={styles.searchWrapper}>
             <Search className="h-4 w-4" />
-            <input type="text" placeholder="Search by user, module, or record ID..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={styles.nmInput} />
+            <input type="text" placeholder={t('auditLogs.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={styles.nmInput} />
           </div>
           <select value={filterModule} onChange={e => setFilterModule(e.target.value)} className={styles.nmInput} style={{ width: '160px' }}>
-            {modules.map(m => <option key={m} value={m}>{m}</option>)}
+            {modules.map(m => <option key={m} value={m}>{m === 'All Modules' ? t('auditLogs.allModules') : m}</option>)}
           </select>
           <select value={filterAction} onChange={e => setFilterAction(e.target.value)} className={styles.nmInput} style={{ width: '160px' }}>
-            {actions.map(a => <option key={a} value={a}>{a}</option>)}
+            {actions.map(a => <option key={a} value={a}>{a === 'All Actions' ? t('auditLogs.allActions') : a}</option>)}
           </select>
           <select value={filterUser} onChange={e => setFilterUser(e.target.value)} className={styles.nmInput} style={{ width: '160px' }}>
-            {users.map(u => <option key={u} value={u}>{u}</option>)}
+            {users.map(u => <option key={u} value={u}>{u === 'All Users' ? t('auditLogs.allUsers') : u}</option>)}
           </select>
         </div>
         <div className={styles.filterRow}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--nm-text-muted)' }}>Start Date</span>
+            <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--nm-text-muted)' }}>{t('auditLogs.startDate')}</span>
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={styles.nmInput} />
           </div>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--nm-text-muted)' }}>End Date</span>
+             <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--nm-text-muted)' }}>{t('auditLogs.endDate')}</span>
             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={styles.nmInput} />
           </div>
         </div>
@@ -218,13 +219,13 @@ const AuditLogPage: React.FC = () => {
           <table className={styles.nmTable}>
             <thead>
               <tr>
-                <th>Timestamp</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Module</th>
-                <th>Record ID</th>
-                <th>IP Address</th>
-                <th>Actions</th>
+                <th>{t('auditLogs.colTimestamp')}</th>
+                <th>{t('auditLogs.colUser')}</th>
+                <th>{t('auditLogs.colAction')}</th>
+                <th>{t('auditLogs.colModule')}</th>
+                <th>{t('auditLogs.colRecordId')}</th>
+                <th>{t('auditLogs.colIp')}</th>
+                <th>{t('auditLogs.colActions')}</th>
               </tr>
             </thead>
             <tbody>

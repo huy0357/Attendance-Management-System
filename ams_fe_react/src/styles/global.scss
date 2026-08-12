@@ -23,8 +23,17 @@ img, video {
   height: auto;
 }
 
+html, body {
+  font-family: var(--font-primary);
+  color: var(--nm-text);
+  background-color: var(--nm-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 button, input, select, textarea {
-  font: inherit;
+  font-family: var(--font-primary);
   letter-spacing: inherit;
   color: inherit;
   background-color: transparent;

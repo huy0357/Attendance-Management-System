@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Search, Eye, Edit2, Trash2, X, AlertTriangle, Shield, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../../../core/toast/ToastContext';
 import { employeeApi, EmployeeDto, EmployeeRequest } from '../api/hrm.api';
 import { adminApi } from '../../admin/api/admin.api';
@@ -19,6 +20,7 @@ interface UiEmployee extends EmployeeDto {
 
 const EmployeesPage: React.FC = () => {
   const { hasAnyRole } = useAuth();
+  const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -302,8 +304,8 @@ const EmployeesPage: React.FC = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className={styles.pageTitle}>Employees</h1>
-          <p className={styles.pageSubtitle}>Manage employee records backed by the HR module.</p>
+          <h1 className={styles.pageTitle}>{t('employees.title')}</h1>
+          <p className={styles.pageSubtitle}>{t('employees.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           {canManageEmployees && !showAddModal && (
@@ -315,14 +317,14 @@ const EmployeesPage: React.FC = () => {
                 className={styles.nmBtnSecondary}
               >
                 <Download className="h-4 w-4 shrink-0" />
-                <span>{exportMutation.isPending ? '...' : 'Export'}</span>
+                <span>{exportMutation.isPending ? '...' : t('employees.exportBtn')}</span>
               </button>
               <button
                 onClick={openAdd}
                 className={styles.nmBtnPrimary}
               >
                 <Plus className="h-4 w-4 shrink-0" />
-                Add Employee
+                {t('employees.addBtn')}
               </button>
             </>
           )}
@@ -341,7 +343,7 @@ const EmployeesPage: React.FC = () => {
           <Search className="h-4 w-4" />
           <input
             type="text"
-            placeholder="Search by full name"
+            placeholder={t('employees.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.nmInput}
@@ -349,7 +351,7 @@ const EmployeesPage: React.FC = () => {
         </div>
 
         <div className={styles.statBadge}>
-          Total items: <span>{totalItems}</span>
+          {t('employees.totalItems', { count: totalItems })}
         </div>
 
         <select
@@ -357,7 +359,7 @@ const EmployeesPage: React.FC = () => {
           onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
           className={styles.nmInput}
         >
-          <option value="employee_id">Sort by Employee ID</option>
+          <option value="employee_id">{t('employees.sortBy')}</option>
           <option value="employee_code">Sort by Employee Code</option>
           <option value="full_name">Sort by Full Name</option>
           <option value="hire_date">Sort by Hire Date</option>
@@ -368,8 +370,8 @@ const EmployeesPage: React.FC = () => {
           onChange={(e) => { setSortDir(e.target.value as 'asc'|'desc'); setPage(1); }}
           className={styles.nmInput}
         >
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
+          <option value="asc">{t('employees.ascending')}</option>
+          <option value="desc">{t('employees.descending')}</option>
         </select>
 
         <select
@@ -387,13 +389,13 @@ const EmployeesPage: React.FC = () => {
             onClick={() => setViewMode('table')}
             className={viewMode === 'table' ? styles.active : ''}
           >
-            Table
+            {t('employees.tableView')}
           </button>
           <button
             onClick={() => setViewMode('grid')}
             className={viewMode === 'grid' ? styles.active : ''}
           >
-            Grid
+            {t('employees.gridView')}
           </button>
         </div>
       </div>
@@ -410,10 +412,10 @@ const EmployeesPage: React.FC = () => {
             </colgroup>
             <thead>
               <tr>
-                <th>Employee</th>
-                <th>Employee Code</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Action</th>
+                <th>{t('employees.colEmp')}</th>
+                <th>{t('employees.colCode')}</th>
+                <th>{t('employees.colStatus')}</th>
+                <th style={{ textAlign: 'right' }}>{t('employees.colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -464,7 +466,7 @@ const EmployeesPage: React.FC = () => {
           </table>
           
           <div className={styles.pagination}>
-            <div className={styles.paginationText}>Showing {employees.length} of {totalItems} employees</div>
+            <div className={styles.paginationText}>{t('common.showingEmployees', { count: employees.length, total: totalItems })}</div>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))} 
@@ -529,7 +531,7 @@ const EmployeesPage: React.FC = () => {
             ))}
           </div>
           <div className={styles.pagination} style={{ marginTop: '16px', borderRadius: 'var(--nm-radius-lg)', boxShadow: 'var(--nm-shadow-out)'}}>
-            <div className={styles.paginationText}>Showing {employees.length} of {totalItems} employees</div>
+            <div className={styles.paginationText}>{t('common.showingEmployees', { count: employees.length, total: totalItems })}</div>
             <div className="flex items-center gap-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1 || isLoading} className={styles.nmBtnSecondary} style={{ padding: '6px 12px' }}>Prev</button>
               <span className={styles.paginationText}>Page {page} / {totalPages}</span>

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Eye, CheckCircle, Clock, XCircle, AlertCircle, TriangleAlert, X } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { requestApi, RequestsResponse } from '../api/attendanceCore.api';
 import styles from './LeaveManagementPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -25,11 +26,6 @@ const getStatusIcon = (status: string) => {
     case 'CANCELLED': return XCircle;
     default: return Clock;
   }
-};
-
-const getStatusLabel = (status: string) => {
-  if (status === 'SUBMITTED') return 'Pending';
-  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 };
 
 const formatDateTime = (val?: string) => {
@@ -58,6 +54,7 @@ const calculateDays = (start: string, end: string) => {
 
 const LeaveManagementPage: React.FC = () => {
   const { hasAnyRole, getEmployeeId } = useAuth();
+  const { t } = useTranslation();
   const isAdminOrManager = hasAnyRole(['ADMIN', 'MANAGER']);
 
   const currentEmployeeId = getEmployeeId() ?? undefined;
@@ -109,19 +106,41 @@ const LeaveManagementPage: React.FC = () => {
     return result;
   }, [leaveRequests, activeTab, searchQuery]);
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'APPROVED': return t('leaveManagement.statusApproved');
+      case 'REJECTED': return t('leaveManagement.statusRejected');
+      case 'SUBMITTED': return t('leaveManagement.statusPending');
+      case 'CANCELLED': return t('leaveManagement.statusCancelled');
+      case 'DRAFT': return t('leaveManagement.statusDraft');
+      default: return status;
+    }
+  };
+
+  const getTabLabel = (tab: string) => {
+    switch (tab) {
+      case 'open': return t('leaveManagement.tabOpen');
+      case 'approved': return t('leaveManagement.tabApproved');
+      case 'rejected': return t('leaveManagement.tabRejected');
+      case 'cancelled': return t('leaveManagement.tabCancelled');
+      case 'all': return t('leaveManagement.tabAll');
+      default: return tab;
+    }
+  };
+
   const stats = [
-    { key: 'open-total', label: 'OPEN REQUESTS', value: getTabCount('open'), color: 'var(--nm-info)', icon: 'clock' },
-    { key: 'approved-total', label: 'APPROVED', value: getTabCount('approved'), color: 'var(--nm-success)', icon: 'check-circle' },
-    { key: 'rejected-total', label: 'REJECTED', value: getTabCount('rejected'), color: 'var(--nm-danger)', icon: 'x-circle' },
-    { key: 'cancelled-total', label: 'CLOSED / CANCELLED', value: getTabCount('cancelled'), color: 'var(--nm-text-muted)', icon: 'alert-circle' },
+    { key: 'open-total', label: t('leaveManagement.kpiOpen'), value: getTabCount('open'), color: 'var(--nm-info)', icon: 'clock' },
+    { key: 'approved-total', label: t('leaveManagement.kpiApproved'), value: getTabCount('approved'), color: 'var(--nm-success)', icon: 'check-circle' },
+    { key: 'rejected-total', label: t('leaveManagement.kpiRejected'), value: getTabCount('rejected'), color: 'var(--nm-danger)', icon: 'x-circle' },
+    { key: 'cancelled-total', label: t('leaveManagement.kpiCancelled'), value: getTabCount('cancelled'), color: 'var(--nm-text-muted)', icon: 'alert-circle' },
   ];
 
   return (
     <div className="space-y-6 pb-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className={styles.pageTitle}>My Leave Requests</h1>
-          <p className={styles.pageSubtitle}>Track your leave requests with a cleaner status overview.</p>
+          <h1 className={styles.pageTitle}>{t('leaveManagement.myTitle')}</h1>
+          <p className={styles.pageSubtitle}>{t('leaveManagement.subtitle')}</p>
         </div>
       </div>
 
@@ -131,9 +150,6 @@ const LeaveManagementPage: React.FC = () => {
             <div className={styles.kpiContent}>
               <p className={styles.kpiLabel}>{stat.label}</p>
               <p className={styles.kpiValue} style={{ color: stat.color }}>{stat.value}</p>
-              {stat.key === 'cancelled-total' && (
-                <p style={{ fontSize: '10px', marginTop: '4px', color: 'var(--nm-text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Cancelled: {getTabCount('cancelled')}</p>
-              )}
             </div>
             <div className={styles.kpiIcon} style={{ color: stat.color }}>
               {stat.icon === 'clock' && <Clock className="w-6 h-6" />}
@@ -149,7 +165,7 @@ const LeaveManagementPage: React.FC = () => {
         <div className={styles.nmTabs}>
           {['open', 'approved', 'rejected', 'cancelled', 'all'].map(tab => (
             <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={activeTab === tab ? styles.active : ''}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)} <span className={styles.tabCount}>{getTabCount(tab)}</span>
+              {getTabLabel(tab)} <span className={styles.tabCount}>{getTabCount(tab)}</span>
             </button>
           ))}
         </div>
@@ -160,7 +176,7 @@ const LeaveManagementPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder={isAdminOrManager ? "Search by request ID, employee name, title, or reason..." : "Search by request ID, title, or reason..."}
+            placeholder={isAdminOrManager ? t('leaveManagement.searchAdminPlaceholder') : t('leaveManagement.searchEmpPlaceholder')}
             className={styles.nmInput}
           />
         </div>
@@ -169,14 +185,14 @@ const LeaveManagementPage: React.FC = () => {
           <table className={styles.nmTable}>
             <thead>
               <tr>
-                <th>Request ID</th>
-                {isAdminOrManager && <th>Employee</th>}
-                <th>Title</th>
-                <th>Dates</th>
-                <th>Days</th>
-                <th>Submitted At</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t('leaveManagement.colRequestId')}</th>
+                {isAdminOrManager && <th>{t('leaveManagement.colEmployee')}</th>}
+                <th>{t('leaveManagement.colTitle')}</th>
+                <th>{t('leaveManagement.colDates')}</th>
+                <th>{t('leaveManagement.colDays')}</th>
+                <th>{t('leaveManagement.colSubmittedAt')}</th>
+                <th>{t('leaveManagement.colStatus')}</th>
+                <th>{t('leaveManagement.colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -185,7 +201,7 @@ const LeaveManagementPage: React.FC = () => {
                   <td colSpan={8} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></span>
-                      <span style={{ fontWeight: 'bold' }}>Loading leave requests...</span>
+                      <span style={{ fontWeight: 'bold' }}>{t('leaveManagement.loading')}</span>
                     </div>
                   </td>
                 </tr>
@@ -197,7 +213,7 @@ const LeaveManagementPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <TriangleAlert className="mb-3 h-10 w-10 text-gray-400" />
                       <p style={{ fontWeight: 'bold' }}>
-                        No leave requests found. (Note: Admin accounts may not have personal leave records).
+                        {t('leaveManagement.empty')}
                       </p>
                     </div>
                   </td>
@@ -213,7 +229,7 @@ const LeaveManagementPage: React.FC = () => {
                       <td>
                         <div>
                           <p style={{ fontWeight: 'bold' }}>{request.employeeName || 'Employee #' + request.employeeId}</p>
-                          <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>Employee ID: {request.employeeId}</p>
+                          <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>ID: {request.employeeId}</p>
                         </div>
                       </td>
                     )}
@@ -223,11 +239,11 @@ const LeaveManagementPage: React.FC = () => {
                     <td>
                       <div>
                         <p style={{ fontWeight: 'bold' }}>{formatDate(request.startDatetime)}</p>
-                        <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>to {formatDate(request.endDatetime)}</p>
+                        <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>{t('leaveManagement.to')} {formatDate(request.endDatetime)}</p>
                       </div>
                     </td>
                     <td style={{ fontWeight: 'bold' }}>
-                      {request.days} days
+                      {request.days} {t('leaveManagement.colDays').toLowerCase()}
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--nm-text-muted)' }}>
                       {formatDateTime(request.submittedAt)}
@@ -239,7 +255,7 @@ const LeaveManagementPage: React.FC = () => {
                       </span>
                     </td>
                     <td>
-                      <button type="button" onClick={() => { setSelectedRequest(request); setShowReviewModal(true); }} className={styles.nmBtnIcon} title="View Details">
+                      <button type="button" onClick={() => { setSelectedRequest(request); setShowReviewModal(true); }} className={styles.nmBtnIcon} title="Details">
                         <Eye className="w-4 h-4 text-blue-500" />
                       </button>
                     </td>

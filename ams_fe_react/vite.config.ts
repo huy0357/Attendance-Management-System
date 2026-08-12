@@ -15,17 +15,16 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_PROXY_TARGET || 'http://14.225.212.113',
+        changeOrigin: true,
+      },
+      '/avatars': {
+        target: 'http://14.225.212.113',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'http://localhost:8080',
+        target: 'http://14.225.212.113',
         ws: true,
-      },
-      '/chatbot-api': {
-        target: 'http://localhost:8088',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/chatbot-api/, ''),
       },
     },
   },

@@ -171,16 +171,18 @@ function getDisplayInitials(username: string): string {
   );
 }
 
-function getRoleLabel(normalizedRole: string | null): string {
+function getRoleLabel(normalizedRole: string | null, t: (key: string) => string): string {
   switch (normalizedRole) {
     case 'ADMIN':
-      return 'System Administrator';
+      return t('roles.admin');
     case 'MANAGER':
-      return 'Manager';
+      return t('roles.manager');
     case 'EMPLOYEE':
-      return 'Employee';
+      return t('roles.employee');
+    case 'HR':
+      return t('roles.hr');
     default:
-      return normalizedRole ?? 'Authenticated User';
+      return normalizedRole ?? t('roles.user');
   }
 }
 
@@ -197,7 +199,7 @@ interface ForbiddenToast {
 const AdminLayout: React.FC = () => {
   const { username, hasAnyRole, getNormalizedRole, logout, isAuthenticated } = useAuth();
   const { compactSidebar, setCompactSidebar } = useSettings();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -206,7 +208,7 @@ const AdminLayout: React.FC = () => {
 
   const displayUsername = username ?? 'User';
   const normalizedRole = getNormalizedRole();
-  const displayRoleLabel = getRoleLabel(normalizedRole);
+  const displayRoleLabel = getRoleLabel(normalizedRole, t);
   const displayInitials = getDisplayInitials(displayUsername);
 
   // ── Live Clock & Date State ────────────────────────────────────────────────
@@ -228,9 +230,9 @@ const AdminLayout: React.FC = () => {
   const fullName = userProfile?.fullName || displayUsername;
 
   const getGreeting = (hour: number) => {
-    if (hour >= 5 && hour < 12) return 'Buổi sáng tốt lành';
-    if (hour >= 12 && hour < 18) return 'Buổi chiều làm việc hiệu quả';
-    return 'Buổi tối an lành';
+    if (hour >= 5 && hour < 12) return t('greetings.morning');
+    if (hour >= 12 && hour < 18) return t('greetings.afternoon');
+    return t('greetings.evening');
   };
 
   // ── 403 Forbidden Toast Listener ─────────────────────────────────────────
@@ -395,7 +397,7 @@ const AdminLayout: React.FC = () => {
 
             <div className={styles['ams-status-badge']}>
               <span className={styles['ams-status-dot']} />
-              <span>Hệ thống Sẵn sàng</span>
+              <span>{t('greetings.systemReady')}</span>
             </div>
           </div>
 

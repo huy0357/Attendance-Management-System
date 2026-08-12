@@ -101,7 +101,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     applyDomState(state);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (i18n.language !== state.language) {
+      i18n.changeLanguage(state.language);
+    }
+  }, [state]);
 
   const setTheme = useCallback((theme: ThemeMode) => persist({ ...state, theme }), [state, persist]);
   const setCompactSidebar = useCallback(
@@ -117,7 +120,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     persist({ ...state, language });
   }, [state, persist]);
 
-  const reset = useCallback(() => persist(DEFAULT_STATE), [persist]);
+  const reset = useCallback(() => {
+    i18n.changeLanguage(DEFAULT_STATE.language);
+    persist(DEFAULT_STATE);
+  }, [persist]);
 
   const value = useMemo(
     () => ({
