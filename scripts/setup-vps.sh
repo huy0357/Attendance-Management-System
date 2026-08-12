@@ -52,6 +52,7 @@ cd /opt/app/Attendance-Management-System
 
 # 5. Build and start containers
 echo "Starting Docker Compose services..."
+sudo docker compose down --remove-orphans || true
 sudo docker compose up -d --build
 
 echo "=========================================="
