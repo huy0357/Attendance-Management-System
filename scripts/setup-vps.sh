@@ -7,6 +7,9 @@ echo "=========================================="
 
 # 1. Update system & install basic tools
 sudo apt update && sudo apt install -y curl git ufw ca-certificates gnupg lsb-release
+sudo ufw allow 22/tcp || true
+sudo ufw allow 80/tcp || true
+sudo ufw allow 443/tcp || true
 
 # 2. Setup 4GB Swap
 if [ ! -f /swapfile ]; then
