@@ -18,12 +18,18 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          port: 22
           script: |
+            mkdir -p /opt/app
+            if [ ! -d "/opt/app/Attendance-Management-System/.git" ]; then
+              cd /opt/app
+              git clone https://github.com/huy0357/Attendance-Management-System.git
+            fi
             cd /opt/app/Attendance-Management-System
-            git pull origin production
-            cd ams_be
-            ./mvnw clean package -DskipTests -Dmaven.test.skip=true
-            cd ..
+            git fetch origin production
+            git reset --hard origin/production
             docker compose up -d --build
             docker image prune -f
