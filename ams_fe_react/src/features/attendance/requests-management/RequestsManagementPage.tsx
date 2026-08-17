@@ -179,8 +179,6 @@ const RequestsManagementPage: React.FC = () => {
   };
 
   const openCreate = () => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
     setFormData({ requestType: 'LEAVE', title: '', reason: '', startDatetime: '', endDatetime: '' });
     setFormTouched(false);
     setFormError(null);
@@ -188,8 +186,6 @@ const RequestsManagementPage: React.FC = () => {
   };
 
   const openEdit = (req: RequestsResponse) => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
     setEditRequestId(req.requestId);
     setFormData({
       requestType: req.requestType || 'LEAVE',

@@ -94,8 +94,6 @@ export const AttendanceDailyPage: React.FC = () => {
   const { data: recordsPage, isLoading, error } = useQuery({
     queryKey: ['attendanceDaily', activeTab, employeeId, from, to, page, size],
     queryFn: async () => {
-      setErrorMessage('');
-      
       const dayCount = enumerateIsoDatesInclusive(from, to).length;
       if (dayCount > 62) {
         throw new Error('Khoảng ngày quá lớn (tối đa 62 ngày). Thu hẹp From/To.');
