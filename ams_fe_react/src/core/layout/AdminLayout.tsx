@@ -36,6 +36,7 @@ interface NavItem {
   activeMatchPaths?: string[];
   /** Visual section divider label shown above this item */
   sectionLabelKey?: string;
+  exact?: boolean;
 }
 
 const ICON_SIZE = { size: 17, strokeWidth: 2 } as const;
@@ -68,6 +69,7 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: 'nav.myAttendanceDaily',
     path: '/attendance/attendance-daily',
     icon: <Clock {...ICON_SIZE} />,
+    exact: true,
   },
   {
     labelKey: 'nav.mySchedule',
@@ -273,9 +275,12 @@ const AdminLayout: React.FC = () => {
         item.activeMatchPaths && item.activeMatchPaths.length > 0
           ? item.activeMatchPaths
           : [resolveNavPath(item)];
-      return matchPaths.some(
-        (p) => location.pathname === p || location.pathname.startsWith(`${p}/`),
-      );
+      return matchPaths.some((p) => {
+        if (item.exact) {
+          return location.pathname === p;
+        }
+        return location.pathname === p || location.pathname.startsWith(`${p}/`);
+      });
     },
     [location.pathname, resolveNavPath],
   );
