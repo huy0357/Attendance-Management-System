@@ -80,8 +80,8 @@ const AttendanceEmailPage: React.FC = () => {
     if (!normalizedMonth) {
       const msg = 'Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).';
       setErrorMessage(msg);
-      toast.error(msg);
       setSuccessMessage('');
+      toast.error(msg);
       return;
     }
 
@@ -94,10 +94,13 @@ const AttendanceEmailPage: React.FC = () => {
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      const msg = response?.message || `Đã gửi email thành công cho ${employee.fullName}.`;
+      const msg = `Đã gửi email báo cáo công tháng ${normalizedMonth} thành công cho ${employee.fullName}.`;
+      setErrorMessage('');
       setSuccessMessage(msg);
       toast.success(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      setTimeout(() => setSuccessMessage(''), 6000);
     } catch (error: any) {
       console.error('[Send Employee Error]', error);
       let finalMsg = `Không thể gửi email cho ${employee.fullName}.`;
@@ -109,12 +112,11 @@ const AttendanceEmailPage: React.FC = () => {
          if (serverMsg) finalMsg = serverMsg;
       }
 
+      setSuccessMessage('');
       setErrorMessage(finalMsg);
       toast.error(finalMsg);
-      setSuccessMessage('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Tự động tắt sau 7 giây
       setTimeout(() => setErrorMessage(''), 7000);
     } finally {
       setSendingEmployeeId(null);
@@ -126,8 +128,8 @@ const AttendanceEmailPage: React.FC = () => {
     if (!normalizedMonth) {
       const msg = 'Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).';
       setErrorMessage(msg);
-      toast.error(msg);
       setSuccessMessage('');
+      toast.error(msg);
       return;
     }
 
@@ -140,18 +142,23 @@ const AttendanceEmailPage: React.FC = () => {
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      const msg = response?.message || 'Đã gửi email báo cáo công tháng cho toàn bộ nhân viên thành công.';
+      const msg = `Đã gửi email báo cáo công tháng ${normalizedMonth} cho toàn bộ nhân viên thành công.`;
+      setErrorMessage('');
       setSuccessMessage(msg);
       toast.success(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      setTimeout(() => setSuccessMessage(''), 6000);
     } catch (error: any) {
       console.error('[Send All Error]', error);
       const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
-      const finalMsg = serverMsg || error?.message || 'Unable to send attendance emails to all employees.';
+      const finalMsg = serverMsg || error?.message || 'Không thể gửi email báo cáo công cho toàn bộ nhân viên.';
+      setSuccessMessage('');
       setErrorMessage(finalMsg);
       toast.error(finalMsg);
-      setSuccessMessage('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      setTimeout(() => setErrorMessage(''), 7000);
     } finally {
       setIsSendingAll(false);
     }
