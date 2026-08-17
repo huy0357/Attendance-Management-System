@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # Scrape Spring Boot JVM & API metrics từ VPS qua Nginx hoặc trực tiếp
+  - job_name: 'spring-boot-actuator'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['attendms.io.vn:80']

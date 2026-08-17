@@ -33,7 +33,7 @@ public class SecurityConfig {
                                 "/api/auth/verify-otp",
                                 "/api/auth/reset-password"
                         ).permitAll()
-
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
                         // System Admin only (Account & Role Management)
