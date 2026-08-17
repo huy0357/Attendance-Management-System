@@ -27,9 +27,6 @@ const RequestsManagementPage: React.FC = () => {
   const [requestTypeFilter, setRequestTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
   // Modals
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -101,39 +98,39 @@ const RequestsManagementPage: React.FC = () => {
     mutationFn: (data: RequestsUpsertRequest) => requestApi.createRequest(data),
     onSuccess: (savedReq) => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
-       setSuccessMessage(`Request ${savedReq.requestId} created successfully.`);
+       toast.success(`Đã tạo yêu cầu #${savedReq.requestId} thành công.`);
        setShowCreateForm(false);
     },
-    onError: () => setErrorMessage('Unable to create request.')
+    onError: () => toast.error('Không thể tạo yêu cầu.')
   });
 
   const submitMutation = useMutation({
     mutationFn: (id: number) => requestApi.submitRequestByEmployee(id, currentEmployeeId!),
     onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
-       setSuccessMessage('Request submitted successfully.');
+       toast.success('Đã gửi yêu cầu thành công.');
        setShowCreateForm(false);
     },
-    onError: () => setErrorMessage('Unable to submit request.')
+    onError: () => toast.error('Không thể gửi yêu cầu.')
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: RequestsUpsertRequest }) => requestApi.updateRequest(id, data),
     onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
-       setSuccessMessage(`Request updated successfully.`);
+       toast.success('Đã cập nhật yêu cầu thành công.');
        setShowEditForm(false);
     },
-    onError: () => setErrorMessage('Unable to update request.')
+    onError: () => toast.error('Không thể cập nhật yêu cầu.')
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => requestApi.deleteRequest(id, currentEmployeeId!),
     onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['requestsTable'] });
-       setSuccessMessage(`Request deleted successfully.`);
+       toast.success('Đã xóa yêu cầu thành công.');
     },
-    onError: () => setErrorMessage('Unable to delete request.')
+    onError: () => toast.error('Không thể xóa yêu cầu.')
   });
 
   const approveMutation = useMutation({
@@ -163,12 +160,13 @@ const RequestsManagementPage: React.FC = () => {
       if (context?.prevData) {
          queryClient.setQueryData(context.exactQueryKey, context.prevData);
       }
-      setErrorMessage('Unable to perform approval action.');
+      toast.error('Không thể thực hiện phê duyệt yêu cầu.');
     },
     onSettled: (data, error, _variables, context: any) => {
        queryClient.invalidateQueries({ queryKey: context?.exactQueryKey || ['requestsTable'] });
        if (!error && data) {
-         setSuccessMessage(`Request ${data.requestId} ${data.status.toLowerCase()} successfully.`);
+         const actionText = data.status === 'APPROVED' ? 'phê duyệt' : 'từ chối';
+         toast.success(`Đã ${actionText} yêu cầu #${data.requestId} thành công.`);
        }
     }
   });
@@ -304,30 +302,6 @@ const RequestsManagementPage: React.FC = () => {
           </button>
         )}
       </div>
-
-      {successMessage && (
-        <div className={cn(styles.alertBox, styles.success)}>
-          <div className={styles.alertInner}>
-            <CheckCircle className="h-5 w-5" />
-            <span>{successMessage}</span>
-          </div>
-          <button onClick={() => setSuccessMessage(null)} className={styles.nmBtnIcon}>
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {errorMessage && (
-        <div className={cn(styles.alertBox, styles.error)}>
-          <div className={styles.alertInner}>
-            <XCircle className="h-5 w-5" />
-            <span>{errorMessage}</span>
-          </div>
-          <button onClick={() => setErrorMessage(null)} className={styles.nmBtnIcon}>
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
 
       <div className={styles.filterBar}>
         <div className={styles.filterGrid}>

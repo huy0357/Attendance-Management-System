@@ -27,9 +27,6 @@ const AttendanceEmailPage: React.FC = () => {
   const [sendingEmployeeId, setSendingEmployeeId] = useState<number | null>(null);
   const [isSearchingEmployees, setIsSearchingEmployees] = useState(false);
   const [isSendingAll, setIsSendingAll] = useState(false);
-  
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
 
   const [employeeSearchPage, setEmployeeSearchPage] = useState(1);
   const employeeSearchPageSize = 10;
@@ -49,7 +46,6 @@ const AttendanceEmailPage: React.FC = () => {
     }
 
     setIsSearchingEmployees(true);
-    setErrorMessage('');
     setEmployeeSearchPage(page);
 
     try {
@@ -64,7 +60,7 @@ const AttendanceEmailPage: React.FC = () => {
       setEmployees([]);
       setEmployeeSearchTotalItems(0);
       setEmployeeSearchTotalPages(0);
-      setErrorMessage(error?.response?.data?.message || error.message || 'Unable to load employees.');
+      toast.error(error?.response?.data?.message || error.message || 'Không thể tải danh sách nhân viên.');
     } finally {
       setIsSearchingEmployees(false);
     }
@@ -78,29 +74,18 @@ const AttendanceEmailPage: React.FC = () => {
   const sendToEmployee = async (employee: AttendanceEmailEmployee) => {
     const normalizedMonth = month;
     if (!normalizedMonth) {
-      const msg = 'Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).';
-      setErrorMessage(msg);
-      setSuccessMessage('');
-      toast.error(msg);
+      toast.error('Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).');
       return;
     }
 
     setSendingEmployeeId(employee.employeeId);
-    setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       const response = await attendanceEmailApi.sendToEmployee(normalizedMonth, employee.employeeId, regenerate);
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      const msg = `Đã gửi email báo cáo công tháng ${normalizedMonth} thành công cho ${employee.fullName}.`;
-      setErrorMessage('');
-      setSuccessMessage(msg);
-      toast.success(msg);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      setTimeout(() => setSuccessMessage(''), 6000);
+      toast.success(`Đã gửi email báo cáo công tháng ${normalizedMonth} thành công cho ${employee.fullName}.`);
     } catch (error: any) {
       console.error('[Send Employee Error]', error);
       let finalMsg = `Không thể gửi email cho ${employee.fullName}.`;
@@ -112,12 +97,7 @@ const AttendanceEmailPage: React.FC = () => {
          if (serverMsg) finalMsg = serverMsg;
       }
 
-      setSuccessMessage('');
-      setErrorMessage(finalMsg);
       toast.error(finalMsg);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      setTimeout(() => setErrorMessage(''), 7000);
     } finally {
       setSendingEmployeeId(null);
     }
@@ -126,39 +106,23 @@ const AttendanceEmailPage: React.FC = () => {
   const sendToAllEmployees = async () => {
     const normalizedMonth = month;
     if (!normalizedMonth) {
-      const msg = 'Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).';
-      setErrorMessage(msg);
-      setSuccessMessage('');
-      toast.error(msg);
+      toast.error('Vui lòng chọn tháng hợp lệ (định dạng yyyy-MM).');
       return;
     }
 
     setIsSendingAll(true);
-    setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       const response = await attendanceEmailApi.sendToAll(normalizedMonth, regenerate);
       if (response && (response as any).error || (response as any).status === 500 || (response as any).success === false) {
         throw new Error((response as any).message || (response as any).error || 'Backend indicated error in response body');
       }
-      const msg = `Đã gửi email báo cáo công tháng ${normalizedMonth} cho toàn bộ nhân viên thành công.`;
-      setErrorMessage('');
-      setSuccessMessage(msg);
-      toast.success(msg);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      setTimeout(() => setSuccessMessage(''), 6000);
+      toast.success(`Đã gửi email báo cáo công tháng ${normalizedMonth} cho toàn bộ nhân viên thành công.`);
     } catch (error: any) {
       console.error('[Send All Error]', error);
       const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
       const finalMsg = serverMsg || error?.message || 'Không thể gửi email báo cáo công cho toàn bộ nhân viên.';
-      setSuccessMessage('');
-      setErrorMessage(finalMsg);
       toast.error(finalMsg);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      setTimeout(() => setErrorMessage(''), 7000);
     } finally {
       setIsSendingAll(false);
     }
@@ -174,41 +138,12 @@ const AttendanceEmailPage: React.FC = () => {
     searchEmployees(employeeSearchPage + 1);
   };
 
-  const dismissMessages = () => {
-    setSuccessMessage('');
-    setErrorMessage('');
-  };
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className={styles.pageTitle}>{t('attendanceEmail.title')}</h1>
         <p className={styles.pageSubtitle}>{t('attendanceEmail.subtitle')}</p>
       </div>
-
-      {successMessage && (
-        <div className={cn(styles.alertBox, styles.success)}>
-          <div className={styles.alertInner}>
-            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-            <span>{successMessage}</span>
-          </div>
-          <button onClick={dismissMessages}>
-            <XCircle className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {errorMessage && (
-        <div className={cn(styles.alertBox, styles.error)}>
-          <div className={styles.alertInner}>
-            <XCircle className="h-5 w-5 flex-shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-          <button onClick={dismissMessages}>
-            <XCircle className="h-4 w-4" />
-          </button>
-        </div>
-      )}
 
       <div className={styles.nmCard}>
         <div className={styles.nmCardHeader}>

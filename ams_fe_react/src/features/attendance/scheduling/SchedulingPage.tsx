@@ -89,8 +89,6 @@ const SchedulingPage: React.FC = () => {
     overwrite: true,
   });
   const [assignRangeEmployeeSearch, setAssignRangeEmployeeSearch] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [draggedTemplate, setDraggedTemplate] = useState<MappedTemplate | null>(null);
   const [dragOver, setDragOver] = useState<{ day: number; employeeId: string } | null>(null);
@@ -118,10 +116,10 @@ const SchedulingPage: React.FC = () => {
     mutationFn: (payload: any) => scheduleApi.assignShiftRange(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['scheduleShifts'] });
-      setSuccessMessage(`Assigned shift ${data.shiftId} for employee ${data.employeeId} from ${data.startDate} to ${data.endDate}.`);
+      toast.success(`Đã phân ca thành công cho nhân viên #${data.employeeId} từ ${data.startDate} đến ${data.endDate}.`);
       setShowAssignRangeModal(false);
     },
-    onError: () => setErrorMessage('Unable to assign shift range.')
+    onError: () => toast.error('Không thể phân ca làm việc.')
   });
 
   const templates: MappedTemplate[] = useMemo(() => {
@@ -219,19 +217,17 @@ const SchedulingPage: React.FC = () => {
   };
 
   const submitAssignRange = () => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
     const { employeeId, shiftId, startDate, endDate, scheduleSource, overwrite, note } = assignRangeForm;
     if (!employeeId || !shiftId) {
-      setErrorMessage('Employee and shift template are required.');
+      toast.error('Vui lòng chọn nhân viên và mẫu ca làm việc.');
       return;
     }
     if (!startDate || !endDate) {
-      setErrorMessage('Start date and end date are required.');
+      toast.error('Vui lòng chọn ngày bắt đầu và ngày kết thúc.');
       return;
     }
     if (endDate < startDate) {
-      setErrorMessage('End date must be on or after start date.');
+      toast.error('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.');
       return;
     }
 
@@ -245,8 +241,6 @@ const SchedulingPage: React.FC = () => {
       note: note.trim() || undefined
     });
   };
-
-
 
   return (
     <div className={styles.schedulingPage}>
@@ -266,9 +260,7 @@ const SchedulingPage: React.FC = () => {
           </div>
         </div>
 
-        {isWeekLoading && <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--nm-info)', fontWeight: 'bold' }}>Loading schedules...</p>}
-        {successMessage && <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--nm-success)', fontWeight: 'bold' }}>{successMessage}</p>}
-        {errorMessage && <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--nm-danger)', fontWeight: 'bold' }}>{errorMessage}</p>}
+        {isWeekLoading && <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--nm-info)', fontWeight: 'bold' }}>Đang tải lịch làm việc...</p>}
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px' }}>
           <input

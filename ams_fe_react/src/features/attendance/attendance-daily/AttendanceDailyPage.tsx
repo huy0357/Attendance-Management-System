@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Search, X, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../../core/toast/ToastContext';
 import { attendanceDailyApi } from './api/attendance-daily.api';
 import styles from './AttendanceDailyPage.module.scss';
 import ModalPortal from '../../../shared/components/ModalPortal';
@@ -32,15 +33,17 @@ const getMonthVal = (date: Date): string => {
   return `${y}-${m}`;
 };
 
-const AttendanceDailyPage: React.FC = () => {
-  const { hasRole } = useAuth();
+export const AttendanceDailyPage: React.FC = () => {
+  const { hasAnyRole } = useAuth();
   const { t } = useTranslation();
-  const isAdmin = hasRole('ADMIN');
-  const { employeeId } = useParams<{ employeeId: string }>();
+  const { toast } = useToast();
   const navigate = useNavigate();
+  const { employeeId } = useParams<{ employeeId: string }>();
 
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'all' | 'me'>(isAdmin ? 'all' : 'me');
+  const isHR = hasAnyRole(['ADMIN', 'HR']);
+  const canDebug = hasAnyRole(['ADMIN']);
+  const [activeTab, setActiveTab] = useState<'all' | 'me'>(isHR ? 'all' : 'me');
 
   const today = new Date();
   const defaultTo = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
@@ -51,7 +54,6 @@ const AttendanceDailyPage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   
-  const [errorMessage, setErrorMessage] = useState('');
   const [syncWarning, setSyncWarning] = useState('');
 
   // Track if we need to sync batch admin
@@ -134,9 +136,9 @@ const AttendanceDailyPage: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to load attendance records.');
+      toast.error(error instanceof Error ? error.message : 'Không thể tải bảng công hàng ngày.');
     }
-  }, [error]);
+  }, [error, toast]);
 
   const records = recordsPage?.content || [];
   const totalElements = recordsPage?.totalElements || 0;
@@ -326,13 +328,6 @@ const AttendanceDailyPage: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* ──────────────────────────────── ERROR ALERT ──────────────────────────────── */}
-      {errorMessage && (
-        <div style={{ padding: '16px', background: 'var(--nm-surface)', borderRadius: 'var(--nm-radius-md)', boxShadow: 'inset 0 0 0 2px var(--nm-danger)', color: 'var(--nm-danger)', fontWeight: 'bold', marginBottom: '16px' }}>
-          {errorMessage}
-        </div>
-      )}
 
       {syncWarning && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: 'var(--nm-surface)', borderRadius: 'var(--nm-radius-md)', boxShadow: 'inset 0 0 0 2px var(--nm-warning)', color: 'var(--nm-warning)', fontWeight: 'bold', marginBottom: '16px' }}>
