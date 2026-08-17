@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -257,6 +257,29 @@ const AdminLayout: React.FC = () => {
     return () => window.removeEventListener('ams:forbidden', handleForbidden);
   }, []);
 
+  // Preload application chunks in background so subsequent page transitions are instant without loading flickers
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import('../../features/dashboard/DashboardPage');
+      import('../../features/hrm/employee-portal/EmployeePortalPage');
+      import('../../features/attendance/attendance-daily/AttendanceDailyPage');
+      import('../../features/attendance/my-schedule/MySchedulePage');
+      import('../../features/attendance/requests-management/RequestsManagementPage');
+      import('../../features/attendance/leave-management/LeaveManagementPage');
+      import('../../features/attendance/monthly-summary/MonthlySummaryPage');
+      import('../../features/attendance/scheduling/SchedulingPage');
+      import('../../features/attendance/shift-templates/ShiftTemplatesPage');
+      import('../../features/attendance/attendance-email/AttendanceEmailPage');
+      import('../../features/hrm/employees/EmployeesPage');
+      import('../../features/hrm/departments/DepartmentsPage');
+      import('../../features/admin/account-management/AccountManagementPage');
+      import('../../features/admin/audit-log/AuditLogPage');
+      import('../../features/admin/settings/SettingsPage');
+      import('../../features/admin/profile/ProfilePage');
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
+
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (!item.requiredRoles || item.requiredRoles.length === 0) return isAuthenticated;
     return hasAnyRole(item.requiredRoles);
@@ -500,7 +523,15 @@ const AdminLayout: React.FC = () => {
 
         {/* Page content */}
         <main className={styles['ams-main']}>
-          <Outlet />
+          <Suspense
+            fallback={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', width: '100%' }}>
+                <div style={{ width: '32px', height: '32px', border: '3px solid rgba(99, 102, 241, 0.15)', borderTopColor: 'var(--nm-primary, #6366f1)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 
