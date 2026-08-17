@@ -194,7 +194,7 @@ public class AttendanceDashboardService {
 
         Map<String, Object> oldData = Map.of(
                 "exceptionId", exception.getId(),
-                "type", exception.getType() != null ? exception.getType() : "",
+                "type", exception.getExceptionType() != null ? exception.getExceptionType().name() : "",
                 "status", exception.getStatus() != null ? exception.getStatus().name() : "",
                 "severity", exception.getSeverity() != null ? exception.getSeverity().name() : "",
                 "employeeId", exception.getEmployee() != null ? exception.getEmployee().getEmployeeId() : 0L
