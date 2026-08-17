@@ -276,29 +276,20 @@ export const AttendanceDailyPage: React.FC = () => {
           )}
           <div>
             <h1 className={styles.pageTitle}>
-              {employeeId ? `${t('attendanceDaily.title')} - ${getEmployeeName(Number(employeeId))}` : t('attendanceDaily.title')}
+              {employeeId
+                ? `${t('attendanceDaily.title')} - ${getEmployeeName(Number(employeeId))}`
+                : isAdminRoute
+                ? (t('nav.attendanceDailyMgmt') || 'Quản lý công hàng ngày')
+                : (t('nav.myAttendanceDaily') || 'Bảng công của tôi')}
             </h1>
-            <p className={styles.pageSubtitle}>{t('attendanceDaily.subtitle')}</p>
+            <p className={styles.pageSubtitle}>
+              {isAdminRoute
+                ? t('attendanceDaily.subtitle')
+                : 'Theo dõi dữ liệu vào/ra và tổng số giờ làm việc của bạn.'}
+            </p>
           </div>
         </div>
       </div>
-
-      {!employeeId && isAdmin && (
-        <div className={styles.viewToggle} style={{ width: 'fit-content' }}>
-          <button 
-            className={activeTab === 'all' ? styles.active : ''} 
-            onClick={() => handleTabChange('all')}
-          >
-            {t('attendanceDaily.tabAll')}
-          </button>
-          <button 
-            className={activeTab === 'me' ? styles.active : ''} 
-            onClick={() => handleTabChange('me')}
-          >
-            {t('attendanceDaily.tabMe')}
-          </button>
-        </div>
-      )}
 
       {/* ──────────────────────────────── TOOLBAR ──────────────────────────────── */}
       <div className={styles.filterBar}>
