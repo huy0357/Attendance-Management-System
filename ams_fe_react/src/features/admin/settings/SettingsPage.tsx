@@ -1,13 +1,35 @@
 import React from 'react';
-import { Palette, Sun, Moon, LayoutDashboard, RefreshCw, Globe } from 'lucide-react';
+import { Palette, Sun, Moon, LayoutDashboard, RefreshCw, Globe, Shield, Clock, MapPin, CheckCircle2 } from 'lucide-react';
 import styles from './SettingsPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
-import { useSettings } from '../../../shared/hooks/useSettings';
+import { useSettings, GracePeriod, AutoAbsentThreshold, RoundingRule } from '../../../shared/hooks/useSettings';
+import { useAuth } from '../../../core/auth/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 const SettingsPage: React.FC = () => {
-  const { theme, setTheme, compactSidebar, setCompactSidebar, reduceMotion, setReduceMotion, language, setLanguage, reset } = useSettings();
+  const {
+    theme,
+    setTheme,
+    compactSidebar,
+    setCompactSidebar,
+    reduceMotion,
+    setReduceMotion,
+    language,
+    setLanguage,
+    gracePeriod,
+    setGracePeriod,
+    autoAbsentThreshold,
+    setAutoAbsentThreshold,
+    roundingRule,
+    setRoundingRule,
+    requireGps,
+    setRequireGps,
+    reset,
+  } = useSettings();
+  const { hasRole } = useAuth();
   const { t } = useTranslation();
+
+  const isSuperAdmin = hasRole('ADMIN');
 
   const handleResetDefaults = () => {
     reset();
@@ -27,6 +49,117 @@ const SettingsPage: React.FC = () => {
       </div>
 
       <div className={styles.settingsGrid}>
+        {/* === NHÓM 0: ATTENDANCE POLICY (SUPER ADMIN ONLY) === */}
+        {isSuperAdmin && (
+          <section className={styles.nmCard} style={{ border: '1px solid rgba(0, 102, 102, 0.2)' }}>
+            <div className={styles.cardHeader}>
+              <div className={styles.iconWrapper} style={{ color: 'var(--nm-primary, #006666)' }}>
+                <Shield className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h2>{t('settings.attendancePolicy')}</h2>
+                  <span className={styles.adminBadge}>
+                    <Shield className="w-3.5 h-3.5" />
+                    {t('settings.superAdminBadge')}
+                  </span>
+                </div>
+                <p>{t('settings.attendancePolicyDesc')}</p>
+              </div>
+            </div>
+
+            {/* 1. Grace Period */}
+            <div className={styles.settingsBlock}>
+              <h3>{t('settings.gracePeriodTitle')}</h3>
+              <p>{t('settings.gracePeriodDesc')}</p>
+              <div className={styles.segmentedControl}>
+                {[5, 10, 15].map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    className={cn(styles.option, gracePeriod === mins ? styles.active : '')}
+                    onClick={() => setGracePeriod(mins as GracePeriod)}
+                  >
+                    <Clock className="w-4 h-4" />
+                    <span>{mins} {t('settings.minutes')}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Auto Absent Threshold */}
+            <div className={styles.settingsBlock}>
+              <h3>{t('settings.autoAbsentTitle')}</h3>
+              <p>{t('settings.autoAbsentDesc')}</p>
+              <div className={styles.segmentedControl}>
+                {[30, 60, 90, 120].map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    className={cn(styles.option, autoAbsentThreshold === mins ? styles.active : '')}
+                    onClick={() => setAutoAbsentThreshold(mins as AutoAbsentThreshold)}
+                  >
+                    <span>{mins} {t('settings.minutes')}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Work Hours Rounding Rule */}
+            <div className={styles.settingsBlock}>
+              <h3>{t('settings.roundingRuleTitle')}</h3>
+              <p>{t('settings.roundingRuleDesc')}</p>
+              <div className={styles.segmentedControl} style={{ flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className={cn(styles.option, roundingRule === 0 ? styles.active : '')}
+                  onClick={() => setRoundingRule(0)}
+                >
+                  <span>{t('settings.noRounding')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={cn(styles.option, roundingRule === 15 ? styles.active : '')}
+                  onClick={() => setRoundingRule(15)}
+                >
+                  <span>{t('settings.round15')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={cn(styles.option, roundingRule === 30 ? styles.active : '')}
+                  onClick={() => setRoundingRule(30)}
+                >
+                  <span>{t('settings.round30')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4. GPS / Geofence Check-in Requirement */}
+            <div className={styles.toggleRow} style={{ marginTop: '16px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-primary)', fontSize: '14px', fontWeight: 'bold' }}>
+                  {t('settings.requireGpsTitle')}
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)', maxWidth: '420px' }}>
+                  {t('settings.requireGpsDesc')}
+                </p>
+              </div>
+
+              <label className={styles.nmSwitch}>
+                <input
+                  type="checkbox"
+                  checked={requireGps}
+                  onChange={(e) => setRequireGps(e.target.checked)}
+                />
+                <span className={styles.track}></span>
+                <span className={styles.label}>
+                  {requireGps ? t('settings.statusOn') : t('settings.statusOff')}
+                </span>
+              </label>
+            </div>
+          </section>
+        )}
+
         {/* === NHÓM 1: APPEARANCE (THEME) === */}
         <section className={styles.nmCard}>
           <div className={styles.cardHeader}>

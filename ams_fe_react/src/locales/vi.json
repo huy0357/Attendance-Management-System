@@ -55,7 +55,22 @@
     "langEn": "Tiếng Anh (English)",
     "langVi": "Tiếng Việt (Vietnamese)",
     "statusOn": "BẬT",
-    "statusOff": "TẮT"
+    "statusOff": "TẮT",
+    "attendancePolicy": "Quy tắc Chấm công Doanh nghiệp",
+    "attendancePolicyDesc": "Cấu hình hạn mức đi muộn, tự động xử lý vắng mặt và làm tròn công.",
+    "superAdminBadge": "Dành riêng cho Super Admin",
+    "gracePeriodTitle": "Thời gian ân hạn đi muộn (Grace Period)",
+    "gracePeriodDesc": "Nhân viên check-in muộn trong giới hạn này sẽ không bị tính phạt vi phạm.",
+    "autoAbsentTitle": "Tự động đánh dấu Vắng mặt (Auto Absent)",
+    "autoAbsentDesc": "Tự động đánh dấu trạng thái ABSENT nếu không có check-in sau thời gian bắt đầu ca.",
+    "roundingRuleTitle": "Quy tắc làm tròn giờ công",
+    "roundingRuleDesc": "Làm tròn tổng số phút làm việc thành khối để tính công chuẩn xác.",
+    "requireGpsTitle": "Bắt buộc định vị GPS khi chấm công",
+    "requireGpsDesc": "Yêu cầu thiết bị cung cấp tọa độ trong bán kính văn phòng hợp lệ.",
+    "minutes": "phút",
+    "noRounding": "Không làm tròn (Chính xác)",
+    "round15": "Làm tròn 15 phút",
+    "round30": "Làm tròn 30 phút"
   },
   "roles": {
     "admin": "Quản trị hệ thống",

@@ -55,7 +55,22 @@
     "langEn": "English",
     "langVi": "Vietnamese (Tiếng Việt)",
     "statusOn": "ON",
-    "statusOff": "OFF"
+    "statusOff": "OFF",
+    "attendancePolicy": "Attendance Policy & Rules",
+    "attendancePolicyDesc": "Configure grace period, auto-absent threshold, and work hour rounding.",
+    "superAdminBadge": "Super Admin Only",
+    "gracePeriodTitle": "Grace Period for Late Check-ins",
+    "gracePeriodDesc": "Employees checking in within this limit will not receive late penalties.",
+    "autoAbsentTitle": "Auto-mark Absent Threshold",
+    "autoAbsentDesc": "Automatically set record to ABSENT if no check-in occurred after shift start.",
+    "roundingRuleTitle": "Work Hours Rounding Rule",
+    "roundingRuleDesc": "Round worked minutes into discrete blocks for payroll consistency.",
+    "requireGpsTitle": "Enforce GPS / Geofence Check-in",
+    "requireGpsDesc": "Require devices to provide coordinates within verified office perimeter.",
+    "minutes": "mins",
+    "noRounding": "Exact (No rounding)",
+    "round15": "Round to 15 mins",
+    "round30": "Round to 30 mins"
   },
   "roles": {
     "admin": "System Administrator",
