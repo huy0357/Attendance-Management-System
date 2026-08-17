@@ -4,10 +4,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ams_be.dto.MonthlyAttendanceEmailDto;
 import org.example.ams_be.repository.AttendanceSummaryMonthlyRepository;
+import org.example.ams_be.entity.Account;
+import org.example.ams_be.repository.AccountRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +22,19 @@ public class AttendanceEmailService {
     private final AttendanceSummaryMonthlyRepository attendanceSummaryMonthlyRepository;
     private final EmailService emailService;
     private final org.example.ams_be.repository.EmployeeRepository employeeRepository;
+    private final AuditLogService auditLogService;
+    private final AccountRepository accountRepository;
+
+    private Long getCurrentActorId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
+
+        return accountRepository.findByUsername(auth.getName())
+                .map(Account::getEmployeeId)
+                .orElse(null);
+    }
 
     public void sendMonthlyAttendanceEmail(String monthKey, Long employeeId) {
         MonthlyAttendanceEmailDto summary = attendanceSummaryMonthlyRepository
@@ -31,6 +49,20 @@ public class AttendanceEmailService {
         String html = buildAttendanceEmailHtml(summary);
 
         emailService.sendHtmlEmail(summary.getEmail(), subject, html);
+
+        auditLogService.saveAuditLog(
+                "SEND_EMAIL",
+                "ATTENDANCE_EMAIL",
+                employeeId,
+                getCurrentActorId(),
+                null,
+                Map.of(
+                        "month", monthKey,
+                        "employeeId", employeeId,
+                        "recipient", summary.getEmail(),
+                        "subject", subject
+                )
+        );
     }
 
     public void sendMonthlyAttendanceEmailToAll(String monthKey) {
@@ -40,6 +72,9 @@ public class AttendanceEmailService {
 
         java.util.Map<Long, MonthlyAttendanceEmailDto> summaryMap = summaries.stream()
                 .collect(java.util.stream.Collectors.toMap(MonthlyAttendanceEmailDto::getEmployeeId, s -> s));
+
+        int successCount = 0;
+        int failCount = 0;
 
         for (org.example.ams_be.dto.EmployeeDto emp : allEmployees) {
             if ("INACTIVE".equalsIgnoreCase(emp.getStatus()) || emp.getEmail() == null || emp.getEmail().isBlank()) {
@@ -67,11 +102,27 @@ public class AttendanceEmailService {
                 String html = buildAttendanceEmailHtml(summary);
                 emailService.sendHtmlEmail(summary.getEmail(), subject, html);
                 log.info("Sent attendance email to employeeId={}, email={}", summary.getEmployeeId(), summary.getEmail());
+                successCount++;
             } catch (Exception e) {
                 log.error("Failed to send attendance email to employeeId={}, email={}, error={}",
                         summary.getEmployeeId(), summary.getEmail(), e.getMessage(), e);
+                failCount++;
             }
         }
+
+        auditLogService.saveAuditLog(
+                "SEND_EMAIL_ALL",
+                "ATTENDANCE_EMAIL",
+                null,
+                getCurrentActorId(),
+                null,
+                Map.of(
+                        "month", monthKey,
+                        "successCount", successCount,
+                        "failCount", failCount,
+                        "totalEmployees", allEmployees.size()
+                )
+        );
     }
 
     private MonthlyAttendanceEmailDto buildFallbackSummary(String monthKey, Long employeeId) {

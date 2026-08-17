@@ -24,11 +24,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.example.ams_be.repository.AccountRepository;
+
 @ExtendWith(MockitoExtension.class)
 class ShiftTemplateServiceTest {
 
     @Mock
     private ShiftTemplateRepository repo;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private AccountRepository accountRepository;
 
     @InjectMocks
     private ShiftTemplateService shiftTemplateService;

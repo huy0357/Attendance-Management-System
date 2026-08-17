@@ -19,6 +19,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.example.ams_be.entity.Account;
+import org.example.ams_be.repository.AccountRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +42,19 @@ public class AttendanceDashboardService {
     private final AttendanceExceptionRepository attendanceExceptionRepository;
     private final EmployeeRepository employeeRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AuditLogService auditLogService;
+    private final AccountRepository accountRepository;
+
+    private Long getCurrentActorId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
+
+        return accountRepository.findByUsername(auth.getName())
+                .map(Account::getEmployeeId)
+                .orElse(null);
+    }
 
     public DashboardKpiResponse getKpiMetrics(LocalDate date, List<String> branchIds, String timezone) {
         log.info("Calculating KPI metrics for date: {}, branches: {}, timezone: {}", date, branchIds, timezone);
@@ -175,12 +192,37 @@ public class AttendanceDashboardService {
         AttendanceException exception = attendanceExceptionRepository.findById(exceptionId)
                 .orElseThrow(() -> new EntityNotFoundException("Exception not found: " + exceptionId));
 
+        Map<String, Object> oldData = Map.of(
+                "exceptionId", exception.getId(),
+                "type", exception.getType() != null ? exception.getType() : "",
+                "status", exception.getStatus() != null ? exception.getStatus().name() : "",
+                "severity", exception.getSeverity() != null ? exception.getSeverity().name() : "",
+                "employeeId", exception.getEmployee() != null ? exception.getEmployee().getEmployeeId() : 0L
+        );
+
         exception.setStatus(ExceptionStatus.RESOLVED);
         exception.setResolvedTime(LocalDateTime.now());
         exception.setResolvedBy(resolvedBy);
         exception.setNotes(notes);
 
-        attendanceExceptionRepository.save(exception);
+        AttendanceException saved = attendanceExceptionRepository.save(exception);
+
+        Map<String, Object> newData = Map.of(
+                "exceptionId", saved.getId(),
+                "status", ExceptionStatus.RESOLVED.name(),
+                "resolvedBy", resolvedBy != null ? resolvedBy : "",
+                "resolvedTime", saved.getResolvedTime() != null ? saved.getResolvedTime().toString() : "",
+                "notes", notes != null ? notes : ""
+        );
+
+        auditLogService.saveAuditLog(
+                "RESOLVE_EXCEPTION",
+                "ATTENDANCE_EXCEPTION",
+                exceptionId,
+                getCurrentActorId(),
+                oldData,
+                newData
+        );
 
         log.info("Exception {} resolved by {}", exceptionId, resolvedBy);
     }

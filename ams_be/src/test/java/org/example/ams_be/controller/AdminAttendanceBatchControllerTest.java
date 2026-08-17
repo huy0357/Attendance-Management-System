@@ -14,11 +14,21 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
+import org.example.ams_be.entity.Account;
+import org.example.ams_be.repository.AccountRepository;
+import org.example.ams_be.service.AuditLogService;
+
 @ExtendWith(MockitoExtension.class)
 class AdminAttendanceBatchControllerTest {
 
     @Mock
     private AttendanceBatchService attendanceBatchService;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private AccountRepository accountRepository;
 
     @InjectMocks
     private AdminAttendanceBatchController controller;

@@ -13,11 +13,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import org.example.ams_be.repository.AccountRepository;
+
 @ExtendWith(MockitoExtension.class)
 class AttendanceMonthlySummaryServiceTest {
 
     @Mock
     private AttendanceSummaryMonthlyRepository attendanceSummaryMonthlyRepository;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private AccountRepository accountRepository;
 
     @InjectMocks
     private AttendanceMonthlySummaryService attendanceMonthlySummaryService;

@@ -7,6 +7,10 @@ import org.example.ams_be.entity.EmployeeSchedule;
 import org.example.ams_be.entity.ShiftTemplate;
 import org.example.ams_be.repository.EmployeeScheduleRepository;
 import org.example.ams_be.repository.ShiftTemplateRepository;
+import org.example.ams_be.entity.Account;
+import org.example.ams_be.repository.AccountRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +23,19 @@ public class EmployeeScheduleService {
 
     private final EmployeeScheduleRepository scheduleRepo;
     private final ShiftTemplateRepository shiftRepo;
+    private final AuditLogService auditLogService;
+    private final AccountRepository accountRepository;
+
+    private Long getCurrentActorId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
+
+        return accountRepository.findByUsername(auth.getName())
+                .map(Account::getEmployeeId)
+                .orElse(null);
+    }
 
     @Transactional
     public Map<String, Object> assignRange(AssignShiftRangeRequest req) {
@@ -114,7 +131,7 @@ public class EmployeeScheduleService {
             d = d.plusDays(1);
         }
 
-        return Map.of(
+        Map<String, Object> result = Map.of(
                 "employeeId", req.getEmployeeId(),
                 "shiftId", req.getShiftId(),
                 "startDate", req.getStartDate().toString(),
@@ -122,6 +139,17 @@ public class EmployeeScheduleService {
                 "created", created,
                 "updated", updated
         );
+
+        auditLogService.saveAuditLog(
+                "ASSIGN_SCHEDULE",
+                "EMPLOYEE_SCHEDULE",
+                req.getEmployeeId(),
+                getCurrentActorId(),
+                Map.of("existingScheduleCount", existing.size()),
+                result
+        );
+
+        return result;
     }
 
     private static class Interval {

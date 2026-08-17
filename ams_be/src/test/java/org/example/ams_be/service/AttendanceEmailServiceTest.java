@@ -22,6 +22,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.example.ams_be.repository.AccountRepository;
+
 @ExtendWith(MockitoExtension.class)
 class AttendanceEmailServiceTest {
 
@@ -33,6 +35,12 @@ class AttendanceEmailServiceTest {
 
     @Mock
     private org.example.ams_be.repository.EmployeeRepository employeeRepository;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private AccountRepository accountRepository;
 
     @InjectMocks
     private AttendanceEmailService attendanceEmailService;

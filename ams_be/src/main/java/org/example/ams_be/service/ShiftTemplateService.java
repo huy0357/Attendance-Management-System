@@ -5,6 +5,10 @@ import org.example.ams_be.dto.request.ShiftTemplateUpsertRequest;
 import org.example.ams_be.dto.response.ShiftTemplateResponse;
 import org.example.ams_be.entity.ShiftTemplate;
 import org.example.ams_be.repository.ShiftTemplateRepository;
+import org.example.ams_be.entity.Account;
+import org.example.ams_be.repository.AccountRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +21,19 @@ import java.util.List;
 public class ShiftTemplateService {
 
     private final ShiftTemplateRepository repo;
+    private final AuditLogService auditLogService;
+    private final AccountRepository accountRepository;
+
+    private Long getCurrentActorId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
+
+        return accountRepository.findByUsername(auth.getName())
+                .map(Account::getEmployeeId)
+                .orElse(null);
+    }
 
     public List<ShiftTemplateResponse> list(Boolean active, String q) {
         // đơn giản: lấy all rồi filter (bạn có thể viết query/specification sau)
@@ -53,7 +70,19 @@ public class ShiftTemplateService {
                 .isActive(req.getIsActive())
                 .build();
 
-        return toResponse(repo.save(entity));
+        ShiftTemplate saved = repo.save(entity);
+        ShiftTemplateResponse response = toResponse(saved);
+
+        auditLogService.saveAuditLog(
+                "CREATE",
+                "SHIFT_TEMPLATE",
+                saved.getShiftId(),
+                getCurrentActorId(),
+                null,
+                response
+        );
+
+        return response;
     }
 
     @Transactional
@@ -64,6 +93,8 @@ public class ShiftTemplateService {
             throw new RuntimeException("shift_code already exists");
         }
         validateTimes(req.getStartTime(), req.getEndTime(), req.getIsNightShift(), req.getBreakMinutes(), req.getMinWorkMinutes());
+
+        ShiftTemplateResponse oldData = toResponse(entity);
 
         entity.setShiftCode(req.getShiftCode().trim());
         entity.setShiftName(req.getShiftName().trim());
@@ -76,14 +107,40 @@ public class ShiftTemplateService {
         entity.setMinWorkMinutes(req.getMinWorkMinutes());
         entity.setIsActive(req.getIsActive());
 
-        return toResponse(repo.save(entity));
+        ShiftTemplate saved = repo.save(entity);
+        ShiftTemplateResponse response = toResponse(saved);
+
+        auditLogService.saveAuditLog(
+                "UPDATE",
+                "SHIFT_TEMPLATE",
+                id,
+                getCurrentActorId(),
+                oldData,
+                response
+        );
+
+        return response;
     }
 
     @Transactional
     public ShiftTemplateResponse setActive(Long id, boolean active) {
         ShiftTemplate entity = repo.findById(id).orElseThrow(() -> new RuntimeException("Shift not found"));
+        ShiftTemplateResponse oldData = toResponse(entity);
+
         entity.setIsActive(active);
-        return toResponse(repo.save(entity));
+        ShiftTemplate saved = repo.save(entity);
+        ShiftTemplateResponse response = toResponse(saved);
+
+        auditLogService.saveAuditLog(
+                active ? "ACTIVATE" : "DEACTIVATE",
+                "SHIFT_TEMPLATE",
+                id,
+                getCurrentActorId(),
+                oldData,
+                response
+        );
+
+        return response;
     }
 
     private void validateTimes(LocalTime start, LocalTime end, boolean isNight, int breakMinutes, int minWorkMinutes) {
@@ -141,7 +198,18 @@ public class ShiftTemplateService {
         ShiftTemplate entity = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Shift not found"));
 
+        ShiftTemplateResponse oldData = toResponse(entity);
+
         repo.delete(entity);
+
+        auditLogService.saveAuditLog(
+                "DELETE",
+                "SHIFT_TEMPLATE",
+                id,
+                getCurrentActorId(),
+                oldData,
+                null
+        );
     }
 
 }
