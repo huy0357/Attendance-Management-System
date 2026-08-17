@@ -36,27 +36,84 @@
 
 /* ── Brand / Logo Area ────────────────────────────────────────────────────── */
 .ams-brand {
-  height: 64px;
+  height: 68px;
   display: flex;
   align-items: center;
-  padding: 0 var(--nm-space-5);
+  padding: 0 var(--nm-space-4);
   flex-shrink: 0;
-  /* Inset bottom divider effect */
+  text-decoration: none;
+  cursor: pointer;
   box-shadow: 0 4px 8px -4px var(--nm-dark), 0 -1px 0 var(--nm-light) inset;
+  transition: background-color 200ms ease;
+
+  &:hover {
+    background: rgba(0, 102, 102, 0.04);
+
+    .ams-brand-icon {
+      transform: translateY(-1px) scale(1.04);
+      box-shadow: 0 4px 12px rgba(0, 102, 102, 0.4);
+    }
+  }
+}
+
+.ams-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.ams-brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 102, 102, 0.3);
+  transition: all 220ms ease;
+  flex-shrink: 0;
+}
+
+.ams-brand-symbol {
+  font-family: var(--font-primary);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.ams-brand-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .ams-brand-title {
   font-family: var(--font-primary);
-  font-size: 1.375rem;
-  font-weight: var(--fw-bold);
-  letter-spacing: -0.03em;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--nm-text);
+  line-height: 1.15;
   white-space: nowrap;
   margin: 0;
 
-  span {
-    color: var(--nm-primary);
+  .ams-brand-accent {
+    color: var(--nm-primary, #006666);
+    margin-left: 1px;
   }
+}
+
+.ams-brand-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nm-text-muted);
+  line-height: 1;
+  margin-top: 2px;
 }
 
 /* ── Nav Section Label ────────────────────────────────────────────────────── */

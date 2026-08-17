@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, Suspense } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
@@ -346,11 +346,21 @@ const AdminLayout: React.FC = () => {
         )}
       >
         {/* Brand */}
-        <div className={styles['ams-brand']}>
-          <h1 className={styles['ams-brand-title']}>
-            AMS<span>Core</span>
-          </h1>
-        </div>
+        <Link to="/" className={styles['ams-brand']} title="Trang chủ Dashboard">
+          <div className={styles['ams-brand-logo']}>
+            <div className={styles['ams-brand-icon']}>
+              <span className={styles['ams-brand-symbol']}>A</span>
+            </div>
+            {!compactSidebar && (
+              <div className={styles['ams-brand-info']}>
+                <div className={styles['ams-brand-title']}>
+                  AMS<span className={styles['ams-brand-accent']}>Core</span>
+                </div>
+                <span className={styles['ams-brand-badge']}>Enterprise</span>
+              </div>
+            )}
+          </div>
+        </Link>
 
         {/* Nav */}
         <nav ref={navRef} className={styles['ams-nav']}>
