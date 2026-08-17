@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Download,
   Users,
   CheckCircle2,
   Clock,
@@ -138,7 +137,6 @@ const DashboardPage: React.FC = () => {
 
   // Strict UI requirements: Keep state & queries EXACTLY as they were
   const [selectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [selectedTimeRange, setSelectedTimeRange] = useState('Today');
 
   const { data: kpi, isLoading: isLoadingKpi } = useQuery({
     queryKey: ['dashboardKpi', selectedDate],
@@ -214,25 +212,6 @@ const DashboardPage: React.FC = () => {
 
   const goToAttendanceDaily = () => navigate('/attendance/attendance-daily');
 
-  const handleExport = () => {
-    // Generate a mock CSV report based on current KPIs
-    const headers = "Metric,Value\n";
-    const totalEmp = kpi?.totalEmployees?.count ?? 0;
-    const presentEmp = kpi?.presentToday?.count ?? 0;
-    const absentEmp = Math.max(0, totalEmp - presentEmp);
-    const kpiData = `Total Employees,${totalEmp}\nPresent Today,${presentEmp}\nAbsent Today,${absentEmp}\nLate Check-ins,${kpi?.lateCheckins?.count ?? 0}\n`;
-    
-    // Add BOM for Excel UTF-8 support
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + kpiData;
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `attendance_summary_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   // -- Computed KPI & Safe Lists --
   const kpiAttendancePercent = kpi?.presentToday?.percentage != null ? kpi.presentToday.percentage.toFixed(1) + '%' : '—';
   const kpiLateAvgMin = kpi?.lateCheckins?.averageDelayMinutes != null ? `${kpi.lateCheckins.averageDelayMinutes}m avg` : '—';
@@ -261,28 +240,6 @@ const DashboardPage: React.FC = () => {
               ? t('dashboard.managerSubtitle')
               : t('dashboard.employeeSubtitle')}
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <select
-            className="h-10 px-4 py-2 rounded-xl border border-slate-200 bg-white/50 backdrop-blur-sm text-sm font-bold font-sans text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:bg-white"
-            value={selectedTimeRange}
-            onChange={e => setSelectedTimeRange(e.target.value)}
-          >
-            <option>{t('dashboard.today')}</option>
-            <option>{t('dashboard.thisWeek')}</option>
-            <option>{t('dashboard.thisMonth')}</option>
-          </select>
-          {/* Monthly Summary Export — ADMIN only */}
-          {hasRole('ADMIN') && (
-            <button
-              onClick={handleExport}
-              className="group relative inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-bold font-sans text-slate-700 shadow-sm border border-slate-200 transition-all hover:bg-slate-50 hover:shadow-md hover:text-indigo-600 active:scale-95"
-            >
-              <Download className="h-4 w-4 text-slate-400 group-hover:text-indigo-500 transition-transform group-hover:-translate-y-0.5" />
-              <span>{t('dashboard.export')}</span>
-            </button>
-          )}
         </div>
       </motion.div>
 
