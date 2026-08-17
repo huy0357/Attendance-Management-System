@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './ToastContext.module.scss';
@@ -13,12 +13,19 @@ export interface ToastItem {
   duration?: number;
 }
 
-interface ToastContextValue {
+export interface ToastContextValue {
   showToast: (type: ToastType, message: string, duration?: number) => void;
   success: (message: string, duration?: number) => void;
   error: (message: string, duration?: number) => void;
   warning: (message: string, duration?: number) => void;
   info: (message: string, duration?: number) => void;
+  toast: {
+    showToast: (type: ToastType, message: string, duration?: number) => void;
+    success: (message: string, duration?: number) => void;
+    error: (message: string, duration?: number) => void;
+    warning: (message: string, duration?: number) => void;
+    info: (message: string, duration?: number) => void;
+  };
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -46,6 +53,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const warning = useCallback((msg: string, dur?: number) => showToast('warning', msg, dur), [showToast]);
   const info = useCallback((msg: string, dur?: number) => showToast('info', msg, dur), [showToast]);
 
+  const toastMethods = useMemo(() => ({
+    showToast,
+    success,
+    error,
+    warning,
+    info
+  }), [showToast, success, error, warning, info]);
+
   const getIcon = (type: ToastType) => {
     switch (type) {
       case 'success': return <CheckCircle2 size={18} className={styles.icon} />;
@@ -65,7 +80,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
+    <ToastContext.Provider value={{ showToast, success, error, warning, info, toast: toastMethods }}>
       {children}
 
       <div className={styles.toastContainer}>

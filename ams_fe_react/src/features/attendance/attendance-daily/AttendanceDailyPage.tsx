@@ -36,7 +36,7 @@ const getMonthVal = (date: Date): string => {
 export const AttendanceDailyPage: React.FC = () => {
   const { hasAnyRole } = useAuth();
   const { t } = useTranslation();
-  const { toast } = useToast();
+  const toast = useToast();
   const navigate = useNavigate();
   const { employeeId } = useParams<{ employeeId: string }>();
 

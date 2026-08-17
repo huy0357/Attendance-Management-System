@@ -10,7 +10,7 @@ import { cn } from '../../../shared/utils/cn';
 const AttendanceEmailPage: React.FC = () => {
   const { hasRole, hasAnyRole } = useAuth();
   const { t } = useTranslation();
-  const { toast } = useToast();
+  const toast = useToast();
   
   const canManageAttendanceEmails = hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   const canSelectAttendanceEmailRecipient = hasRole('ADMIN');
