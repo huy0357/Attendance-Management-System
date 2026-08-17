@@ -34,13 +34,14 @@ const getMonthVal = (date: Date): string => {
 };
 
 export const AttendanceDailyPage: React.FC = () => {
-  const { hasAnyRole } = useAuth();
+  const { hasRole, hasAnyRole } = useAuth();
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
   const { employeeId } = useParams<{ employeeId: string }>();
 
   const queryClient = useQueryClient();
+  const isAdmin = hasRole('ADMIN');
   const isHR = hasAnyRole(['ADMIN', 'HR']);
   const canDebug = hasAnyRole(['ADMIN']);
   const [activeTab, setActiveTab] = useState<'all' | 'me'>(isHR ? 'all' : 'me');
