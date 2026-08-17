@@ -317,7 +317,7 @@ export const AttendanceDailyPage: React.FC = () => {
         </div>
         
         {/* Admin Actions */}
-        {isAdmin && (
+        {isAdmin && isAdminRoute && (
           <div style={{ display: 'flex', gap: '8px' }}>
             <button className={styles.nmBtnSecondary} onClick={openDebugModal}>
               {t('attendanceDaily.btnDebug')}
@@ -343,7 +343,7 @@ export const AttendanceDailyPage: React.FC = () => {
           <thead>
             <tr>
               <th>{t('attendanceDaily.colDate')}</th>
-              <th>{t('attendanceDaily.colEmp')}</th>
+              {isAdminRoute && <th>{t('attendanceDaily.colEmp')}</th>}
               <th>{t('attendanceDaily.colCheckIn')}</th>
               <th>{t('attendanceDaily.colCheckOut')}</th>
               <th>{t('attendanceDaily.colWorkHours')}</th>
@@ -355,7 +355,7 @@ export const AttendanceDailyPage: React.FC = () => {
             {/* LOADING STATE */}
             {isLoading && (
               <tr>
-                 <td colSpan={6} style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>
+                 <td colSpan={isAdminRoute ? 6 : 5} style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                        <Loader2 className="animate-spin w-5 h-5" />
                        <span>{t('attendanceDaily.loading')}</span>
@@ -367,7 +367,7 @@ export const AttendanceDailyPage: React.FC = () => {
             {/* EMPTY STATE */}
             {!isLoading && records.length === 0 && (
               <tr>
-                 <td colSpan={6} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
+                 <td colSpan={isAdminRoute ? 6 : 5} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                      <Search className="text-gray-400 w-12 h-12 mb-2" />
                      <p style={{ fontWeight: 'bold' }}>{t('attendanceDaily.emptyTitle')}</p>
@@ -389,22 +389,24 @@ export const AttendanceDailyPage: React.FC = () => {
               return (
                 <tr key={record.attendanceId}>
                   <td style={{ fontWeight: 'bold' }}>{formatWorkDate(record.workDate)}</td>
-                  <td>
-                    <div 
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: (isAdmin && !employeeId) ? 'pointer' : 'default' }}
-                      onClick={() => {
-                        if (isAdmin && !employeeId) {
-                          navigate(`/attendance/attendance-daily/employee/${record.employeeId}`);
-                        }
-                      }}
-                    >
-                      <div className={styles.nmAvatar}>{getEmployeeInitial(record.employeeId)}</div>
-                      <div>
-                        <span style={{ display: 'block', fontWeight: 'bold' }}>{getEmployeeName(record.employeeId)}</span>
-                        <span style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>VDP-{record.employeeId}</span>
+                  {isAdminRoute && (
+                    <td>
+                      <div 
+                        style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: (isAdmin && !employeeId) ? 'pointer' : 'default' }}
+                        onClick={() => {
+                          if (isAdmin && !employeeId) {
+                            navigate(`/attendance/attendance-daily/employee/${record.employeeId}`);
+                          }
+                        }}
+                      >
+                        <div className={styles.nmAvatar}>{getEmployeeInitial(record.employeeId)}</div>
+                        <div>
+                          <span style={{ display: 'block', fontWeight: 'bold' }}>{getEmployeeName(record.employeeId)}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>VDP-{record.employeeId}</span>
+                        </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
+                  )}
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{formatTime(record.firstInTime)}</td>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{formatTime(record.lastOutTime)}</td>
                   <td style={{ fontWeight: 'bold' }}>{formatHours(record.workMinutes)}</td>
