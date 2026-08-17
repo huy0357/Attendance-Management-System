@@ -1,5 +1,5 @@
 import React from 'react';
-import { Palette, Sun, Moon, LayoutDashboard, RefreshCw, Globe, Shield, Clock, MapPin, CheckCircle2 } from 'lucide-react';
+import { Palette, Sun, Moon, LayoutDashboard, RefreshCw, Globe, Shield, Clock } from 'lucide-react';
 import styles from './SettingsPage.module.scss';
 import { cn } from '../../../shared/utils/cn';
 import { useSettings, GracePeriod, AutoAbsentThreshold, RoundingRule } from '../../../shared/hooks/useSettings';
@@ -22,8 +22,6 @@ const SettingsPage: React.FC = () => {
     setAutoAbsentThreshold,
     roundingRule,
     setRoundingRule,
-    requireGps,
-    setRequireGps,
     reset,
   } = useSettings();
   const { hasRole } = useAuth();
@@ -132,30 +130,6 @@ const SettingsPage: React.FC = () => {
                   <span>{t('settings.round30')}</span>
                 </button>
               </div>
-            </div>
-
-            {/* 4. GPS / Geofence Check-in Requirement */}
-            <div className={styles.toggleRow} style={{ marginTop: '16px' }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-primary)', fontSize: '14px', fontWeight: 'bold' }}>
-                  {t('settings.requireGpsTitle')}
-                </h3>
-                <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)', maxWidth: '420px' }}>
-                  {t('settings.requireGpsDesc')}
-                </p>
-              </div>
-
-              <label className={styles.nmSwitch}>
-                <input
-                  type="checkbox"
-                  checked={requireGps}
-                  onChange={(e) => setRequireGps(e.target.checked)}
-                />
-                <span className={styles.track}></span>
-                <span className={styles.label}>
-                  {requireGps ? t('settings.statusOn') : t('settings.statusOff')}
-                </span>
-              </label>
             </div>
           </section>
         )}
