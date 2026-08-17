@@ -65,14 +65,9 @@ const NAV_ITEMS: NavItem[] = [
     sectionLabelKey: 'nav.sections.mySpace',
   },
   {
-    labelKey: 'nav.attendanceDaily',
+    labelKey: 'nav.myAttendanceDaily',
     path: '/attendance/attendance-daily',
     icon: <Clock {...ICON_SIZE} />,
-    activeMatchPaths: [
-      '/attendance/attendance-daily',
-      '/attendance/attendance-daily/admin',
-      '/attendance/attendance-daily/employee',
-    ],
   },
   {
     labelKey: 'nav.mySchedule',
@@ -112,11 +107,21 @@ const NAV_ITEMS: NavItem[] = [
 
   // ── Attendance Management ──────────────────────────────────────────
   {
+    labelKey: 'nav.attendanceDailyMgmt',
+    path: '/attendance/attendance-daily/admin',
+    icon: <Clock {...ICON_SIZE} />,
+    requiredRoles: ['ADMIN', 'HR', 'MANAGER'],
+    sectionLabelKey: 'nav.sections.attendanceMgmt',
+    activeMatchPaths: [
+      '/attendance/attendance-daily/admin',
+      '/attendance/attendance-daily/employee',
+    ],
+  },
+  {
     labelKey: 'nav.scheduling',
     path: '/attendance/scheduling',
     icon: <Calendar {...ICON_SIZE} />,
     requiredRoles: ['ADMIN', 'HR', 'MANAGER'],
-    sectionLabelKey: 'nav.sections.attendanceMgmt',
   },
   {
     labelKey: 'nav.shiftTemplates',
@@ -257,14 +262,9 @@ const AdminLayout: React.FC = () => {
 
   const resolveNavPath = useCallback(
     (item: NavItem): string => {
-      if (item.path === '/attendance/attendance-daily') {
-        return hasAnyRole(['ADMIN'])
-          ? '/attendance/attendance-daily/admin'
-          : '/attendance/attendance-daily';
-      }
       return item.path;
     },
-    [hasAnyRole],
+    [],
   );
 
   const isActive = useCallback(

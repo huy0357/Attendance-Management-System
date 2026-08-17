@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Download, Search, X, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -38,13 +38,24 @@ export const AttendanceDailyPage: React.FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { employeeId } = useParams<{ employeeId: string }>();
 
   const queryClient = useQueryClient();
   const isAdmin = hasRole('ADMIN');
   const isHR = hasAnyRole(['ADMIN', 'HR']);
   const canDebug = hasAnyRole(['ADMIN']);
-  const [activeTab, setActiveTab] = useState<'all' | 'me'>(isHR ? 'all' : 'me');
+  
+  const isAdminRoute = location.pathname.includes('/admin') || !!employeeId;
+  const [activeTab, setActiveTab] = useState<'all' | 'me'>(isAdminRoute && isHR ? 'all' : 'me');
+
+  useEffect(() => {
+    if (location.pathname.includes('/admin') && isHR) {
+      setActiveTab('all');
+    } else if (!location.pathname.includes('/admin') && !employeeId) {
+      setActiveTab('me');
+    }
+  }, [location.pathname, isHR, employeeId]);
 
   const today = new Date();
   const defaultTo = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);

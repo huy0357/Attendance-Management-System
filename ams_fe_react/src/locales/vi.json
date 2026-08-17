@@ -2,7 +2,9 @@
   "nav": {
     "dashboard": "Tổng quan",
     "employeePortal": "Trang cá nhân",
-    "attendanceDaily": "Chấm công hàng ngày",
+    "myAttendanceDaily": "Bảng công của tôi",
+    "attendanceDaily": "Bảng công hàng ngày",
+    "attendanceDailyMgmt": "Quản lý công hàng ngày",
     "mySchedule": "Lịch làm việc",
     "requests": "Các yêu cầu",
     "leaveManagement": "Quản lý nghỉ phép",

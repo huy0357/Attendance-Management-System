@@ -2,7 +2,9 @@
   "nav": {
     "dashboard": "Dashboard",
     "employeePortal": "Employee Portal",
-    "attendanceDaily": "Attendance Daily",
+    "myAttendanceDaily": "My Daily Attendance",
+    "attendanceDaily": "Daily Attendance",
+    "attendanceDailyMgmt": "Daily Attendance Mgmt",
     "mySchedule": "My Schedule",
     "requests": "Requests",
     "leaveManagement": "Leave Management",
