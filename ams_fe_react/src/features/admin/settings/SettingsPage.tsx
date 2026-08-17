@@ -20,8 +20,6 @@ const SettingsPage: React.FC = () => {
     setGracePeriod,
     autoAbsentThreshold,
     setAutoAbsentThreshold,
-    roundingRule,
-    setRoundingRule,
     reset,
   } = useSettings();
   const { hasRole } = useAuth();
@@ -100,35 +98,6 @@ const SettingsPage: React.FC = () => {
                     <span>{mins} {t('settings.minutes')}</span>
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* 3. Work Hours Rounding Rule */}
-            <div className={styles.settingsBlock}>
-              <h3>{t('settings.roundingRuleTitle')}</h3>
-              <p>{t('settings.roundingRuleDesc')}</p>
-              <div className={styles.segmentedControl} style={{ flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className={cn(styles.option, roundingRule === 0 ? styles.active : '')}
-                  onClick={() => setRoundingRule(0)}
-                >
-                  <span>{t('settings.noRounding')}</span>
-                </button>
-                <button
-                  type="button"
-                  className={cn(styles.option, roundingRule === 15 ? styles.active : '')}
-                  onClick={() => setRoundingRule(15)}
-                >
-                  <span>{t('settings.round15')}</span>
-                </button>
-                <button
-                  type="button"
-                  className={cn(styles.option, roundingRule === 30 ? styles.active : '')}
-                  onClick={() => setRoundingRule(30)}
-                >
-                  <span>{t('settings.round30')}</span>
-                </button>
               </div>
             </div>
           </section>
