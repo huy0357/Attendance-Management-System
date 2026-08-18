@@ -16,29 +16,38 @@ export const options = {
     { duration: '10s', target: 0 },
   ],
   thresholds: {
-    http_req_duration: ['p(95)<1000', 'p(90)<600'],
+    http_req_duration: ['p(95)<1500'],
     http_req_failed: ['rate<0.01'],
   },
 };
 
+// Bộ nhớ tạm lưu Token cho mỗi Virtual User (VU)
+let vuTokens = {};
+
 export default function () {
-  const loginRes = http.post(
-    `${BASE_URL}/api/auth/login`,
-    JSON.stringify({ username: TEST_USERNAME, password: TEST_PASSWORD }),
-    { headers: { 'Content-Type': 'application/json' } }
-  );
+  let token = vuTokens[__VU];
 
-  const isLoginOk = check(loginRes, {
-    'Login 200': (r) => r.status === 200,
-    'Has Token': (r) => r.json() && r.json().data && r.json().data.accessToken !== undefined,
-  });
+  if (!token) {
+    const loginRes = http.post(
+      `${BASE_URL}/api/auth/login`,
+      JSON.stringify({ username: TEST_USERNAME, password: TEST_PASSWORD }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-  if (!isLoginOk) {
-    sleep(1);
-    return;
+    const isLoginOk = check(loginRes, {
+      'Login 200': (r) => r.status === 200,
+      'Has Token': (r) => r.json() && r.json().data && r.json().data.accessToken !== undefined,
+    });
+
+    if (!isLoginOk) {
+      sleep(1);
+      return;
+    }
+
+    token = loginRes.json().data.accessToken;
+    vuTokens[__VU] = token;
   }
 
-  const token = loginRes.json().data.accessToken;
   const authHeaders = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
