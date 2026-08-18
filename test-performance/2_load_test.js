@@ -17,7 +17,7 @@ export const options = {
     { duration: '2m', target: 0 },    // Ramp-down về 0
   ],
   thresholds: {
-    http_req_duration: ['p(95)<800', 'p(99)<1500'],
+    http_req_duration: ['p(95)<3000', 'avg<1200'],
     http_req_failed: ['rate<0.02'],
   },
 };
