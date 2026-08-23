@@ -62,9 +62,8 @@ public class RequestApplicationService {
         return switch (type) {
             case LEAVE -> applyLeave(r, req);
             case LATE_EARLY -> applyLateEarly(r, req);
-
-            // Các loại khác chưa xử lý trong batch này
-            case OVERTIME, REMOTE -> r;
+            case OVERTIME -> applyOvertime(r, req);
+            case REMOTE -> applyRemote(r, req);
         };
     }
 
@@ -105,6 +104,26 @@ public class RequestApplicationService {
                     .build();
         }
         return r;
+    }
+
+    private AttendanceCalculationResult applyRemote(AttendanceCalculationResult r, Requests req) {
+        if (r.getStatus() == AttendanceCalcStatus.ABSENT
+                || r.getStatus() == AttendanceCalcStatus.MISSING_LOG) {
+
+            return copy(r)
+                    .status(AttendanceCalcStatus.PRESENT)
+                    .requestApplied(true)
+                    .note(appendNote(r.getNote(), "Remote work approved" + reason(req)))
+                    .build();
+        }
+        return r;
+    }
+
+    private AttendanceCalculationResult applyOvertime(AttendanceCalculationResult r, Requests req) {
+        return copy(r)
+                .requestApplied(true)
+                .note(appendNote(r.getNote(), "OT approved" + reason(req)))
+                .build();
     }
 
     private AttendanceCalculationResult.AttendanceCalculationResultBuilder copy(AttendanceCalculationResult r) {

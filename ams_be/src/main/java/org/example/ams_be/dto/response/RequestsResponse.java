@@ -19,5 +19,10 @@ public class RequestsResponse {
     public Long approverId;
     public String approverName;
     public String decisionNote;
+    public Long hrApproverId;
+    public String hrApproverName;
+    public String hrDecisionNote;
     public LocalDateTime submittedAt;
+    public LocalDateTime hrApprovedAt;
+    public LocalDateTime adminApprovedAt;
 }

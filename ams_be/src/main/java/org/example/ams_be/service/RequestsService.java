@@ -109,6 +109,11 @@ public class RequestsService {
             throw new BadRequestException("Trạng thái phê duyệt không hợp lệ (Chỉ nhận APPROVED/REJECTED)");
         }
 
+        // BẮT BUỘC: Khi từ chối đơn phải có lý do
+        if (approvalDto.status == RequestStatus.REJECTED && (approvalDto.decisionNote == null || approvalDto.decisionNote.trim().isEmpty())) {
+            throw new BadRequestException("Lý do từ chối là bắt buộc khi từ chối đơn");
+        }
+
         RequestsResponse oldDto = mapToDto(request);
 
         Employee approverRef = new Employee();
@@ -117,7 +122,9 @@ public class RequestsService {
         request.setStatus(approvalDto.status);
         request.setApprover(approverRef);
         request.setDecisionNote(approvalDto.decisionNote);
-        // Lưu ý: entity tự cập nhật updatedAt nhờ @UpdateTimestamp nếu có
+        if (approvalDto.status == RequestStatus.APPROVED) {
+            request.setHrApprovedAt(LocalDateTime.now());
+        }
 
         Requests savedRequest = requestRepository.save(request);
         RequestsResponse newDto = mapToDto(savedRequest);
@@ -134,8 +141,23 @@ public class RequestsService {
 
     @Transactional
     public RequestsResponse createDraft(RequestsUpsertRequest input) {
+        if (input.title == null || input.title.trim().isEmpty()) {
+            throw new BadRequestException("Tiêu đề đơn là bắt buộc");
+        }
+        if (input.title.length() > 255) {
+            throw new BadRequestException("Tiêu đề đơn không được vượt quá 255 ký tự");
+        }
+        if (input.requestType == null) {
+            throw new BadRequestException("Vui lòng chọn loại đơn hợp lệ (LEAVE, OVERTIME, REMOTE, LATE_EARLY)");
+        }
+        if (input.reason == null || input.reason.trim().isEmpty()) {
+            throw new BadRequestException("Lý do tạo đơn là bắt buộc");
+        }
+        if (input.startDatetime == null || input.endDatetime == null) {
+            throw new BadRequestException("Thời gian bắt đầu và thời gian kết thúc là bắt buộc");
+        }
         if (input.startDatetime.isAfter(input.endDatetime)) {
-            throw new BadRequestException("Start time must be before end time");
+            throw new BadRequestException("Thời gian kết thúc phải diễn ra sau hoặc bằng thời gian bắt đầu");
         }
 
         EmployeeDto empDto = employeeRepository.findById(input.employeeId)
@@ -147,8 +169,8 @@ public class RequestsService {
         Requests entity = new Requests();
         entity.setEmployee(employeeRef);
         entity.setRequestType(input.requestType);
-        entity.setTitle(input.title);
-        entity.setReason(input.reason);
+        entity.setTitle(input.title.trim());
+        entity.setReason(input.reason.trim());
         entity.setStartDatetime(input.startDatetime);
         entity.setEndDatetime(input.endDatetime);
         entity.setStatus(RequestStatus.DRAFT);
@@ -164,7 +186,7 @@ public class RequestsService {
         Requests entity = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
-        // KIỂM TRA QUYỀN: Đơn này có phải của ông đang gửi không?
+        // KIỂM TRA QUYỀN: Đơn này có phải của người đang gửi không?
         if (!entity.getEmployee().getEmployeeId().equals(employeeId)) {
             throw new BadRequestException("Bạn không có quyền nộp đơn của người khác");
         }
@@ -189,7 +211,7 @@ public class RequestsService {
         Requests request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
-        // KIỂM TRA QUYỀN: Đơn này có phải của ông đang sửa không?
+        // KIỂM TRA QUYỀN: Đơn này có phải của người đang sửa không?
         if (!request.getEmployee().getEmployeeId().equals(employeeId)) {
             throw new BadRequestException("Bạn không có quyền chỉnh sửa đơn của người khác");
         }
@@ -198,13 +220,27 @@ public class RequestsService {
             throw new IllegalStateException("Cannot update request that is already processed");
         }
 
-        RequestsResponse oldDto = mapToDto(request);
-        request.setTitle(input.title);
-        request.setReason(input.reason);
-        request.setStartDatetime(input.startDatetime);
-        request.setEndDatetime(input.endDatetime);
-        request.setRequestType(input.requestType);
+        if (input.title != null) {
+            if (input.title.trim().isEmpty()) throw new BadRequestException("Tiêu đề đơn không được để trống");
+            if (input.title.length() > 255) throw new BadRequestException("Tiêu đề đơn không được vượt quá 255 ký tự");
+            request.setTitle(input.title.trim());
+        }
+        if (input.reason != null) {
+            if (input.reason.trim().isEmpty()) throw new BadRequestException("Lý do tạo đơn không được để trống");
+            request.setReason(input.reason.trim());
+        }
+        if (input.startDatetime != null && input.endDatetime != null) {
+            if (input.startDatetime.isAfter(input.endDatetime)) {
+                throw new BadRequestException("Thời gian kết thúc phải diễn ra sau hoặc bằng thời gian bắt đầu");
+            }
+            request.setStartDatetime(input.startDatetime);
+            request.setEndDatetime(input.endDatetime);
+        }
+        if (input.requestType != null) {
+            request.setRequestType(input.requestType);
+        }
 
+        RequestsResponse oldDto = mapToDto(request);
         Requests saved = requestRepository.save(request);
         RequestsResponse newDto = mapToDto(saved);
         auditLogService.saveAuditLog("UPDATE", "REQUEST", requestId, employeeId, oldDto, newDto);
@@ -217,7 +253,6 @@ public class RequestsService {
         Requests request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
-        // KIỂM TRA QUYỀN: Đơn này có phải của ông đang xóa không?
         if (!request.getEmployee().getEmployeeId().equals(employeeId)) {
             throw new BadRequestException("Bạn không có quyền xóa đơn của người khác");
         }
@@ -246,10 +281,17 @@ public class RequestsService {
         dto.status = entity.getStatus();
         dto.submittedAt = entity.getSubmittedAt();
         dto.decisionNote = entity.getDecisionNote();
+        dto.hrDecisionNote = entity.getHrDecisionNote();
+        dto.hrApprovedAt = entity.getHrApprovedAt();
+        dto.adminApprovedAt = entity.getAdminApprovedAt();
 
         if (entity.getApprover() != null) {
             dto.approverId = entity.getApprover().getEmployeeId();
             dto.approverName = entity.getApprover().getFullName();
+        }
+        if (entity.getHrApprover() != null) {
+            dto.hrApproverId = entity.getHrApprover().getEmployeeId();
+            dto.hrApproverName = entity.getHrApprover().getFullName();
         }
         return dto;
     }

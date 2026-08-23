@@ -61,11 +61,25 @@ public class Requests {
     @JoinColumn(name = "approver_id")
     private Employee approver;
 
+    // HR duyệt đơn
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hr_approver_id")
+    private Employee hrApprover;
+
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
+    @Column(name = "hr_approved_at")
+    private LocalDateTime hrApprovedAt;
+
+    @Column(name = "admin_approved_at")
+    private LocalDateTime adminApprovedAt;
+
     @Column(name = "decision_note")
     private String decisionNote;
+
+    @Column(name = "hr_decision_note", length = 500)
+    private String hrDecisionNote;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
