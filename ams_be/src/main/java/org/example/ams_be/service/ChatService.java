@@ -97,6 +97,7 @@ public class ChatService {
 
     @Transactional
     public void deleteSession(String username, String sessionId) {
+        chatMessageRepository.deleteBySession_Id(sessionId);
         chatSessionRepository.deleteById(sessionId);
     }
 

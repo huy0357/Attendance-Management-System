@@ -35,6 +35,10 @@ public class ChatSession {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<ChatMessage> messages = new java.util.ArrayList<>();
     
     @PrePersist
     public void prePersist() {
