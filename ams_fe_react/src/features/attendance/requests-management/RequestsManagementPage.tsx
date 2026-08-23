@@ -16,9 +16,10 @@ const RequestsManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const isAdmin = hasRole('ADMIN');
+  const isHR = hasRole('HR');
   const isManager = hasRole('MANAGER');
-  // ADMIN and MANAGER can both approve/reject — matches BE @PreAuthorize("hasRole('MANAGER')")
-  const canApproveRequests = isAdmin || isManager;
+  // ADMIN, HR, and MANAGER can approve/reject
+  const canApproveRequests = isAdmin || isHR || isManager;
   // EVERYONE can create a request
   const canCreateRequest = true;
 
@@ -59,13 +60,13 @@ const RequestsManagementPage: React.FC = () => {
   const currentEmployeeId = getEmployeeId() ?? null;
 
   // Requests Data Query
-  // ADMIN sees all via /requests/all
+  // ADMIN / HR sees all via /requests/all
   // MANAGER sees team queue via /requests/manager-queue
   // EMPLOYEE sees only their own via /requests?employeeId=
   const { data: requests = [], isLoading } = useQuery({
-    queryKey: ['requestsTable', isAdmin ? 'all' : isManager ? `manager-${currentEmployeeId}` : currentEmployeeId],
+    queryKey: ['requestsTable', (isAdmin || isHR) ? 'all' : isManager ? `manager-${currentEmployeeId}` : currentEmployeeId],
     queryFn: () => {
-      if (isAdmin) {
+      if (isAdmin || isHR) {
         return requestApi.getAllGlobal();
       } else if (isManager && currentEmployeeId) {
         return requestApi.getManagerQueue(currentEmployeeId);
@@ -73,7 +74,7 @@ const RequestsManagementPage: React.FC = () => {
         return requestApi.getMyRequests(currentEmployeeId!);
       }
     },
-    enabled: !!currentEmployeeId || isAdmin,
+    enabled: !!currentEmployeeId || isAdmin || isHR,
   });
 
   // Filtered requests
@@ -201,6 +202,8 @@ const RequestsManagementPage: React.FC = () => {
 
   const validateForm = () => {
     if (!formData.title.trim()) return 'Title is required.';
+    if (formData.title.trim().length > 255) return 'Title must be 255 characters or less.';
+    if (!formData.reason.trim()) return 'Reason is required.';
     if (!formData.startDatetime) return 'Start time is required.';
     if (!formData.endDatetime) return 'End time is required.';
     const start = new Date(formData.startDatetime).getTime();
@@ -285,7 +288,7 @@ const RequestsManagementPage: React.FC = () => {
         <div>
           <h1 className={styles.pageTitle}>{t('requestsManagement.title')}</h1>
           <p className={styles.pageSubtitle}>
-            {isAdmin
+            {isAdmin || isHR
               ? t('requestsManagement.adminSubtitle')
               : isManager
               ? t('requestsManagement.managerSubtitle')
