@@ -564,23 +564,36 @@ $shadow-xl: 0 20px 35px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 
   &:focus-within {
     background: #ffffff;
     border-color: $primary;
-    box-shadow: 0 0 0 3px rgba($primary, 0.12);
+    box-shadow: 0 0 0 2px rgba($primary, 0.15);
   }
 }
 
 .chatbot-input {
   flex: 1;
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
   padding: 0.35rem 0;
   font-size: 0.875rem;
   color: $text-dark;
   resize: none;
-  outline: none;
   font-family: inherit;
   line-height: 1.4;
   max-height: 100px;
   min-height: 24px;
+
+  &:focus,
+  &:focus-visible,
+  &:focus-within,
+  &:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 
   &::placeholder {
     color: $text-subtle;

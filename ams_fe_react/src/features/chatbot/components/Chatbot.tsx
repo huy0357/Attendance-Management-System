@@ -160,18 +160,32 @@ const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   
   const [chatbotOnline, setChatbotOnline] = useState(true);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string>(() => uuid());
 
   const { data: sessions = [], refetch: refetchSessions } = useQuery({
     queryKey: ['chat-sessions'],
-    queryFn: chatbotApi.getSessions,
-    enabled: isOpen,
+    queryFn: async () => {
+      try {
+        return await chatbotApi.getSessions();
+      } catch {
+        return [];
+      }
+    },
+    enabled: isOpen && isSidebarOpen,
+    retry: false,
   });
 
   const { data: sessionMessages } = useQuery({
     queryKey: ['chat-messages', sessionId],
-    queryFn: () => chatbotApi.getSessionMessages(sessionId!),
-    enabled: !!sessionId && isOpen,
+    queryFn: async () => {
+      try {
+        return await chatbotApi.getSessionMessages(sessionId);
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!sessionId && isOpen && isSidebarOpen,
+    retry: false,
   });
 
   useEffect(() => {
@@ -183,10 +197,8 @@ const Chatbot: React.FC = () => {
         timestamp: new Date(m.timestamp),
         suggestions: []
       })));
-    } else if (sessionId) {
-      setMessages([]);
     }
-  }, [sessionMessages, sessionId]);
+  }, [sessionMessages]);
 
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -322,8 +334,6 @@ const Chatbot: React.FC = () => {
         const fabRect = fabRef.current.getBoundingClientRect();
         const ww = window.innerWidth;
         const wh = window.innerHeight;
-        const winWidth = 390;
-        const winHeight = 580;
         
         let left: number | undefined;
         let top: number | undefined;
@@ -359,19 +369,26 @@ const Chatbot: React.FC = () => {
 
   const { mutate: sendMessageMutation, isPending: isTyping } = useMutation({
     mutationFn: async (text: string) => {
-      let currentSessionId = sessionId;
-      if (!currentSessionId) {
-         const newSession = await chatbotApi.createSession();
-         currentSessionId = newSession.id;
-         setSessionId(currentSessionId);
-         refetchSessions();
+      const currentSessionId = sessionId || uuid();
+      if (!sessionId) {
+        setSessionId(currentSessionId);
       }
       
-      await chatbotApi.addMessage(currentSessionId!, 'user', text);
-      const response = await chatbotApi.sendMessage({ message: text, session_id: currentSessionId!, locale: 'vi' });
-      const display = formatIsoTimestampsInText(response.message || '');
-      await chatbotApi.addMessage(currentSessionId!, 'ai', display);
+      // Async background attempt to save user message into DB if supported
+      chatbotApi.addMessage(currentSessionId, 'user', text).catch(() => {});
+
+      // Call Chatbot Service
+      const response = await chatbotApi.sendMessage({ 
+        message: text, 
+        session_id: currentSessionId, 
+        locale: 'vi' 
+      });
       
+      const display = formatIsoTimestampsInText(response.message || '');
+      
+      // Async background attempt to save AI response into DB if supported
+      chatbotApi.addMessage(currentSessionId, 'ai', display).catch(() => {});
+
       return { response, currentSessionId, display };
     },
     onSuccess: ({ response, display }) => {
@@ -385,10 +402,13 @@ const Chatbot: React.FC = () => {
           suggestions: response.suggestions || [],
         }
       ]);
-      refetchSessions();
+      if (isSidebarOpen) {
+        refetchSessions();
+      }
       setTimeout(scrollToBottom, 50);
     },
-    onError: () => {
+    onError: (err: any) => {
+      console.error("[Chatbot Error]", err);
       setMessages(prev => [
         ...prev,
         {
@@ -408,7 +428,7 @@ const Chatbot: React.FC = () => {
     try {
       await chatbotApi.deleteSession(sId);
       if (sessionId === sId) {
-        setSessionId(null);
+        setSessionId(uuid());
         setMessages([]);
       }
       refetchSessions();
@@ -632,7 +652,7 @@ const Chatbot: React.FC = () => {
 
   return (
     <>
-      {/* Floating Action Button (Hidden smoothly when chat window is open) */}
+      {/* Floating Action Button */}
       <button
         ref={fabRef}
         className={clsx(styles['chatbot-fab'], isOpen && styles['chatbot-fab--hidden'])}
@@ -734,7 +754,7 @@ const Chatbot: React.FC = () => {
               <button 
                 className={styles['chatbot-sidebar__new-btn']}
                 onClick={() => {
-                  setSessionId(null);
+                  setSessionId(uuid());
                   setMessages([]);
                   if (window.innerWidth < 768) setIsSidebarOpen(false);
                 }}
