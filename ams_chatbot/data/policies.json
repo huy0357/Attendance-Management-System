@@ -1,26 +1,182 @@
 [
   {
-    "id": "policy_leave_01",
+    "id": "policy_leave_annual",
     "title": "Quy định Nghỉ Phép Năm",
-    "content": "Mỗi nhân viên chính thức có 12 ngày phép có lương mỗi năm. Nếu nghỉ quá số ngày này, những ngày nghỉ tiếp theo sẽ không hưởng lương. Xin nghỉ phải báo trước ít nhất 1 ngày qua hệ thống AMS.",
-    "role_visibility": ["Employee", "Manager"]
+    "content": "Mỗi nhân viên chính thức có 12 ngày phép có lương mỗi năm, tính từ ngày vào công ty. Nếu làm việc chưa đủ 12 tháng, số ngày phép tính theo tỷ lệ: (số tháng làm việc / 12) × 12 ngày. Phép năm chưa sử dụng có thể chuyển sang năm tiếp theo, tối đa 5 ngày. Nhân viên có thâm niên từ 5 năm trở lên được cộng thêm 1 ngày phép/năm cho mỗi 5 năm. Nhân viên phải xin nghỉ và được quản lý duyệt trước ít nhất 1 ngày qua hệ thống AMS. Đối với nghỉ phép dài (từ 3 ngày trở lên), cần báo trước ít nhất 1 tuần.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
   },
   {
-    "id": "policy_late_01",
-    "title": "Quy định Đi Muộn",
-    "content": "Nhân viên đi muộn dưới 15 phút sẽ bị nhắc nhở. Đi muộn trên 15 phút mà không có lý do chính đáng sẽ bị trừ 1/2 ngày công. Cần vào AMS tạo yêu cầu giải trình lý do đi muộn ngay trong ngày.",
-    "role_visibility": ["Employee", "Manager"]
+    "id": "policy_leave_sick",
+    "title": "Quy định Nghỉ Ốm",
+    "content": "Nhân viên được nghỉ ốm có lương theo quy định của Luật Bảo hiểm Xã hội. Nhân viên nam được nghỉ tối đa 30 ngày/năm, nữ 40 ngày/năm (đóng BHXH dưới 15 năm). Khi nghỉ ốm từ 2 ngày trở lên, nhân viên phải nộp giấy xác nhận của cơ sở y tế có thẩm quyền. Trong ngày đầu tiên nghỉ ốm, nhân viên cần thông báo cho quản lý trực tiếp qua điện thoại hoặc tin nhắn, và tạo đơn nghỉ ốm trên hệ thống AMS ngay khi có thể. Mức hưởng bằng 75% mức lương đóng BHXH.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
   },
   {
-    "id": "policy_ot_01",
-    "title": "Quy định Làm Thêm Giờ (OT)",
-    "content": "Yêu cầu OT chỉ được duyệt nếu nhân viên tạo request trên hệ thống trước 16:00 cùng ngày. OT ngày thường được nhân hệ số 1.5, ngày nghỉ cuối tuần hệ số 2.0, ngày lễ hệ số 3.0.",
-    "role_visibility": ["Employee", "Manager"]
+    "id": "policy_leave_maternity",
+    "title": "Chế độ Thai Sản",
+    "content": "Nhân viên nữ mang thai được nghỉ thai sản 6 tháng (180 ngày) có hưởng trợ cấp BHXH. Trước khi sinh, nhân viên được nghỉ khám thai tối đa 5 lần, mỗi lần 1 ngày. Nhân viên nam có vợ sinh con được nghỉ 5 ngày làm việc (sinh thường) hoặc 7 ngày (sinh mổ/sinh đôi trở lên). Nhân viên cần tạo đơn nghỉ thai sản trên hệ thống AMS kèm giấy xác nhận của bệnh viện, gửi trước ít nhất 2 tuần. Sau khi hết phép thai sản, nhân viên có thể xin nghỉ thêm không lương (tối đa 4 tháng) nếu cần.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
   },
   {
-    "id": "policy_manager_view",
-    "title": "Quyền Hạn Quản Lý Nhóm",
-    "content": "Chỉ Quản Lý (Manager) mới có quyền duyệt đơn xin nghỉ phép, đơn đi muộn và đơn OT của nhân viên cấp dưới trong nhóm của mình. Quản lý có thời hạn 3 ngày để duyệt đơn, quá thời hạn hệ thống tự động từ chối.",
-    "role_visibility": ["Manager"]
+    "id": "policy_leave_wedding",
+    "title": "Nghỉ Việc Riêng Có Lương (Hiếu, Hỉ)",
+    "content": "Nhân viên được nghỉ có lương trong các trường hợp: Kết hôn: 3 ngày. Con kết hôn: 1 ngày. Cha/Mẹ (bên chồng hoặc vợ) mất, vợ/chồng mất, con mất: 3 ngày. Các trường hợp nghỉ việc riêng này không trừ vào phép năm. Nhân viên cần báo trước cho quản lý và tạo đơn trên hệ thống AMS kèm giấy tờ liên quan (giấy kết hôn, giấy báo tử...).",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_late_early",
+    "title": "Quy định Đi Muộn / Về Sớm",
+    "content": "Giờ làm việc chính thức: 8:00 - 17:00 (nghỉ trưa 12:00 - 13:00). Nhân viên đi muộn dưới 15 phút sẽ bị nhắc nhở, nếu tái phạm trên 3 lần/tháng sẽ bị trừ 0.5 ngày công. Đi muộn từ 15-30 phút trừ 0.5 ngày công. Đi muộn trên 30 phút tính vắng không phép nửa buổi sáng. Về sớm trước 16:30 mà không có lý do chính đáng cũng bị tính tương tự. Trường hợp bất khả kháng (tắc đường nghiêm trọng, mưa bão, ốm đột xuất), nhân viên cần tạo Đơn Giải Trình trên hệ thống AMS trong vòng 24 giờ để quản lý xem xét.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_ot",
+    "title": "Quy định Làm Thêm Giờ (OT - Overtime)",
+    "content": "Nhân viên muốn làm thêm giờ cần tạo Đơn Xin Tăng Ca trên hệ thống AMS và được quản lý duyệt trước 16:00 cùng ngày (hoặc trước Thứ 6 nếu OT cuối tuần). Hệ số lương OT: Ngày thường (sau 18:00): hệ số 1.5x. Thứ 7, Chủ Nhật: hệ số 2.0x. Ngày lễ, Tết: hệ số 3.0x. OT ban đêm (22:00 - 06:00): cộng thêm 0.3x. Tổng giờ OT không vượt quá 40 giờ/tháng và 200 giờ/năm theo quy định pháp luật. Tiền OT được chi trả vào kỳ lương của tháng kế tiếp. Nhân viên không được tự ý ở lại OT mà không có đơn đã duyệt.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_attendance_rules",
+    "title": "Quy định Chấm Công",
+    "content": "Nhân viên chấm công bằng hệ thống nhận diện khuôn mặt (Face Recognition) tại kiosk đặt ở sảnh công ty. Mỗi ngày cần chấm công 2 lần: Check-in (buổi sáng) và Check-out (buổi chiều). Nếu quên chấm công, nhân viên phải tạo Đơn Giải Trình trong vòng 24 giờ, kèm lý do cụ thể. Nếu không giải trình, hệ thống tự động ghi nhận là Vắng Không Phép. Hệ thống hoạt động 24/7, nhân viên ca đêm cũng chấm công bình thường. Dữ liệu chấm công được lưu trên server và không thể chỉnh sửa sau khi đã ghi nhận.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_attendance_status",
+    "title": "Các Trạng Thái Chấm Công",
+    "content": "Hệ thống AMS có các trạng thái chấm công sau: PRESENT (Có mặt đúng giờ): Check-in trước 8:15 và Check-out sau 16:45. LATE (Đi muộn): Check-in từ 8:16 trở đi. EARLY_LEAVE (Về sớm): Check-out trước 16:45 mà không có đơn duyệt. ABSENT (Vắng): Không có bản ghi chấm công và không có đơn nghỉ phép. ON_LEAVE (Nghỉ phép): Có đơn nghỉ phép đã được duyệt. HOLIDAY (Ngày lễ): Ngày nghỉ lễ theo quy định nhà nước. WEEKEND (Cuối tuần): Thứ 7 và Chủ Nhật.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_salary_structure",
+    "title": "Cơ Cấu Lương và Phụ Cấp",
+    "content": "Lương nhân viên gồm: Lương cơ bản (70%): Theo hợp đồng lao động. Phụ cấp ăn trưa: 730.000 đ/tháng (tính theo ngày đi làm thực tế). Phụ cấp xăng xe/đi lại: 500.000 đ/tháng. Phụ cấp điện thoại (cấp quản lý): 300.000 - 1.000.000 đ/tháng. Thưởng KPI: Đánh giá hàng quý, chi trả cuối quý. Lương được trả vào ngày 10 hàng tháng qua chuyển khoản ngân hàng. Nếu ngày 10 rơi vào cuối tuần hoặc ngày lễ, lương được trả vào ngày làm việc liền trước đó.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_salary_deduction",
+    "title": "Các Khoản Trừ Lương",
+    "content": "Các khoản bị trừ vào lương hàng tháng: Bảo hiểm xã hội (BHXH): 8% lương đóng BHXH. Bảo hiểm y tế (BHYT): 1.5% lương đóng BHXH. Bảo hiểm thất nghiệp (BHTN): 1% lương đóng BHXH. Thuế thu nhập cá nhân (TNCN): Theo bậc luỹ tiến, giảm trừ bản thân 11.000.000 đ/tháng và người phụ thuộc 4.400.000 đ/tháng/người. Vắng không phép: Trừ lương theo ngày công thực tế. Công thức tính lương thực nhận: Lương Gross - BHXH - BHYT - BHTN - TNCN + Phụ cấp + OT.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_probation",
+    "title": "Chính sách Thử Việc",
+    "content": "Thời gian thử việc là 2 tháng đối với nhân viên chính thức. Trong thời gian thử việc, nhân viên được hưởng 85% mức lương đã thỏa thuận. Nhân viên thử việc được hưởng đầy đủ phụ cấp ăn trưa và xăng xe. Nhân viên thử việc chưa được hưởng phép năm, nhưng có thể xin nghỉ không lương (tối đa 2 ngày/tháng). Sau khi hoàn thành thử việc, quản lý trực tiếp đánh giá và đề xuất ký hợp đồng chính thức. Kết quả đánh giá được lưu trong hệ thống AMS.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_resignation",
+    "title": "Quy trình Nghỉ Việc / Thôi Việc",
+    "content": "Nhân viên muốn nghỉ việc cần thông báo trước ít nhất 30 ngày (nhân viên chính thức) hoặc 3 ngày (nhân viên thử việc). Quy trình: 1) Gửi đơn xin nghỉ việc bằng văn bản cho quản lý trực tiếp. 2) Quản lý xác nhận và chuyển cho HR. 3) HR sắp xếp bàn giao công việc, thu hồi tài sản công ty (laptop, thẻ nhân viên, thẻ ra vào). 4) Thanh toán lương và các khoản phải trả trong vòng 14 ngày kể từ ngày nghỉ việc chính thức. 5) Cấp giấy xác nhận thời gian làm việc và chốt sổ BHXH.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_dress_code",
+    "title": "Quy định Trang Phục (Dress Code)",
+    "content": "Thứ 2 đến Thứ 5: Trang phục công sở lịch sự (Smart Casual). Nam: Áo sơ mi hoặc áo polo có cổ, quần tây hoặc kaki, giày kín mũi. Nữ: Áo sơ mi, áo kiểu lịch sự, chân váy hoặc quần tây, giày kín hoặc sandal lịch sự. Thứ 6 (Free Friday): Mặc tự do nhưng vẫn đảm bảo lịch sự, không mặc quần đùi, áo ba lỗ, dép lê. Khi tiếp khách hoặc họp đối tác: Bắt buộc trang phục công sở chỉn chu. Vi phạm dress code lần 1: nhắc nhở miệng, lần 2: nhắc nhở bằng email, lần 3 trở đi: trừ 100.000 đ/lần.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_wfh",
+    "title": "Chính sách Làm Việc Từ Xa (Work From Home - WFH)",
+    "content": "Nhân viên chính thức (đã qua thử việc) được phép WFH tối đa 4 ngày/tháng. Điều kiện: Báo trước quản lý ít nhất 1 ngày làm việc. Online đầy đủ trên Teams/Slack trong khung giờ lõi 9:00 - 16:00. Tham gia đầy đủ các cuộc họp online. Hoàn thành KPI/task được giao như khi làm tại văn phòng. Nhân viên WFH vẫn phải check-in trên hệ thống AMS (check-in remote) vào đầu ngày. Quản lý có quyền từ chối WFH nếu dự án đang trong giai đoạn cần toàn bộ team có mặt.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_manager_approval",
+    "title": "Quyền Hạn Duyệt Đơn của Quản Lý",
+    "content": "Quản lý (Manager) có quyền duyệt/từ chối các loại đơn sau của nhân viên trực thuộc: Đơn xin nghỉ phép, Đơn giải trình đi muộn/về sớm, Đơn xin tăng ca (OT), Đơn xin WFH. Thời hạn duyệt đơn tối đa là 3 ngày làm việc kể từ khi nhân viên nộp đơn. Nếu quá hạn mà quản lý chưa xử lý, hệ thống sẽ tự động escalate lên HR. Quản lý có thể xem bảng chấm công, lịch sử đơn từ, và báo cáo tổng hợp của tất cả nhân viên trong phòng ban mình quản lý.",
+    "role_visibility": ["Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_hr_responsibilities",
+    "title": "Vai Trò và Trách Nhiệm của HR",
+    "content": "Bộ phận HR chịu trách nhiệm: Quản lý hồ sơ nhân viên (thông tin cá nhân, hợp đồng, phụ lục). Xử lý các nghiệp vụ BHXH, BHYT, BHTN. Tính lương hàng tháng và xuất phiếu lương. Theo dõi và tổng hợp bảng chấm công toàn công ty. Xử lý các trường hợp vi phạm nội quy. Tổ chức đào tạo nội bộ và onboarding nhân viên mới. Quản lý ngày phép, nghỉ ốm, nghỉ thai sản. HR có quyền xem và export tất cả dữ liệu chấm công, nhân sự trên hệ thống AMS.",
+    "role_visibility": ["Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_kpi",
+    "title": "Hệ Thống Đánh Giá KPI",
+    "content": "Công ty áp dụng đánh giá KPI theo quý (Q1: Tháng 1-3, Q2: Tháng 4-6, Q3: Tháng 7-9, Q4: Tháng 10-12). Các tiêu chí đánh giá: Chuyên cần (20%): Dựa trên tỷ lệ đi làm đúng giờ, số ngày vắng không phép. Hiệu suất công việc (50%): Mức độ hoàn thành task/dự án được giao. Thái độ làm việc (15%): Hợp tác nhóm, tuân thủ nội quy. Sáng kiến (15%): Đề xuất cải tiến quy trình, công nghệ mới. Xếp loại: A (Xuất sắc: 90-100 điểm), B (Tốt: 75-89), C (Đạt: 60-74), D (Cần cải thiện: dưới 60). Thưởng KPI xếp loại A: 1 tháng lương, B: 0.5 tháng, C: không có, D: cảnh cáo.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_training",
+    "title": "Chính sách Đào Tạo và Phát Triển",
+    "content": "Công ty hỗ trợ chi phí đào tạo cho nhân viên: Đào tạo nội bộ: Miễn phí, được tổ chức hàng quý. Đào tạo bên ngoài: Hỗ trợ tối đa 5.000.000 đ/năm cho các khóa học liên quan đến công việc (cần quản lý và HR duyệt). Chứng chỉ chuyên môn: Hỗ trợ 100% chi phí thi lần đầu (AWS, Azure, PMP, IELTS...). Nhân viên được cử đi đào tạo cam kết phục vụ công ty ít nhất 12 tháng sau đào tạo. Nếu nghỉ việc trước thời hạn, phải hoàn trả 100% chi phí đào tạo.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_equipment",
+    "title": "Quy định Sử Dụng Tài Sản Công Ty",
+    "content": "Nhân viên được cấp laptop và thiết bị làm việc khi onboarding. Nhân viên có trách nhiệm bảo quản tài sản công ty, không sử dụng vào mục đích cá nhân. Khi hỏng hóc, báo ngay cho bộ phận IT Support qua hệ thống ticket. Khi nghỉ việc, phải hoàn trả đầy đủ tài sản (laptop, chuột, bàn phím, thẻ ra vào, badge). Nếu làm mất hoặc hư hỏng do sơ suất, nhân viên phải bồi thường theo giá trị còn lại. Cấm tự ý cài đặt phần mềm không có bản quyền lên máy công ty.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_security",
+    "title": "Quy định Bảo Mật Thông Tin",
+    "content": "Nhân viên phải tuân thủ các quy định bảo mật: Không chia sẻ tài khoản đăng nhập (email, hệ thống nội bộ) cho bất kỳ ai. Đổi mật khẩu định kỳ mỗi 90 ngày, mật khẩu tối thiểu 8 ký tự có chữ hoa, chữ thường, số và ký tự đặc biệt. Khóa máy tính khi rời khỏi bàn làm việc (Windows + L). Không gửi dữ liệu công ty qua email cá nhân hoặc dịch vụ lưu trữ đám mây cá nhân. Không chụp ảnh/quay phim màn hình chứa dữ liệu nội bộ. Vi phạm bảo mật nghiêm trọng có thể bị sa thải ngay lập tức.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_holidays",
+    "title": "Lịch Nghỉ Lễ, Tết Năm 2026",
+    "content": "Các ngày nghỉ lễ có lương theo quy định: Tết Dương lịch (01/01): 1 ngày. Tết Nguyên Đán (Âm lịch 29/12 - 05/01): 7 ngày (bao gồm nghỉ bù). Giỗ Tổ Hùng Vương (10/3 Âm lịch): 1 ngày. Ngày Thống nhất (30/04): 1 ngày. Ngày Quốc tế Lao động (01/05): 1 ngày. Quốc Khánh (02/09): 2 ngày (01-02/09). Nếu ngày lễ trùng cuối tuần, sẽ được nghỉ bù vào ngày làm việc kế tiếp. Tổng cộng khoảng 13 ngày nghỉ lễ có lương/năm.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_face_recognition",
+    "title": "Hướng Dẫn Chấm Công Bằng Nhận Diện Khuôn Mặt",
+    "content": "Hệ thống nhận diện khuôn mặt (Face Recognition) hoạt động tại Kiosk sảnh tầng 1. Cách sử dụng: 1) Đứng trước Kiosk, khoảng cách 30-60cm. 2) Nhìn thẳng vào camera, bỏ kính râm và khẩu trang. 3) Chờ 1-2 giây để hệ thống nhận diện. 4) Màn hình hiện tên nhân viên và thông báo 'Check-in thành công' hoặc 'Check-out thành công'. Nhân viên mới cần đăng ký khuôn mặt (Face Enrollment) qua ứng dụng Mobile App CIVAMS trước khi sử dụng Kiosk. Nếu hệ thống không nhận diện được (do thay đổi ngoại hình lớn), liên hệ HR để đăng ký lại.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_mobile_app",
+    "title": "Hướng Dẫn Sử Dụng Ứng Dụng CIVAMS Mobile",
+    "content": "Ứng dụng CIVAMS Mobile cho phép nhân viên: Đăng ký khuôn mặt (Face Enrollment): Chụp ảnh chính diện, rõ mặt, đủ sáng. Check-in từ xa (Remote Check-in): Dành cho nhân viên WFH hoặc đi công tác. Xem lịch sử chấm công cá nhân. Xem ca làm việc hôm nay. Tạo các loại đơn từ (nghỉ phép, giải trình, OT). Cách tải app: Mở Expo Go trên điện thoại, quét mã QR từ quản trị viên. Lưu ý: Nhập đúng URL API Server khi đăng nhập lần đầu.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_request_types",
+    "title": "Các Loại Đơn Từ Trên Hệ Thống AMS",
+    "content": "Hệ thống AMS hỗ trợ các loại đơn sau: 1) LEAVE (Đơn Xin Nghỉ Phép): Nghỉ phép năm, nghỉ ốm, nghỉ việc riêng. Cần chọn ngày bắt đầu, ngày kết thúc và lý do. 2) OVERTIME (Đơn Xin Tăng Ca): Ghi rõ ngày, giờ bắt đầu, giờ kết thúc và lý do cần tăng ca. 3) EXPLANATION (Đơn Giải Trình): Giải trình đi muộn, về sớm, quên chấm công. Cần ghi rõ ngày và lý do cụ thể. Quy trình: Nhân viên tạo đơn (DRAFT) → Nộp đơn (SUBMITTED) → Quản lý duyệt (APPROVED) hoặc từ chối (REJECTED). Đơn đã duyệt không thể chỉnh sửa.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_shift_types",
+    "title": "Các Loại Ca Làm Việc",
+    "content": "Công ty có các loại ca: Ca Hành Chính (OFFICE): 8:00 - 17:00, nghỉ trưa 12:00-13:00. Ca Sáng (MORNING): 6:00 - 14:00. Ca Chiều (AFTERNOON): 14:00 - 22:00. Ca Đêm (NIGHT): 22:00 - 06:00 (ngày hôm sau). Ca Linh Hoạt (FLEX): Nhân viên tự chọn giờ vào trong khung 7:00-9:30, đảm bảo đủ 8 tiếng/ngày. Ca làm việc được phân công bởi quản lý và hiển thị trên hệ thống AMS. Nhân viên cần chấm công đúng ca đã được phân.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_workplace_rules",
+    "title": "Nội Quy Nơi Làm Việc",
+    "content": "Nhân viên phải tuân thủ các nội quy: Giữ vệ sinh khu vực làm việc cá nhân và khu vực chung. Không hút thuốc trong tòa nhà văn phòng (khu vực hút thuốc ở tầng 1 ngoài sân). Không sử dụng rượu bia hoặc chất kích thích trong giờ làm việc. Không gây ồn ào ảnh hưởng đến đồng nghiệp. Tắt điện, điều hòa khi rời phòng họp. Không mang người lạ vào khu vực văn phòng khi chưa được phép. Sử dụng thẻ nhân viên khi ra vào tòa nhà. Vi phạm nội quy bị xử lý theo mức: Nhắc nhở → Cảnh cáo bằng văn bản → Kỷ luật → Sa thải.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_onboarding",
+    "title": "Quy trình Onboarding Nhân Viên Mới",
+    "content": "Nhân viên mới sẽ trải qua quy trình onboarding trong tuần đầu tiên: Ngày 1: Nhận tài khoản email, tài khoản AMS, laptop, thẻ nhân viên. Ký hợp đồng thử việc và cam kết bảo mật. Ngày 1-2: Đào tạo sử dụng hệ thống nội bộ (AMS, Teams, Git). Đăng ký khuôn mặt trên ứng dụng CIVAMS Mobile. Ngày 3-5: Làm quen với team, mentor hướng dẫn công việc. Được thêm vào các nhóm Slack/Teams của phòng ban. Kết thúc tuần 1: Buddy check-in, HR phỏng vấn trải nghiệm onboarding.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_annual_bonus",
+    "title": "Chính sách Thưởng Cuối Năm (13th Month)",
+    "content": "Thưởng tháng 13 dành cho nhân viên chính thức đã làm việc từ 6 tháng trở lên: Làm đủ 12 tháng: thưởng 1 tháng lương cơ bản. Làm từ 6-11 tháng: thưởng theo tỷ lệ (số tháng / 12). Làm dưới 6 tháng hoặc đang thử việc: không có thưởng tháng 13. Thưởng được chi trả trước Tết Nguyên Đán (thường vào tháng 1 hoặc tháng 2). Ngoài ra, công ty có thưởng thành tích đặc biệt cho nhân viên/team hoàn thành xuất sắc dự án lớn (do CEO quyết định).",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_company_info",
+    "title": "Giới Thiệu Công Ty CMC Tech",
+    "content": "CMC Tech là công ty công nghệ thuộc Tập đoàn CMC, chuyên cung cấp các giải pháp chuyển đổi số, phát triển phần mềm và dịch vụ IT outsourcing. Trụ sở chính: Tầng 5, Tòa nhà CMC Tower, Cầu Giấy, Hà Nội. Giờ làm việc: Thứ 2 - Thứ 6, 8:00 - 17:00. Quy mô: 500+ nhân viên. Hệ thống quản lý chấm công AMS (Attendance Management System) do nội bộ phát triển, tích hợp AI nhận diện khuôn mặt và chatbot hỗ trợ nhân viên.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
+  },
+  {
+    "id": "policy_it_support",
+    "title": "Hướng Dẫn Liên Hệ IT Support",
+    "content": "Khi gặp sự cố kỹ thuật (laptop hỏng, không truy cập được hệ thống, quên mật khẩu...), nhân viên liên hệ IT Support qua: Email: it-support@cmc.com.vn. Slack: kênh #it-helpdesk. Điện thoại nội bộ: ext. 888. Thời gian hỗ trợ: Thứ 2 - Thứ 6, 8:00 - 18:00. Đối với sự cố khẩn cấp ngoài giờ làm việc (server down, mất dữ liệu), liên hệ hotline IT: 0912-xxx-xxx. Quy trình: Tạo ticket trên hệ thống → IT tiếp nhận trong 30 phút → Xử lý trong 4-24 giờ tùy mức độ.",
+    "role_visibility": ["Employee", "Manager", "ADMIN", "HR"]
   }
 ]

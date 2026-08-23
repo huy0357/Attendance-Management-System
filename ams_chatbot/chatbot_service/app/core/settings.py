@@ -41,10 +41,10 @@ class Settings(BaseSettings):
 
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_api_key: str = ""
-    openrouter_model: str = "openrouter/free"
+    openrouter_model: str = "google/gemini-2.0-flash-exp:free"
     openrouter_timeout_seconds: int = 20
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
 
 settings = Settings()

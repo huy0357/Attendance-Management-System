@@ -26,4 +26,18 @@ public class AttendanceExportController {
                 .body(fileBytes);
     }
 
+    @GetMapping("/attendance-employee-daily")
+    public ResponseEntity<byte[]> exportEmployeeAttendanceDaily(
+            @RequestParam String month,
+            @RequestParam Long employeeId) {
+        byte[] fileBytes = attendanceExportService.exportEmployeeDaily(month, employeeId);
+        String fileName = "attendance_daily_" + employeeId + "_" + month + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(fileBytes);
+    }
+
 }

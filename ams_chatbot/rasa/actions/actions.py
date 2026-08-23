@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 from typing import Any, Dict, List, Text
@@ -155,6 +155,11 @@ class ActionSubmitLeaveRequest(Action):
             dispatcher.utter_message(text="Thieu thong tin dang nhap, chua the gui don nghi phep.")
             return []
 
+        confirm = tracker.get_slot("confirm")
+        if not confirm:
+            dispatcher.utter_message(text="Da huy viec gui don nghi phep.")
+            return [AllSlotsReset()]
+
         body = {
             "date": tracker.get_slot("date"),
             "duration": tracker.get_slot("duration"),
@@ -165,7 +170,7 @@ class ActionSubmitLeaveRequest(Action):
             dispatcher.utter_message(text=f"Da gui don nghi phep thanh cong: {result}")
         except Exception as exc:
             dispatcher.utter_message(text=f"Khong the gui don nghi phep: {exc}")
-        return []
+        return [AllSlotsReset()]
 
 
 class ActionSubmitOtRequest(Action):
@@ -178,6 +183,11 @@ class ActionSubmitOtRequest(Action):
             dispatcher.utter_message(text="Thieu thong tin dang nhap, chua the gui don OT.")
             return []
 
+        confirm = tracker.get_slot("confirm")
+        if not confirm:
+            dispatcher.utter_message(text="Da huy viec gui don OT.")
+            return [AllSlotsReset()]
+
         body = {
             "date": tracker.get_slot("date"),
             "duration": tracker.get_slot("duration"),
@@ -188,7 +198,7 @@ class ActionSubmitOtRequest(Action):
             dispatcher.utter_message(text=f"Da gui don OT thanh cong: {result}")
         except Exception as exc:
             dispatcher.utter_message(text=f"Khong the gui don OT: {exc}")
-        return []
+        return [AllSlotsReset()]
 
 
 class ActionSubmitExplanationRequest(Action):

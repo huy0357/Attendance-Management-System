@@ -23,3 +23,17 @@ rules:
     steps:
       - intent: nlu_fallback
       - action: action_default_fallback
+
+  - rule: activate leave form
+    steps:
+      - intent: create_leave_request
+      - action: leave_request_form
+      - active_loop: leave_request_form
+
+  - rule: activate ot form
+    steps:
+      - intent: create_ot_request
+      - action: ot_request_form
+      - active_loop: ot_request_form
+
+
