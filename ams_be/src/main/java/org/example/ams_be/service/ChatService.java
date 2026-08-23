@@ -56,8 +56,27 @@ public class ChatService {
 
     @Transactional
     public ChatMessageDto addMessage(String username, String sessionId, CreateMessageDto req) {
+        Account account = accountRepository.findByUsername(username).orElse(null);
+
         ChatSession session = chatSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseGet(() -> {
+                    if (account == null) {
+                        return null;
+                    }
+                    String initialTitle = req.getContent().length() > 30 
+                            ? req.getContent().substring(0, 30) + "..." 
+                            : req.getContent();
+                    ChatSession newSession = ChatSession.builder()
+                            .id(sessionId)
+                            .account(account)
+                            .title(initialTitle)
+                            .build();
+                    return chatSessionRepository.save(newSession);
+                });
+
+        if (session == null) {
+            throw new RuntimeException("Account not found for user: " + username);
+        }
         
         // Auto-title if it's the first message and title is "New Chat"
         if ("New Chat".equals(session.getTitle()) && "user".equalsIgnoreCase(req.getSender())) {
