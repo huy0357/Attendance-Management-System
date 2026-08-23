@@ -50,7 +50,8 @@ public class MinioStorageServiceImpl implements StorageService {
                     SetBucketPolicyArgs.builder().bucket(bucket).config(policy).build());
 
         } catch (Exception e) {
-            throw new RuntimeException("Cannot init MinIO bucket: " + e.getMessage(), e);
+            // Log warning but don't crash — MinIO is optional for chatbot/attendance features
+            System.err.println("⚠️ MinIO unavailable, file upload disabled: " + e.getMessage());
         }
     }
 

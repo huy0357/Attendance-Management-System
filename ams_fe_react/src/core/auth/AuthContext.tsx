@@ -126,18 +126,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // SECURITY: State initializers read ONLY from tokenMemory (in-memory store).
   // On a fresh page load, tokenMemory is always empty → isAuthenticated = false.
   // ⚠️  DO NOT change these to read from localStorage.
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    () => tokenMemory.isAuthenticated(),
-  );
-  const [username, setUsername] = useState<string | null>(
-    () => tokenMemory.getUsername(),
-  );
-  const [role, setRole] = useState<string | null>(() => tokenMemory.getRole());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Session Restoration on Mount ───────────────────────────────────────────
   useEffect(() => {
+    
     let mounted = true;
 
     const restoreSession = async () => {

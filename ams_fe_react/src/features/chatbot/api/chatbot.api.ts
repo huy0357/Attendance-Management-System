@@ -32,4 +32,30 @@ export const chatbotApi = {
       throw error;
     }
   },
+
+  getSessions: async () => {
+    const response = await axiosInstance.get('/chat/sessions');
+    return response.data;
+  },
+
+  createSession: async (title?: string) => {
+    const params = title ? { title } : {};
+    const response = await axiosInstance.post('/chat/sessions', null, { params });
+    return response.data;
+  },
+
+  getSessionMessages: async (sessionId: string) => {
+    const response = await axiosInstance.get(`/chat/sessions/${sessionId}/messages`);
+    return response.data;
+  },
+
+  addMessage: async (sessionId: string, sender: 'user' | 'ai', content: string) => {
+    const response = await axiosInstance.post(`/chat/sessions/${sessionId}/messages`, { sender, content });
+    return response.data;
+  },
+
+  deleteSession: async (sessionId: string) => {
+    const response = await axiosInstance.delete(`/chat/sessions/${sessionId}`);
+    return response.data;
+  },
 };

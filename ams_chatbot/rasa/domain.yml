@@ -54,6 +54,15 @@ slots:
     mappings:
       - type: from_entity
         entity: duration
+  confirm:
+    type: bool
+    mappings:
+      - type: from_intent
+        intent: affirm
+        value: true
+      - type: from_intent
+        intent: deny
+        value: false
 
 responses:
   utter_greet:
@@ -66,6 +75,8 @@ responses:
     - text: "Bạn cần tra cứu trong khoảng thời gian nào?"
   utter_ask_duration:
     - text: "Thời lượng hoặc khung giờ cụ thể là gì?"
+  utter_ask_confirm:
+    - text: "Thông tin đã đủ. Bạn xác nhận muốn gửi yêu cầu này chứ? (Có/Không)"
   utter_submit_confirm:
     - text: "Mình đã ghi nhận thông tin. Bạn xác nhận để mình gửi yêu cầu nhé?"
   utter_cancelled:
@@ -79,11 +90,13 @@ forms:
       - date
       - duration
       - reason
+      - confirm
   ot_request_form:
     required_slots:
       - date
       - duration
       - reason
+      - confirm
   explanation_request_form:
     required_slots:
       - date

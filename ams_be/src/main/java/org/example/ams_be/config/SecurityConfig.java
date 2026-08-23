@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/audit-logs/**").hasAnyRole("ADMIN", "HR")
                         .requestMatchers("/api/attendance-email/**").hasAnyRole("ADMIN", "HR")
                         .requestMatchers("/api/attendance-daily/debug-run").hasAnyRole("ADMIN", "HR")
-                        .requestMatchers("/api/employee-export/**", "/api/attendance-export/**", "/api/exports/**").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers("/api/employee-export/**", "/api/attendance-export/**").hasAnyRole("ADMIN", "HR")
                         .requestMatchers(HttpMethod.POST, "/api/employees/**", "/api/departments/**", "/api/v1/shifts/**", "/api/monthly-summary/generate").hasAnyRole("ADMIN", "HR")
                         .requestMatchers(HttpMethod.PUT, "/api/employees/**", "/api/departments/**", "/api/v1/shifts/**").hasAnyRole("ADMIN", "HR")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/shifts/**").hasAnyRole("ADMIN", "HR")
@@ -64,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/requests/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
                         .requestMatchers("/api/profile/**", "/api/v1/profile/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
                         .requestMatchers("/api/employee-schedules/**", "/api/v1/schedules/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
+                        .requestMatchers("/api/exports/**").hasAnyRole("EMPLOYEE", "MANAGER", "HR", "ADMIN")
 
                         // All authenticated users
                         .anyRequest().authenticated()

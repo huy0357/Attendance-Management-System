@@ -57,7 +57,12 @@ class AttendanceDailyControllerTest {
         Page<AttendanceDailyResponse> page = new PageImpl<>(List.of());
         when(attendanceDailyService.employeeGetAttendance(any(), any(), any(), any())).thenReturn(page);
 
-        Page<AttendanceDailyResponse> response = controller.employeeGetAttendance(8L, from, to, 2, 15);
+        org.springframework.security.core.Authentication auth = org.mockito.Mockito.mock(org.springframework.security.core.Authentication.class);
+        org.example.ams_be.security.UserPrincipal principal = org.mockito.Mockito.mock(org.example.ams_be.security.UserPrincipal.class);
+        org.mockito.Mockito.when(auth.getPrincipal()).thenReturn(principal);
+        org.mockito.Mockito.when(principal.getRole()).thenReturn("ADMIN");
+        
+        Page<AttendanceDailyResponse> response = controller.employeeGetAttendance(8L, from, to, 2, 15, auth);
 
         assertEquals(page, response);
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
