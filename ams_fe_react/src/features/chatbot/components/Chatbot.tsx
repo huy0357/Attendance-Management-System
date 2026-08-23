@@ -1,8 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Send, X, MessageSquare, Minimize2, Maximize2, Expand, Mic, MicOff, Volume2, Square, Menu, Plus, Trash2 } from 'lucide-react';
+import { 
+  Send, 
+  X, 
+  MessageSquare, 
+  Minimize2, 
+  Maximize2, 
+  Mic, 
+  Volume2, 
+  Square, 
+  Menu, 
+  Plus, 
+  Trash2,
+  Bot
+} from 'lucide-react';
 import { chatbotApi } from '../api/chatbot.api';
-import { ChatMessage, ChatResponse } from '../models/chatbot.model';
+import { ChatMessage } from '../models/chatbot.model';
 import { formatIsoTimestampsInText } from '../utils/format-chat-content';
 import styles from './Chatbot.module.scss';
 import clsx from 'clsx';
@@ -29,13 +42,12 @@ const renderMarkdown = (text: string) => {
         const bg = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
         let rowHtml = `<tr style="background-color: ${bg}; border-bottom: 1px solid #e2e8f0;">`;
         cells.forEach(cell => {
-          // Check for expandable text marker: "short text..[xem thêm](#expand:full text)"
           const expandMatch = cell.match(/^(.{30,40})\.\.\[xem thêm\]\(#expand:(.+)\)$/);
           if (expandMatch) {
             const shortText = expandMatch[1];
             const fullText = expandMatch[2];
             rowHtml += `<td style="padding: 8px 12px; color: #334155; vertical-align: middle; max-width: 260px;">`;
-            rowHtml += `<details style="display:inline;"><summary style="display:inline; cursor:pointer; list-style:none; color:#334155;">${shortText}… <span style="color:#0284c7; font-size:12px;">xem thêm</span></summary><span>${fullText}</span></details>`;
+            rowHtml += `<details style="display:inline;"><summary style="display:inline; cursor:pointer; list-style:none; color:#334155;">${shortText}… <span style="color:#006666; font-weight:600; font-size:12px;">xem thêm</span></summary><span style="margin-top:4px; display:block;">${fullText}</span></details>`;
             rowHtml += `</td>`;
           } else {
             rowHtml += `<td style="padding: 8px 12px; color: #334155; vertical-align: middle;">${cell}</td>`;
@@ -45,7 +57,6 @@ const renderMarkdown = (text: string) => {
         return rowHtml;
       };
 
-      // Build the main visible table
       let tableHtml = '<div style="overflow-x: auto; margin: 10px 0; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: #ffffff;">';
       tableHtml += '<table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">';
       tableHtml += '<thead style="background-color: #f1f5f9; color: #1e293b; font-weight: 600; border-bottom: 2px solid #cbd5e1;"><tr>';
@@ -54,7 +65,6 @@ const renderMarkdown = (text: string) => {
       });
       tableHtml += '</tr></thead><tbody>';
 
-      // Visible rows
       const visibleRows = hasHiddenRows ? bodyRows.slice(0, VISIBLE_ROWS) : bodyRows;
       visibleRows.forEach((rStr, idx) => {
         tableHtml += buildRow(rStr, idx);
@@ -62,12 +72,11 @@ const renderMarkdown = (text: string) => {
 
       tableHtml += '</tbody></table>';
 
-      // Hidden rows inside <details>
       if (hasHiddenRows) {
         const hiddenRows = bodyRows.slice(VISIBLE_ROWS);
         const hiddenCount = hiddenRows.length;
         tableHtml += `<details style="border-top: 1px solid #e2e8f0;">`;
-        tableHtml += `<summary style="text-align: center; padding: 8px; cursor: pointer; color: #0284c7; font-size: 13px; font-weight: 500; list-style: none; user-select: none;">Xem thêm ${hiddenCount} dòng ▼</summary>`;
+        tableHtml += `<summary style="text-align: center; padding: 8px; cursor: pointer; color: #006666; font-size: 13px; font-weight: 600; list-style: none; user-select: none;">Xem thêm ${hiddenCount} dòng ▼</summary>`;
         tableHtml += `<table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;"><tbody>`;
         hiddenRows.forEach((rStr, idx) => {
           tableHtml += buildRow(rStr, VISIBLE_ROWS + idx);
@@ -106,13 +115,11 @@ const renderMarkdown = (text: string) => {
   return html
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code style="background: #e2e8f0; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 12px;">$1</code>')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #0284c7; font-weight: 600;">$1</a>')
+    .replace(/`([^`]+)`/g, '<code style="background: #f1f5f9; color: #006666; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; border: 1px solid #e2e8f0;">$1</code>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #006666; font-weight: 600;">$1</a>')
     .replace(/\n/g, '<br />');
 };
 
-// Memoized component that renders HTML once and never re-renders
-// This prevents React from resetting <details> open/close state
 const MemoizedMessageContent = React.memo(({ 
   content, 
   className, 
@@ -130,24 +137,22 @@ const MemoizedMessageContent = React.memo(({
       ref.current.innerHTML = renderMarkdown(content);
       renderedRef.current = true;
     }
-  }, []); // Only run once on mount
+  }, []);
 
   return (
     <div 
-      ref={ref}
-      className={className}
-      onClick={onClick}
+      ref={ref} 
+      className={className} 
+      onClick={onClick} 
     />
   );
 }, (prevProps, nextProps) => {
-  // Never re-render once mounted (content doesn't change for existing messages)
   return prevProps.content === nextProps.content;
 });
 
 const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [chatWindowStyle, setChatWindowStyle] = useState<React.CSSProperties>({});
   
@@ -163,7 +168,7 @@ const Chatbot: React.FC = () => {
     enabled: isOpen,
   });
 
-  const { data: sessionMessages, isFetching: isFetchingMessages } = useQuery({
+  const { data: sessionMessages } = useQuery({
     queryKey: ['chat-messages', sessionId],
     queryFn: () => chatbotApi.getSessionMessages(sessionId!),
     enabled: !!sessionId && isOpen,
@@ -182,8 +187,8 @@ const Chatbot: React.FC = () => {
       setMessages([]);
     }
   }, [sessionMessages, sessionId]);
+
   const [isListening, setIsListening] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const recognitionRef = useRef<any>(null);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const previousTextRef = useRef('');
@@ -199,7 +204,7 @@ const Chatbot: React.FC = () => {
 
     window.speechSynthesis.cancel();
     
-    const textToSpeak = content.replace(/\[.*?\]\(.*?\)/g, ''); // Remove markdown links
+    const textToSpeak = content.replace(/\[.*?\]\(.*?\)/g, '');
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'vi-VN';
     
@@ -235,11 +240,10 @@ const Chatbot: React.FC = () => {
   });
 
   useEffect(() => {
-    // Initialize SpeechRecognition if available
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = true; // Keep listening until stopped
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'vi-VN';
 
@@ -265,11 +269,7 @@ const Chatbot: React.FC = () => {
         console.error('Speech recognition error', event.error);
         setIsListening(false);
         if (event.error === 'not-allowed') {
-          alert('Quyền truy cập Micro bị từ chối. Vui lòng click vào biểu tượng ổ khóa cạnh thanh địa chỉ (URL) để cho phép Micro.');
-        } else if (event.error === 'no-speech') {
-          // Ignore no-speech, it just means silence
-        } else {
-          alert('Lỗi thu âm: ' + event.error);
+          alert('Quyền truy cập Micro bị từ chối. Vui lòng cấp quyền Micro trong cài đặt trình duyệt.');
         }
       };
       recognition.onend = () => {
@@ -280,7 +280,6 @@ const Chatbot: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isError) {
       setChatbotOnline(false);
       if (messages.length === 0) {
@@ -298,7 +297,7 @@ const Chatbot: React.FC = () => {
         setMessages([{
           id: uuid(),
           sender: 'ai',
-          content: 'Xin chào! Tôi là AMS AI Assistant. Tôi có thể giúp bạn tra cứu thông tin chấm công, nghỉ phép và các quy định của công ty. Bạn cần hỗ trợ gì?',
+          content: 'Xin chào! Tôi là Trợ lý AI hệ thống AMS. Tôi có thể hỗ trợ bạn tra cứu điểm danh, ca làm việc, ngày phép và các chính sách của công ty. Bạn cần hỗ trợ gì hôm nay?',
           timestamp: new Date(),
           suggestions: ['Xem chấm công hôm nay', 'Số ngày phép còn lại', 'Chính sách làm thêm giờ'],
         }]);
@@ -317,44 +316,46 @@ const Chatbot: React.FC = () => {
     if (isOpen) {
       timeoutId = setTimeout(scrollToBottom, 50);
       
-      // Smart positioning based on FAB placement
-      if (fabRef.current && !isFullscreen) {
-        if (isMaximized) {
-          // Centered for maximized mode
-          setChatWindowStyle({ top: '10vh', left: '20vw', bottom: 'auto', right: 'auto' });
+      if (isMaximized) {
+        setChatWindowStyle({});
+      } else if (position && fabRef.current) {
+        const fabRect = fabRef.current.getBoundingClientRect();
+        const ww = window.innerWidth;
+        const wh = window.innerHeight;
+        const winWidth = 390;
+        const winHeight = 580;
+        
+        let left: number | undefined;
+        let top: number | undefined;
+        let right: number | undefined;
+        let bottom: number | undefined;
+
+        if (fabRect.top > wh / 2) {
+          bottom = Math.max(16, wh - fabRect.top + 12);
         } else {
-          const fabRect = fabRef.current.getBoundingClientRect();
-          const ww = window.innerWidth;
-          const wh = window.innerHeight;
-          
-          let top: number | 'auto' = 'auto';
-          let bottom: number | 'auto' = 'auto';
-          let left: number | 'auto' = 'auto';
-          let right: number | 'auto' = 'auto';
-
-          // FAB in bottom half -> open ABOVE it
-          if (fabRect.top > wh / 2) bottom = wh - fabRect.top + 10;
-          // FAB in top half -> open BELOW it
-          else top = fabRect.bottom + 10;
-
-          // FAB in right half -> align to right of FAB
-          if (fabRect.left > ww / 2) right = ww - fabRect.right;
-          // FAB in left half -> align to left of FAB
-          else left = fabRect.left;
-
-          setChatWindowStyle({
-            top: top !== 'auto' ? `${top}px` : undefined,
-            bottom: bottom !== 'auto' ? `${bottom}px` : undefined,
-            left: left !== 'auto' ? `${left}px` : undefined,
-            right: right !== 'auto' ? `${right}px` : undefined,
-          });
+          top = Math.max(16, fabRect.bottom + 12);
         }
+
+        if (fabRect.left > ww / 2) {
+          right = Math.max(16, ww - fabRect.right);
+        } else {
+          left = Math.max(16, fabRect.left);
+        }
+
+        setChatWindowStyle({
+          top: top ? `${top}px` : undefined,
+          bottom: bottom ? `${bottom}px` : undefined,
+          left: left ? `${left}px` : undefined,
+          right: right ? `${right}px` : undefined,
+        });
+      } else {
+        setChatWindowStyle({});
       }
     }
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isOpen, position, isFullscreen, isMaximized]);
+  }, [isOpen, position, isMaximized]);
 
   const { mutate: sendMessageMutation, isPending: isTyping } = useMutation({
     mutationFn: async (text: string) => {
@@ -366,13 +367,8 @@ const Chatbot: React.FC = () => {
          refetchSessions();
       }
       
-      // Save user message to backend DB
       await chatbotApi.addMessage(currentSessionId!, 'user', text);
-      
-      // Get AI response
       const response = await chatbotApi.sendMessage({ message: text, session_id: currentSessionId!, locale: 'vi' });
-      
-      // Save AI message to backend DB
       const display = formatIsoTimestampsInText(response.message || '');
       await chatbotApi.addMessage(currentSessionId!, 'ai', display);
       
@@ -389,10 +385,7 @@ const Chatbot: React.FC = () => {
           suggestions: response.suggestions || [],
         }
       ]);
-      refetchSessions(); // Refetch to update title if it auto-generated
-      
-      // Text to Speech is now manually triggered by the user to avoid auto-play annoyance.
-
+      refetchSessions();
       setTimeout(scrollToBottom, 50);
     },
     onError: () => {
@@ -409,6 +402,20 @@ const Chatbot: React.FC = () => {
       setTimeout(scrollToBottom, 50);
     }
   });
+
+  const handleDeleteSession = async (e: React.MouseEvent, sId: string) => {
+    e.stopPropagation();
+    try {
+      await chatbotApi.deleteSession(sId);
+      if (sessionId === sId) {
+        setSessionId(null);
+        setMessages([]);
+      }
+      refetchSessions();
+    } catch (err) {
+      console.error("Lỗi khi xóa phiên chat:", err);
+    }
+  };
 
   const handleSendMessage = (text?: string) => {
     const content = (text ?? inputText).trim();
@@ -454,7 +461,7 @@ const Chatbot: React.FC = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // ── ZERO-LATENCY DRAG & DROP LOGIC ─────────────────────────────────────────
+  // Drag logic for floating button
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     
@@ -477,10 +484,9 @@ const Chatbot: React.FC = () => {
     };
     wasDraggedRef.current = false;
 
-    // Temporarily halt CSS transition physically on the DOM for zero-latency sync
     if (fabRef.current) {
       fabRef.current.style.transition = 'none';
-      fabRef.current.style.transform = 'scale(1.05)'; // Keep hover scale during drag
+      fabRef.current.style.transform = 'scale(1.05)';
     }
   };
 
@@ -490,24 +496,21 @@ const Chatbot: React.FC = () => {
     const deltaX = e.clientX - dragRef.current.startX;
     const deltaY = e.clientY - dragRef.current.startY;
     
-    // Distance check to differentiate drag vs click (5px tolerance)
     if (!dragRef.current.moved && Math.hypot(deltaX, deltaY) > 5) {
       dragRef.current.moved = true;
       wasDraggedRef.current = true;
     }
 
     if (dragRef.current.moved) {
-      const btnW = fabRef.current?.offsetWidth || 60;
-      const btnH = fabRef.current?.offsetHeight || 60;
+      const btnW = fabRef.current?.offsetWidth || 56;
+      const btnH = fabRef.current?.offsetHeight || 56;
       
       const newX = dragRef.current.initX + deltaX;
       const newY = dragRef.current.initY + deltaY;
       
-      // Calculate boundaries
-      const limX = Math.max(0, Math.min(newX, window.innerWidth - btnW));
-      const limY = Math.max(0, Math.min(newY, window.innerHeight - btnH));
+      const limX = Math.max(12, Math.min(newX, window.innerWidth - btnW - 12));
+      const limY = Math.max(12, Math.min(newY, window.innerHeight - btnH - 12));
       
-      // Hardware-level direct style assignment bypassing Virtual DOM entirely
       if (fabRef.current) {
         fabRef.current.style.left = `${limX}px`;
         fabRef.current.style.top = `${limY}px`;
@@ -525,13 +528,11 @@ const Chatbot: React.FC = () => {
     dragRef.current.isDragging = false;
     e.currentTarget.releasePointerCapture(e.pointerId);
 
-    // Restore CSS transition engine
     if (fabRef.current) {
       fabRef.current.style.transition = '';
       fabRef.current.style.transform = '';
     }
 
-    // Commit final location to React State for resize stability
     if (dragRef.current.moved) {
       setPosition({ x: dragRef.current.lastX, y: dragRef.current.lastY });
     }
@@ -541,7 +542,7 @@ const Chatbot: React.FC = () => {
     if (wasDraggedRef.current) {
       e.preventDefault();
       e.stopPropagation();
-      wasDraggedRef.current = false; // Reset
+      wasDraggedRef.current = false;
       return;
     }
     setIsOpen(!isOpen);
@@ -551,11 +552,9 @@ const Chatbot: React.FC = () => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'A') {
       const href = target.getAttribute('href');
-      // Intercept both CSV (Python 8001) and Excel (Java 8080) exports
       if (href && href.includes('/exports/')) {
         e.preventDefault();
         try {
-          // If it is direct Python FastAPI CSV export (port 8001)
           if (href.includes(':8001/')) {
             const token = localStorage.getItem('token') || '';
             const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
@@ -585,10 +584,6 @@ const Chatbot: React.FC = () => {
           }
 
           let urlPath = href;
-          // Xử lý lỗi CORS: Nếu là link tới backend Java (port 8080), chuyển thành relative path để dùng Vite proxy
-          // URL có dạng: http://localhost:8080/api/exports/...
-          // Cắt bỏ http://localhost:8080/api để còn /exports/...
-          // Sau đó axiosInstance (baseURL: '/api') sẽ nối thành /api/exports/... => proxy tới Java
           if (href.startsWith('http://localhost:8080/api')) {
             urlPath = href.replace('http://localhost:8080/api', '');
           }
@@ -600,7 +595,6 @@ const Chatbot: React.FC = () => {
           const link = document.createElement('a');
           link.href = url;
           
-          // Fallback filename if parsing fails or CORS hides headers
           let filename = 'download';
           if (urlPath.includes('.csv')) filename = 'export.csv';
           else if (urlPath.includes('attendance-monthly') || urlPath.includes('.xlsx')) filename = 'export.xlsx';
@@ -622,7 +616,6 @@ const Chatbot: React.FC = () => {
           document.body.appendChild(link);
           link.click();
           
-          // Delay removal to ensure browser download manager catches the attribute
           setTimeout(() => {
             if (document.body.contains(link)) {
                 document.body.removeChild(link);
@@ -639,9 +632,10 @@ const Chatbot: React.FC = () => {
 
   return (
     <>
+      {/* Floating Action Button (Hidden smoothly when chat window is open) */}
       <button
         ref={fabRef}
-        className={clsx(styles['chatbot-fab'], isOpen && styles['chatbot-fab--open'])}
+        className={clsx(styles['chatbot-fab'], isOpen && styles['chatbot-fab--hidden'])}
         id="chatbot-fab-btn"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -654,73 +648,86 @@ const Chatbot: React.FC = () => {
           top: position ? `${position.y}px` : undefined,
           right: position ? 'auto' : undefined,
           bottom: position ? 'auto' : undefined,
-          touchAction: 'none', // Critical for dragging on mobile
+          touchAction: 'none',
           cursor: dragRef.current.moved ? 'grabbing' : 'pointer'
         }}
-        aria-label="Toggle AI Assistant"
+        aria-label="Mở trợ lý AI"
+        title="Trợ lý AI AMS"
       >
-        {!isOpen ? (
-          <MessageSquare fill="none" strokeWidth={2} className="w-[26px] h-[26px]" />
-        ) : (
-          <X strokeWidth={2.5} className="w-[22px] h-[22px]" />
-        )}
+        <MessageSquare strokeWidth={2.2} className="w-[26px] h-[26px]" />
+        <span className={styles['chatbot-fab__pulse']}></span>
       </button>
 
-      {isOpen && (isMaximized || isFullscreen) && (
+      {/* Backdrop for Maximized state */}
+      {isOpen && isMaximized && (
         <div 
           className={styles['chatbot-backdrop']} 
-          onClick={() => { setIsMaximized(false); setIsFullscreen(false); }} 
+          onClick={() => setIsMaximized(false)} 
         />
       )}
 
+      {/* Main Chatbot Window */}
       <div 
         className={clsx(
           styles['chatbot-window'], 
           isOpen && styles['chatbot-window--visible'],
-          isMaximized && styles['chatbot-window--maximized'],
-          isFullscreen && styles['chatbot-window--fullscreen']
+          isMaximized && styles['chatbot-window--maximized']
         )} 
         style={chatWindowStyle}
         role="dialog" 
         aria-label="AMS AI Assistant"
       >
+        {/* Header */}
         <div className={styles['chatbot-header']}>
-          <div className={styles['chatbot-header__info']}>
+          <div className={styles['chatbot-header__left']}>
             <button 
-              className={styles['chatbot-header__menu-btn']} 
+              className={clsx(styles['chatbot-header__icon-btn'], isSidebarOpen && styles['chatbot-header__icon-btn--active'])} 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              title="Lịch sử chat"
+              title="Lịch sử hội thoại"
+              aria-label="Lịch sử hội thoại"
             >
-              <Menu className="w-[20px] h-[20px]" />
+              <Menu className="w-[18px] h-[18px]" />
             </button>
             <div className={styles['chatbot-header__avatar']}>
-              <MessageSquare className="w-[18px] h-[18px]" strokeWidth={2} />
+              <Bot className="w-[20px] h-[20px]" />
             </div>
-            <div>
+            <div className={styles['chatbot-header__meta']}>
               <div className={styles['chatbot-header__name']}>AMS AI Assistant</div>
               <div className={styles['chatbot-header__status']}>
-                <span className={styles['chatbot-status-dot']}></span>
-                Trực tuyến
+                <span className={clsx(styles['chatbot-status-dot'], !chatbotOnline && styles['chatbot-status-dot--offline'])}></span>
+                <span>{chatbotOnline ? 'Trực tuyến' : 'Ngoại tuyến'}</span>
               </div>
             </div>
           </div>
           
           <div className={styles['chatbot-header__controls']}>
-            <button className={styles['chatbot-header__control-btn']} onClick={() => setIsOpen(false)} title="Minimize">
-              <Minimize2 className="w-[14px] h-[14px]" />
+            <button 
+              className={styles['chatbot-header__icon-btn']} 
+              onClick={() => setIsMaximized(!isMaximized)} 
+              title={isMaximized ? "Thu nhỏ" : "Phóng to"}
+              aria-label={isMaximized ? "Thu nhỏ" : "Phóng to"}
+            >
+              {isMaximized ? (
+                <Minimize2 className="w-[16px] h-[16px]" />
+              ) : (
+                <Maximize2 className="w-[16px] h-[16px]" />
+              )}
             </button>
-            <button className={styles['chatbot-header__control-btn']} onClick={() => { setIsMaximized(!isMaximized); setIsFullscreen(false); }} title={isMaximized ? "Restore" : "Maximize"}>
-              <Maximize2 className="w-[14px] h-[14px]" />
-            </button>
-            <button className={styles['chatbot-header__control-btn']} onClick={() => { setIsFullscreen(!isFullscreen); setIsMaximized(false); }} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-              <Expand className="w-[14px] h-[14px]" />
-            </button>
-            <button className={styles['chatbot-header__close']} onClick={() => setIsOpen(false)} title="Close">
-              <X strokeWidth={2.5} className="w-[18px] h-[18px]" />
+            <button 
+              className={clsx(styles['chatbot-header__icon-btn'], styles['chatbot-header__icon-btn--close'])} 
+              onClick={() => {
+                setIsOpen(false);
+                setIsMaximized(false);
+              }} 
+              title="Đóng"
+              aria-label="Đóng"
+            >
+              <X strokeWidth={2.2} className="w-[18px] h-[18px]" />
             </button>
           </div>
         </div>
 
+        {/* Content Body & Sidebar */}
         <div className={styles['chatbot-container']}>
           {isSidebarOpen && (
             <div className={styles['chatbot-sidebar']}>
@@ -732,135 +739,162 @@ const Chatbot: React.FC = () => {
                   if (window.innerWidth < 768) setIsSidebarOpen(false);
                 }}
               >
-                <Plus className="w-[16px] h-[16px]" />
-                Cuộc hội thoại mới
+                <Plus className="w-[15px] h-[15px]" />
+                <span>Cuộc trò chuyện mới</span>
               </button>
               <div className={styles['chatbot-sidebar__list']}>
-                {sessions.map((session: any) => (
-                  <div 
-                    key={session.id} 
-                    className={clsx(styles['chatbot-sidebar__item'], sessionId === session.id && styles['chatbot-sidebar__item--active'])}
-                    onClick={() => {
-                      setSessionId(session.id);
-                      if (window.innerWidth < 768) setIsSidebarOpen(false);
-                    }}
-                  >
-                    <MessageSquare className="w-[14px] h-[14px]" />
-                    <span className={styles['chatbot-sidebar__item-title']}>{session.title}</span>
-                  </div>
-                ))}
+                {sessions.length === 0 ? (
+                  <div className={styles['chatbot-sidebar__empty']}>Chưa có lịch sử</div>
+                ) : (
+                  sessions.map((session: any) => (
+                    <div 
+                      key={session.id} 
+                      className={clsx(styles['chatbot-sidebar__item'], sessionId === session.id && styles['chatbot-sidebar__item--active'])}
+                      onClick={() => {
+                        setSessionId(session.id);
+                        if (window.innerWidth < 768) setIsSidebarOpen(false);
+                      }}
+                    >
+                      <MessageSquare className="w-[14px] h-[14px] flex-shrink-0" />
+                      <span className={styles['chatbot-sidebar__item-title']} title={session.title}>{session.title}</span>
+                      <button 
+                        className={styles['chatbot-sidebar__delete-btn']}
+                        onClick={(e) => handleDeleteSession(e, session.id)}
+                        title="Xóa hội thoại"
+                      >
+                        <Trash2 className="w-[13px] h-[13px]" />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
 
           <div className={styles['chatbot-content']}>
             <div className={styles['chatbot-body']} ref={messagesContainerRef}>
-          {messages.map((msg) => (
-            <React.Fragment key={msg.id}>
-              {msg.sender === 'ai' ? (
-                <div className={clsx(styles['chatbot-message'], styles['chatbot-message--ai'])}>
-                  <div className={styles['chatbot-message__avatar']}>AI</div>
-                  <div className={styles['chatbot-message__content-wrap']}>
-                      <MemoizedMessageContent
-                        content={msg.content}
-                        className={clsx(styles['chatbot-message__bubble'], styles['chatbot-message__bubble--ai'])}
-                        onClick={handleMessageClick}
-                      />
-                    <div className={styles['chatbot-message__time']}>
-                      {formatTime(msg.timestamp)}
-                      <button 
-                        className={styles['chatbot-message__tts-btn']} 
-                        onClick={() => handleSpeak(msg.id, msg.content)}
-                        title={speakingMessageId === msg.id ? "Dừng đọc" : "Đọc to"}
-                        aria-label="Đọc to tin nhắn"
-                      >
-                        {speakingMessageId === msg.id ? <Square className="w-[12px] h-[12px]" /> : <Volume2 className="w-[12px] h-[12px]" />}
-                      </button>
-                    </div>
-                    {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className={styles['chatbot-suggestions']}>
-                        {msg.suggestions.map((suggestion, idx) => (
-                          <button
-                            key={idx}
-                            className={styles['chatbot-suggestion-btn']}
-                            onClick={() => handleSendMessage(suggestion)}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
+              {messages.map((msg) => (
+                <React.Fragment key={msg.id}>
+                  {msg.sender === 'ai' ? (
+                    <div className={clsx(styles['chatbot-message'], styles['chatbot-message--ai'])}>
+                      <div className={styles['chatbot-message__avatar']}>
+                        <Bot className="w-[16px] h-[16px]" />
                       </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className={clsx(styles['chatbot-message'], styles['chatbot-message--user'])}>
-                  <div className={clsx(styles['chatbot-message__content-wrap'], styles['chatbot-message__content-wrap--user'])}>
-                    <div 
-                      className={clsx(styles['chatbot-message__bubble'], styles['chatbot-message__bubble--user'])}
-                      dangerouslySetInnerHTML={{
-                        __html: msg.content
-                          .replace(/&/g, '&amp;')
-                          .replace(/</g, '&lt;')
-                          .replace(/>/g, '&gt;')
-                      }}
-                    />
-                    <div className={clsx(styles['chatbot-message__time'], styles['chatbot-message__time--right'])}>
-                      {formatTime(msg.timestamp)}
+                      <div className={styles['chatbot-message__content-wrap']}>
+                        <MemoizedMessageContent
+                          content={msg.content}
+                          className={clsx(styles['chatbot-message__bubble'], styles['chatbot-message__bubble--ai'])}
+                          onClick={handleMessageClick}
+                        />
+                        <div className={styles['chatbot-message__meta']}>
+                          <span className={styles['chatbot-message__time']}>{formatTime(msg.timestamp)}</span>
+                          <button 
+                            className={clsx(styles['chatbot-message__tts-btn'], speakingMessageId === msg.id && styles['chatbot-message__tts-btn--active'])} 
+                            onClick={() => handleSpeak(msg.id, msg.content)}
+                            title={speakingMessageId === msg.id ? "Dừng đọc" : "Đọc to"}
+                            aria-label="Đọc to tin nhắn"
+                          >
+                            {speakingMessageId === msg.id ? (
+                              <Square className="w-[12px] h-[12px] fill-current" />
+                            ) : (
+                              <Volume2 className="w-[13px] h-[13px]" />
+                            )}
+                          </button>
+                        </div>
+                        {msg.suggestions && msg.suggestions.length > 0 && (
+                          <div className={styles['chatbot-suggestions']}>
+                            {msg.suggestions.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                className={styles['chatbot-suggestion-btn']}
+                                onClick={() => handleSendMessage(suggestion)}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  ) : (
+                    <div className={clsx(styles['chatbot-message'], styles['chatbot-message--user'])}>
+                      <div className={clsx(styles['chatbot-message__content-wrap'], styles['chatbot-message__content-wrap--user'])}>
+                        <div 
+                          className={clsx(styles['chatbot-message__bubble'], styles['chatbot-message__bubble--user'])}
+                          dangerouslySetInnerHTML={{
+                            __html: msg.content
+                              .replace(/&/g, '&amp;')
+                              .replace(/</g, '&lt;')
+                              .replace(/>/g, '&gt;')
+                          }}
+                        />
+                        <div className={clsx(styles['chatbot-message__meta'], styles['chatbot-message__meta--right'])}>
+                          <span className={styles['chatbot-message__time']}>{formatTime(msg.timestamp)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+
+              {isTyping && (
+                <div className={clsx(styles['chatbot-message'], styles['chatbot-message--ai'], styles['chatbot-typing'])}>
+                  <div className={styles['chatbot-message__avatar']}>
+                    <Bot className="w-[16px] h-[16px]" />
+                  </div>
+                  <div className={clsx(styles['chatbot-message__bubble'], styles['chatbot-message__bubble--ai'])}>
+                    <span className={styles['typing-dot']}></span>
+                    <span className={styles['typing-dot']}></span>
+                    <span className={styles['typing-dot']}></span>
                   </div>
                 </div>
               )}
-            </React.Fragment>
-          ))}
+            </div>
 
-          {isTyping && (
-            <div className={clsx(styles['chatbot-message'], styles['chatbot-message--ai'], styles['chatbot-typing'])}>
-              <div className={styles['chatbot-message__avatar']}>AI</div>
-              <div className={clsx(styles['chatbot-message__bubble'], styles['chatbot-message__bubble--ai'])}>
-                <span className={styles['typing-dot']}></span>
-                <span className={styles['typing-dot']}></span>
-                <span className={styles['typing-dot']}></span>
+            <div className={styles['chatbot-footer']}>
+              <div className={styles['chatbot-input-card']}>
+                <textarea
+                  className={styles['chatbot-input']}
+                  id="chatbot-input"
+                  placeholder="Nhập câu hỏi của bạn..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  disabled={isTyping || !chatbotOnline}
+                />
+                <div className={styles['chatbot-input-actions']}>
+                  {recognitionRef.current && (
+                    <button
+                      className={clsx(styles['chatbot-mic-btn'], isListening && styles['chatbot-mic-btn--listening'])}
+                      disabled={isTyping || !chatbotOnline}
+                      onClick={toggleListening}
+                      aria-label="Thu âm giọng nói"
+                      title={isListening ? "Dừng ghi âm" : "Ghi âm giọng nói"}
+                    >
+                      {isListening ? (
+                        <Square strokeWidth={2.5} className="w-[14px] h-[14px] fill-current text-rose-500" />
+                      ) : (
+                        <Mic strokeWidth={2} className="w-[18px] h-[18px]" />
+                      )}
+                    </button>
+                  )}
+                  <button
+                    className={styles['chatbot-send-btn']}
+                    id="chatbot-send-btn"
+                    disabled={!inputText.trim() || isTyping || !chatbotOnline}
+                    onClick={() => handleSendMessage()}
+                    aria-label="Gửi tin nhắn"
+                    title="Gửi tin nhắn"
+                  >
+                    <Send strokeWidth={2.2} className="w-[16px] h-[16px]" />
+                  </button>
+                </div>
+              </div>
+              <div className={styles['chatbot-footer__hint']}>
+                <span>Nhấn <strong>Enter</strong> để gửi, <strong>Shift + Enter</strong> để xuống dòng</span>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className={styles['chatbot-footer']}>
-          <div className={styles['chatbot-input-wrap']}>
-            <textarea
-              className={styles['chatbot-input']}
-              id="chatbot-input"
-              placeholder="Nhập câu hỏi của bạn..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              disabled={isTyping || !chatbotOnline}
-            />
-            {recognitionRef.current && (
-              <button
-                className={clsx(styles['chatbot-mic-btn'], isListening && styles['chatbot-mic-btn--listening'])}
-                disabled={isTyping || !chatbotOnline}
-                onClick={toggleListening}
-                aria-label="Toggle Voice Input"
-                title={isListening ? "Dừng ghi âm" : "Ghi âm"}
-                style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', color: isListening ? '#ef4444' : '#64748b' }}
-              >
-                {isListening ? <Square strokeWidth={2} fill="currentColor" className="w-[16px] h-[16px]" /> : <Mic strokeWidth={2} className="w-[18px] h-[18px]" />}
-              </button>
-            )}
-            <button
-              className={styles['chatbot-send-btn']}
-              id="chatbot-send-btn"
-              disabled={!inputText.trim() || isTyping || !chatbotOnline}
-              onClick={() => handleSendMessage()}
-              aria-label="Send message"
-            >
-              <Send strokeWidth={2} className="w-[18px] h-[18px]" />
-            </button>
-          </div>
-          <div className={styles['chatbot-footer__hint']}>Enter để gửi • Shift+Enter xuống dòng</div>
-        </div>
           </div>
         </div>
       </div>
