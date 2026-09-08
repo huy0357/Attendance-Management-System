@@ -118,11 +118,16 @@ class AmsBackendClient:
             return {"date": today, "check_in": None, "check_out": None, "status": "NO_RECORD"}
 
         row = rows[0]
+        late_min = row.get("lateMinutes") or 0
+        raw_status = row.get("status") or "N/A"
+        # Map: if lateMinutes > 0, override status to LATE for chatbot display
+        display_status = "LATE" if late_min > 0 and raw_status == "PRESENT" else raw_status
         return {
             "date": str(row.get("workDate") or today),
             "check_in": row.get("firstInTime"),
             "check_out": row.get("lastOutTime"),
-            "status": row.get("status") or "N/A",
+            "status": display_status,
+            "late_minutes": late_min,
         }
 
     async def get_today_shift(self, token: str, employee_id: str | None = None) -> dict:
@@ -197,16 +202,20 @@ class AmsBackendClient:
             payload = response.json()
 
         rows = payload.get("content") or [] if isinstance(payload, dict) else []
-        return [
-            {
+        result = []
+        for r in rows:
+            late_min = r.get("lateMinutes") or 0
+            raw_status = r.get("status", "N/A")
+            display_status = "LATE" if late_min > 0 and raw_status == "PRESENT" else raw_status
+            result.append({
                 "date": str(r.get("workDate", "")),
                 "check_in": r.get("firstInTime"),
                 "check_out": r.get("lastOutTime"),
-                "status": r.get("status", "N/A"),
+                "status": display_status,
+                "late_minutes": late_min,
                 "employee_name": r.get("employeeName", ""),
-            }
-            for r in rows
-        ]
+            })
+        return result
 
     async def get_attendance_yearly(self, token: str, employee_id: str, year: int | None = None) -> list[dict]:
         """Get attendance records for a specific employee for an entire year.

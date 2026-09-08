@@ -165,6 +165,7 @@ class ChatService:
                 check_in = _fmt_time(att.get("check_in")) or "chưa có"
                 check_out = _fmt_time(att.get("check_out")) or "chưa checkout"
                 status = att.get("status", "N/A")
+                late_min = att.get("late_minutes", 0)
 
                 # Format friendly date label
                 try:
@@ -182,6 +183,8 @@ class ChatService:
                     date_prefix = f"Ngày {d_formatted}"
 
                 msg = f"{date_prefix} {display_name} check-in lúc **{check_in}**, check-out: **{check_out}**. Trạng thái: **{status}**."
+                if late_min and late_min > 0:
+                    msg += f" _(Đi muộn {late_min} phút)_"
                 return self._resp(trace_id, start, msg, {"attendance": att})
             except Exception as exc:
                 logger.exception("get_attendance_today failed - trace_id=%s", trace_id)
