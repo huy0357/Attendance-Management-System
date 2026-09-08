@@ -415,12 +415,6 @@ export const AttendanceDailyPage: React.FC = () => {
                       <span className={cn(styles.nmBadge, statusClass)}>
                         {status}
                       </span>
-                      {(record.lateMinutes > 0) && (
-                        <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Đi muộn {record.lateMinutes}p</span>
-                      )}
-                      {(record.earlyLeaveMinutes > 0) && (
-                        <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Về sớm {record.earlyLeaveMinutes}p</span>
-                      )}
                     </div>
                   </td>
                 </tr>
