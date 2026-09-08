@@ -258,6 +258,16 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus,
+  &:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--nm-surface) inset !important;
+    -webkit-text-fill-color: var(--nm-text) !important;
+    caret-color: var(--nm-text);
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
 .eyeBtn {

@@ -56,22 +56,29 @@ const LoginPage: React.FC = () => {
   const clearMessages = () => { setError(''); setSuccess(''); };
 
   const onSubmit = async (values: LoginFormValues) => {
-    if (authMode !== 'login') return;
-    clearMessages();
-    setIsLoading(true);
-    try {
-      const authData = await login({ username: values.username.trim(), password: values.password });
-      const rawRole = authData?.role || (Array.isArray((authData as any)?.roles) ? (authData as any).roles[0] : '') || '';
-      const role = String(rawRole).toUpperCase().replace(/^ROLE_/, '');
-      if (role === 'ADMIN' || role === 'MANAGER' || role === 'HR') {
-        navigate('/dashboard');
-      } else {
-        navigate('/hrm/employee-portal');
+    if (authMode === 'login') {
+      clearMessages();
+      setIsLoading(true);
+      try {
+        const authData = await login({ username: values.username.trim(), password: values.password });
+        const rawRole = authData?.role || (Array.isArray((authData as any)?.roles) ? (authData as any).roles[0] : '') || '';
+        const role = String(rawRole).toUpperCase().replace(/^ROLE_/, '');
+        if (role === 'ADMIN' || role === 'MANAGER' || role === 'HR') {
+          navigate('/dashboard');
+        } else {
+          navigate('/hrm/employee-portal');
+        }
+      } catch {
+        setError(t('login.loginFailed'));
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      setError(t('login.loginFailed'));
-    } finally {
-      setIsLoading(false);
+    } else if (authMode === 'forgot') {
+      await sendOtp();
+    } else if (authMode === 'verify') {
+      await handleVerifyOtp();
+    } else if (authMode === 'reset') {
+      await handleResetPassword();
     }
   };
 
@@ -201,42 +208,83 @@ const LoginPage: React.FC = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
-            {/* Username / Email */}
-            <div className={styles.field}>
-              <label htmlFor="username" className={styles.label}>
-                {authMode === 'login' ? t('login.username') : t('login.accountEmail')}
-              </label>
-              <div className={styles.inputWrap}>
-                <span className={styles.inputIcon}><User size={16} /></span>
-                <input
-                  id="username"
-                  type="text"
-                  placeholder={authMode === 'login' ? t('login.usernamePlaceholder') : t('login.accountEmailPlaceholder')}
-                  disabled={isLoading || authMode === 'verify' || authMode === 'reset'}
-                  {...register('username', { required: true })}
-                  className={styles.input}
-                  autoComplete="username"
-                />
+            {/* Username for login */}
+            {authMode === 'login' && (
+              <div className={styles.field}>
+                <label htmlFor="username" className={styles.label}>
+                  {t('login.username')}
+                </label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}><User size={16} /></span>
+                  <input
+                    id="username"
+                    type="text"
+                    placeholder={t('login.usernamePlaceholder')}
+                    disabled={isLoading}
+                    {...register('username', { required: true })}
+                    className={styles.input}
+                    autoComplete="username"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Password / OTP */}
-            <div className={styles.field}>
-              <label htmlFor="password" className={styles.label}>
-                {authMode === 'login' ? t('login.password') : authMode === 'verify' ? t('login.otpCode') : t('login.newPassword')}
-              </label>
-              <div className={styles.inputWrap}>
-                <span className={styles.inputIcon}><Lock size={16} /></span>
-                <input
-                  id="password"
-                  type={authMode === 'verify' ? 'text' : showPassword ? 'text' : 'password'}
-                  placeholder={authMode === 'verify' ? t('login.otpPlaceholder') : authMode === 'reset' ? t('login.newPasswordPlaceholder') : t('login.passwordPlaceholder')}
-                  disabled={isLoading}
-                  {...register('password', { required: true })}
-                  className={styles.input}
-                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                />
-                {authMode !== 'verify' && (
+            {/* Email for forgot password */}
+            {authMode === 'forgot' && (
+              <div className={styles.field}>
+                <label htmlFor="username" className={styles.label}>
+                  {t('login.accountEmail')}
+                </label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}><User size={16} /></span>
+                  <input
+                    id="username"
+                    type="email"
+                    placeholder={t('login.accountEmailPlaceholder')}
+                    disabled={isLoading}
+                    {...register('username', { required: true })}
+                    className={styles.input}
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Read-only target email for verify and reset steps */}
+            {(authMode === 'verify' || authMode === 'reset') && (
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  {t('login.accountEmail')}
+                </label>
+                <div className={styles.inputWrap} style={{ opacity: 0.85 }}>
+                  <span className={styles.inputIcon}><User size={16} /></span>
+                  <input
+                    type="text"
+                    value={forgotEmail}
+                    disabled
+                    className={styles.input}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Password for login */}
+            {authMode === 'login' && (
+              <div className={styles.field}>
+                <label htmlFor="password" className={styles.label}>
+                  {t('login.password')}
+                </label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}><Lock size={16} /></span>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={t('login.passwordPlaceholder')}
+                    disabled={isLoading}
+                    {...register('password', { required: true })}
+                    className={styles.input}
+                    autoComplete="current-password"
+                  />
                   <button
                     type="button"
                     onClick={() => setShowPassword((p) => !p)}
@@ -246,9 +294,62 @@ const LoginPage: React.FC = () => {
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
-                )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* OTP input for verify */}
+            {authMode === 'verify' && (
+              <div className={styles.field}>
+                <label htmlFor="password" className={styles.label}>
+                  {t('login.otpCode')}
+                </label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}><Lock size={16} /></span>
+                  <input
+                    id="password"
+                    type="text"
+                    maxLength={6}
+                    placeholder={t('login.otpPlaceholder')}
+                    disabled={isLoading}
+                    {...register('password', { required: true })}
+                    className={styles.input}
+                    autoComplete="one-time-code"
+                    style={{ letterSpacing: '4px', fontWeight: 'bold' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* New password input for reset */}
+            {authMode === 'reset' && (
+              <div className={styles.field}>
+                <label htmlFor="password" className={styles.label}>
+                  {t('login.newPassword')}
+                </label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}><Lock size={16} /></span>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={t('login.newPasswordPlaceholder')}
+                    disabled={isLoading}
+                    {...register('password', { required: true })}
+                    className={styles.input}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    disabled={isLoading}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className={styles.eyeBtn}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Remember me + Forgot */}
             {authMode === 'login' && (
