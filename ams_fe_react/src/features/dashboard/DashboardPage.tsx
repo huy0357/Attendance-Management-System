@@ -25,6 +25,7 @@ import { useDashboardWebSocket } from './hooks/useDashboardWebSocket';
 import { ExceptionRecord } from '../../shared/models/dashboard.model';
 import { cn } from '../../shared/utils/cn';
 import styles from './DashboardPage.module.scss';
+import { monthlySummaryApi } from '../attendance/monthly-summary/api/monthly-summary.api';
 
 // ── Helpers ────────────────────────────────────────────────────────────
 const avatarGradients = [
@@ -126,14 +127,24 @@ const DashboardPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
 
-  // MANAGER also needs team-level KPI visibility (attendance overview, live pulse)
-  const canSeeAdminDashboardActions = hasAnyRole(['ADMIN', 'MANAGER']);
+  // ADMIN, HR, and MANAGER need team/company-level KPI visibility (attendance overview, live pulse)
+  const canSeeAdminDashboardActions = hasAnyRole(['ADMIN', 'HR', 'MANAGER']);
   
   // Enable websocket for live updates
   useDashboardWebSocket(canSeeAdminDashboardActions);
 
-  // Self-service cards only for pure EMPLOYEE role
-  const canSeeSelfServiceDashboardActions = hasRole('EMPLOYEE') && !hasRole('ADMIN') && !hasRole('MANAGER');
+  // Self-service cards for pure EMPLOYEE role
+  const canSeeSelfServiceDashboardActions = !canSeeAdminDashboardActions;
+
+  // Personal monthly summary for employees
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const { data: mySummary } = useQuery({
+    queryKey: ['myMonthlySummaryDashboard', currentMonthKey],
+    queryFn: () => monthlySummaryApi.getMySummary(currentMonthKey),
+    enabled: canSeeSelfServiceDashboardActions,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
   // Strict UI requirements: Keep state & queries EXACTLY as they were
   const [selectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -234,7 +245,7 @@ const DashboardPage: React.FC = () => {
             {t('dashboard.overview')}
           </h1>
           <p className="text-[14px] font-medium font-sans text-slate-500">
-            {hasRole('ADMIN')
+            {hasAnyRole(['ADMIN', 'HR'])
               ? t('dashboard.adminSubtitle')
               : hasRole('MANAGER')
               ? t('dashboard.managerSubtitle')
@@ -556,29 +567,117 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* ───── Self Service UI ───── */}
-      {!isLoading && canSeeSelfServiceDashboardActions && !canSeeAdminDashboardActions && (
-        <motion.div 
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-8"
-        >
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={() => navigate('/attendance/requests-management')}>
-            <FileText className="h-8 w-8 text-indigo-500" />
-            <span className="font-semibold text-slate-700">My Requests</span>
+      {/* ───── Self Service UI (Dashboard Cá nhân cho Nhân viên) ───── */}
+      {canSeeSelfServiceDashboardActions && (
+        <div className="space-y-8">
+          {/* Thẻ thống kê công cá nhân tháng này */}
+          <div>
+            <h2 className="text-base font-bold text-slate-700 uppercase tracking-wider mb-4">
+              Thống kê chấm công tháng này ({currentMonthKey})
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className={cn(styles.glassCard, "p-6 flex items-center gap-4")}>
+                <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100/50 text-emerald-600">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ngày công thực tế</p>
+                  <h3 className="text-2xl font-black text-slate-800 mt-1">{mySummary?.workDays ?? 0} ngày</h3>
+                </div>
+              </div>
+
+              <div className={cn(styles.glassCard, "p-6 flex items-center gap-4")}>
+                <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100/50 text-amber-600">
+                  <Clock className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số phút đi muộn</p>
+                  <h3 className="text-2xl font-black text-slate-800 mt-1">{mySummary?.lateMinutes ?? 0} phút</h3>
+                </div>
+              </div>
+
+              <div className={cn(styles.glassCard, "p-6 flex items-center gap-4")}>
+                <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100/50 text-indigo-600">
+                  <CalendarDays className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nghỉ phép hưởng lương</p>
+                  <h3 className="text-2xl font-black text-slate-800 mt-1">{mySummary?.leaveDays ?? 0} ngày</h3>
+                </div>
+              </div>
+
+              <div className={cn(styles.glassCard, "p-6 flex items-center gap-4")}>
+                <div className="h-12 w-12 rounded-xl bg-rose-50 flex items-center justify-center border border-rose-100/50 text-rose-600">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vắng không phép</p>
+                  <h3 className="text-2xl font-black text-slate-800 mt-1">{mySummary?.absentDays ?? 0} ngày</h3>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={goToAttendanceDaily}>
-            <CalendarDays className="h-8 w-8 text-fuchsia-500" />
-            <span className="font-semibold text-slate-700">My Attendance</span>
+
+          {/* Lối tắt thao tác nhanh */}
+          <div>
+            <h2 className="text-base font-bold text-slate-700 uppercase tracking-wider mb-4">
+              Lối tắt thao tác nhanh
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div
+                className={cn(styles.glassCard, "p-6 cursor-pointer hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-3")}
+                onClick={() => navigate('/attendance/my-attendance-daily')}
+              >
+                <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/60">
+                  <CalendarDays className="h-7 w-7" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Bảng công của tôi</h4>
+                  <p className="text-xs text-slate-500 mt-1">Xem chi tiết giờ vào / giờ ra từng ngày</p>
+                </div>
+              </div>
+
+              <div
+                className={cn(styles.glassCard, "p-6 cursor-pointer hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-3")}
+                onClick={() => navigate('/attendance/my-schedule')}
+              >
+                <div className="h-14 w-14 rounded-2xl bg-fuchsia-50 flex items-center justify-center text-fuchsia-600 border border-fuchsia-100/60">
+                  <Clock className="h-7 w-7" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Lịch làm việc</h4>
+                  <p className="text-xs text-slate-500 mt-1">Xem ca làm việc và phân ca trong tuần</p>
+                </div>
+              </div>
+
+              <div
+                className={cn(styles.glassCard, "p-6 cursor-pointer hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-3")}
+                onClick={() => navigate('/attendance/requests')}
+              >
+                <div className="h-14 w-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100/60">
+                  <FileText className="h-7 w-7" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Gửi yêu cầu / Xin nghỉ</h4>
+                  <p className="text-xs text-slate-500 mt-1">Tạo đơn xin nghỉ, làm bù, check-in bù</p>
+                </div>
+              </div>
+
+              <div
+                className={cn(styles.glassCard, "p-6 cursor-pointer hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-3")}
+                onClick={() => navigate('/hrm/employee-portal')}
+              >
+                <div className="h-14 w-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/60">
+                  <Briefcase className="h-7 w-7" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Hồ sơ cá nhân</h4>
+                  <p className="text-xs text-slate-500 mt-1">Thông tin nhân sự, phòng ban, chức vụ</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={() => navigate('/attendance/leave-management')}>
-            <Clock className="h-8 w-8 text-amber-500" />
-            <span className="font-semibold text-slate-700">Leave</span>
-          </div>
-          <div className={cn(styles.glassCard, "p-5 cursor-pointer hover:bg-slate-50 flex flex-col items-center justify-center text-center gap-3 min-w-0")} onClick={() => navigate('/hrm/employee-portal')}>
-            <Briefcase className="h-8 w-8 text-emerald-500" />
-            <span className="font-semibold text-slate-700">Profile</span>
-          </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ───── RESOLVE EXCEPTION MODAL (Glassmorphism Modal) ───── */}
