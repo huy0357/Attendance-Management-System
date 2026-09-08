@@ -118,23 +118,8 @@ export const AttendanceDailyPage: React.FC = () => {
         return await attendanceDailyApi.getAttendanceDailyEmployee(Number(employeeId), from, to, page, size);
       }
 
-      // Admin/Manager tab: trigger batch sync in background (non-blocking), always fetch data
+      // Admin/Manager tab: only fetch data, no auto batch sync
       if (isAdmin && activeTab === 'all') {
-        const currentRange = `${from}_${to}`;
-        const lastRange = syncedRangeRef.current ? `${syncedRangeRef.current.from}_${syncedRangeRef.current.to}` : null;
-        
-        if (currentRange !== lastRange && !isSyncingRef.current) {
-          syncedRangeRef.current = { from, to };
-          isSyncingRef.current = true;
-          setSyncWarning('');
-          const dates = enumerateIsoDatesInclusive(from, to);
-          Promise.allSettled(dates.map(d => attendanceDailyApi.runAttendanceBatchForDate(d)))
-            .then(() => { isSyncingRef.current = false; })
-            .catch(() => {
-              isSyncingRef.current = false;
-              setSyncWarning('Batch sync gặp lỗi, dữ liệu có thể chưa cập nhật đầy đủ.');
-            });
-        }
         return await attendanceDailyApi.getAttendanceDailyAdmin(from, to, page, size);
       } else {
         return await attendanceDailyApi.getMyAttendanceDaily(from, to, page, size);
