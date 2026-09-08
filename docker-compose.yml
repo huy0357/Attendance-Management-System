@@ -72,6 +72,8 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       APP_JWT_SECRET: ${JWT_SECRET}
+      TZ: Asia/Ho_Chi_Minh
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-huytrongk8a@gmail.com}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
       MINIO_ENDPOINT: http://minio:9000
