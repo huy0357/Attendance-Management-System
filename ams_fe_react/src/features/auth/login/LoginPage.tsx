@@ -48,8 +48,21 @@ const LoginPage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [verifiedOtp, setVerifiedOtp] = useState('');
 
+  const REMEMBER_ME_KEY = 'ams.auth.remembered_username';
+  const defaultRememberedUser = (() => {
+    try {
+      return localStorage.getItem(REMEMBER_ME_KEY) || '';
+    } catch {
+      return '';
+    }
+  })();
+
   const { register, handleSubmit, getValues, setValue, reset: resetForm } = useForm<LoginFormValues>({
-    defaultValues: { username: '', password: '', rememberMe: false },
+    defaultValues: {
+      username: defaultRememberedUser,
+      password: '',
+      rememberMe: Boolean(defaultRememberedUser)
+    },
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -61,6 +74,18 @@ const LoginPage: React.FC = () => {
       setIsLoading(true);
       try {
         const authData = await login({ username: values.username.trim(), password: values.password });
+
+        // Persist or remove remembered username based on checkbox
+        try {
+          if (values.rememberMe) {
+            localStorage.setItem(REMEMBER_ME_KEY, values.username.trim());
+          } else {
+            localStorage.removeItem(REMEMBER_ME_KEY);
+          }
+        } catch {
+          // Ignore localStorage errors
+        }
+
         const rawRole = authData?.role || (Array.isArray((authData as any)?.roles) ? (authData as any).roles[0] : '') || '';
         const role = String(rawRole).toUpperCase().replace(/^ROLE_/, '');
         if (role === 'ADMIN' || role === 'MANAGER' || role === 'HR') {
