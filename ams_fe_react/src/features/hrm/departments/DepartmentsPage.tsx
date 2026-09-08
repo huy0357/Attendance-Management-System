@@ -91,7 +91,6 @@ const DepartmentsPage: React.FC = () => {
   const { data: treeData = [], isLoading: isLoadingTree } = useQuery({
     queryKey: ['departments', 'tree'],
     queryFn: () => departmentApi.getTree(),
-    enabled: activeTab === 'tree' || showAddModal || showEditModal,
     refetchOnWindowFocus: false,
   });
 

@@ -310,7 +310,7 @@
   "employees": {
     "title": "Employees Directory",
     "subtitle": "Manage employee records backed by the HR module.",
-    "addBtn": "+ Add Employee",
+    "addBtn": "Add Employee",
     "exportBtn": "Export",
     "totalItems": "Total items: {{count}}",
     "searchPlaceholder": "Search by full name...",
@@ -332,7 +332,7 @@
   "departments": {
     "title": "Departments",
     "subtitle": "Company organizational structure.",
-    "addBtn": "+ Add Department",
+    "addBtn": "Add Department",
     "totalDepartments": "TOTAL DEPARTMENTS",
     "statActive": "ACTIVE",
     "statInactive": "INACTIVE",
@@ -394,7 +394,7 @@
   "accounts": {
     "title": "Account Management",
     "subtitle": "Manage system access and authentication",
-    "addBtn": "+ Add User",
+    "addBtn": "Add User",
     "totalUsers": "TOTAL USERS",
     "active": "ACTIVE",
     "inactive": "INACTIVE",

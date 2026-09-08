@@ -310,7 +310,7 @@
   "employees": {
     "title": "Danh sách nhân viên",
     "subtitle": "Quản lý dữ liệu hồ sơ nhân sự trong hệ thống.",
-    "addBtn": "+ Thêm nhân viên",
+    "addBtn": "Thêm nhân viên",
     "exportBtn": "Xuất dữ liệu",
     "totalItems": "Tổng số: {{count}}",
     "searchPlaceholder": "Tìm theo tên nhân viên...",
@@ -332,7 +332,7 @@
   "departments": {
     "title": "Quản lý phòng ban",
     "subtitle": "Sơ đồ cơ cấu tổ chức công ty.",
-    "addBtn": "+ Thêm phòng ban",
+    "addBtn": "Thêm phòng ban",
     "totalDepartments": "TỔNG SỐ PHÒNG BAN",
     "statActive": "ĐANG HOẠT ĐỘNG",
     "statInactive": "TẠM NGỪNG",
@@ -394,7 +394,7 @@
   "accounts": {
     "title": "Quản lý tài khoản",
     "subtitle": "Quản lý quyền truy cập và xác thực hệ thống",
-    "addBtn": "+ Thêm người dùng",
+    "addBtn": "Thêm người dùng",
     "totalUsers": "TỔNG SỐ TÀI KHOẢN",
     "active": "ĐANG HOẠT ĐỘNG",
     "inactive": "TẠM NGỪNG",
