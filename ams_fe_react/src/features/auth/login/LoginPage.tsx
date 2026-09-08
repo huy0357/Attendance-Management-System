@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, User, Check, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../core/auth/AuthContext';
 import styles from './LoginPage.module.scss';
 
@@ -15,26 +16,27 @@ interface LoginFormValues {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function getHeading(mode: AuthMode): string {
+function getHeading(mode: AuthMode, t: (k: string) => string): string {
   switch (mode) {
-    case 'login':   return 'Welcome back';
-    case 'forgot':  return 'Forgot password';
-    case 'verify':  return 'Verify OTP';
-    case 'reset':   return 'Reset password';
+    case 'login':   return t('login.welcomeBack');
+    case 'forgot':  return t('login.forgotPasswordTitle');
+    case 'verify':  return t('login.verifyOtpTitle');
+    case 'reset':   return t('login.resetPasswordTitle');
   }
 }
 
-function getSubheading(mode: AuthMode): string {
+function getSubheading(mode: AuthMode, t: (k: string) => string): string {
   switch (mode) {
-    case 'login':   return 'Sign in to access your dashboard';
-    case 'forgot':  return 'Send an OTP to your account email';
-    case 'verify':  return 'Enter the OTP sent by the backend email flow';
-    case 'reset':   return 'Set a new password using the verified OTP';
+    case 'login':   return t('login.signInSubtitle');
+    case 'forgot':  return t('login.forgotPasswordSubtitle');
+    case 'verify':  return t('login.verifyOtpSubtitle');
+    case 'reset':   return t('login.resetPasswordSubtitle');
   }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const LoginPage: React.FC = () => {
+  const { t } = useTranslation();
   const { login, forgotPassword, verifyOtp, resetPassword } = useAuth();
   const navigate = useNavigate();
 
@@ -67,7 +69,7 @@ const LoginPage: React.FC = () => {
         navigate('/hrm/employee-portal');
       }
     } catch {
-      setError('Login failed. Please check your credentials.');
+      setError(t('login.loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +93,7 @@ const LoginPage: React.FC = () => {
   const sendOtp = async () => {
     const email = getValues('username').trim();
     clearMessages();
-    if (!email) { setError('Please enter your email address.'); return; }
+    if (!email) { setError(t('login.enterEmail')); return; }
     setForgotEmail(email);
     setIsLoading(true);
     try {
@@ -100,7 +102,7 @@ const LoginPage: React.FC = () => {
       setAuthMode('verify');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg || 'Unable to send OTP.');
+      setError(msg || t('login.sendOtpError'));
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +111,7 @@ const LoginPage: React.FC = () => {
   const handleVerifyOtp = async () => {
     const otp = getValues('password').trim();
     clearMessages();
-    if (!forgotEmail || !otp) { setError('Please enter email and OTP.'); return; }
+    if (!forgotEmail || !otp) { setError(t('login.enterEmailAndOtp')); return; }
     setIsLoading(true);
     try {
       const res = await verifyOtp(forgotEmail, otp);
@@ -119,7 +121,7 @@ const LoginPage: React.FC = () => {
       setAuthMode('reset');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg || 'OTP verification failed.');
+      setError(msg || t('login.verifyOtpError'));
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +130,7 @@ const LoginPage: React.FC = () => {
   const handleResetPassword = async () => {
     const newPassword = getValues('password').trim();
     clearMessages();
-    if (newPassword.length < 6) { setError('New password must be at least 6 characters.'); return; }
+    if (newPassword.length < 6) { setError(t('login.minPasswordLength')); return; }
     setIsLoading(true);
     try {
       const res = await resetPassword(forgotEmail, verifiedOtp, newPassword);
@@ -138,7 +140,7 @@ const LoginPage: React.FC = () => {
       setVerifiedOtp('');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg || 'Unable to reset password.');
+      setError(msg || t('login.resetPasswordError'));
     } finally {
       setIsLoading(false);
     }
@@ -160,15 +162,15 @@ const LoginPage: React.FC = () => {
           <h1 className={styles.brandTitle}>
             AMS<span>Core</span>
           </h1>
-          <p className={styles.brandSub}>Attendance &amp; HR Management System</p>
+          <p className={styles.brandSub}>{t('login.brandSub')}</p>
         </div>
 
         {/* ── Card ── */}
         <div className={styles.card}>
           {/* Mode heading */}
           <div className={styles.cardHeading}>
-            <h2 className={styles.heading}>{getHeading(authMode)}</h2>
-            <p className={styles.subheading}>{getSubheading(authMode)}</p>
+            <h2 className={styles.heading}>{getHeading(authMode, t)}</h2>
+            <p className={styles.subheading}>{getSubheading(authMode, t)}</p>
           </div>
 
           {/* Mode indicator dots */}
@@ -202,14 +204,14 @@ const LoginPage: React.FC = () => {
             {/* Username / Email */}
             <div className={styles.field}>
               <label htmlFor="username" className={styles.label}>
-                {authMode === 'login' ? 'Username' : 'Account Email'}
+                {authMode === 'login' ? t('login.username') : t('login.accountEmail')}
               </label>
               <div className={styles.inputWrap}>
                 <span className={styles.inputIcon}><User size={16} /></span>
                 <input
                   id="username"
                   type="text"
-                  placeholder="username"
+                  placeholder={authMode === 'login' ? t('login.usernamePlaceholder') : t('login.accountEmailPlaceholder')}
                   disabled={isLoading || authMode === 'verify' || authMode === 'reset'}
                   {...register('username', { required: true })}
                   className={styles.input}
@@ -221,14 +223,14 @@ const LoginPage: React.FC = () => {
             {/* Password / OTP */}
             <div className={styles.field}>
               <label htmlFor="password" className={styles.label}>
-                {authMode === 'login' ? 'Password' : authMode === 'verify' ? 'OTP Code' : 'New Password'}
+                {authMode === 'login' ? t('login.password') : authMode === 'verify' ? t('login.otpCode') : t('login.newPassword')}
               </label>
               <div className={styles.inputWrap}>
                 <span className={styles.inputIcon}><Lock size={16} /></span>
                 <input
                   id="password"
                   type={authMode === 'verify' ? 'text' : showPassword ? 'text' : 'password'}
-                  placeholder={authMode === 'verify' ? 'Enter 6-digit OTP' : 'Enter your password'}
+                  placeholder={authMode === 'verify' ? t('login.otpPlaceholder') : authMode === 'reset' ? t('login.newPasswordPlaceholder') : t('login.passwordPlaceholder')}
                   disabled={isLoading}
                   {...register('password', { required: true })}
                   className={styles.input}
@@ -260,7 +262,7 @@ const LoginPage: React.FC = () => {
                     />
                     <span className={styles.checkBox} aria-hidden="true" />
                   </span>
-                  <span>Remember me</span>
+                  <span>{t('login.rememberMe')}</span>
                 </label>
                 <button
                   type="button"
@@ -268,7 +270,7 @@ const LoginPage: React.FC = () => {
                   disabled={isLoading}
                   className={styles.forgotBtn}
                 >
-                  Forgot password?
+                  {t('login.forgotPassword')}
                 </button>
               </div>
             )}
@@ -283,12 +285,12 @@ const LoginPage: React.FC = () => {
                 {isLoading ? (
                   <>
                     <div className={styles.spinner} />
-                    Signing in…
+                    {t('login.signingIn')}
                   </>
                 ) : (
                   <>
                     <Check size={17} />
-                    Sign In
+                    {t('login.signIn')}
                   </>
                 )}
               </button>
@@ -301,7 +303,7 @@ const LoginPage: React.FC = () => {
                 disabled={isLoading}
                 className={styles.btnPrimary}
               >
-                {isLoading ? 'Sending OTP…' : 'Send OTP'}
+                {isLoading ? t('login.sendingOtp') : t('login.sendOtp')}
               </button>
             )}
 
@@ -312,7 +314,7 @@ const LoginPage: React.FC = () => {
                 disabled={isLoading}
                 className={styles.btnPrimary}
               >
-                {isLoading ? 'Verifying…' : 'Verify OTP'}
+                {isLoading ? t('login.verifying') : t('login.verifyOtp')}
               </button>
             )}
 
@@ -323,7 +325,7 @@ const LoginPage: React.FC = () => {
                 disabled={isLoading}
                 className={styles.btnPrimary}
               >
-                {isLoading ? 'Resetting…' : 'Reset Password'}
+                {isLoading ? t('login.resetting') : t('login.resetPassword')}
               </button>
             )}
 
@@ -336,7 +338,7 @@ const LoginPage: React.FC = () => {
                 className={styles.btnBack}
               >
                 <ArrowLeft size={15} />
-                Back to Login
+                {t('login.backToLogin')}
               </button>
             )}
           </form>
@@ -344,7 +346,7 @@ const LoginPage: React.FC = () => {
 
         {/* Footer */}
         <p className={styles.footer}>
-          &copy; {new Date().getFullYear()} AMS Core — All rights reserved
+          {t('login.copyright', { year: new Date().getFullYear() })}
         </p>
       </div>
     </div>

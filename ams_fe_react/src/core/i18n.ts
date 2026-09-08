@@ -9,12 +9,13 @@ const getInitialLanguage = (): string => {
     const raw = localStorage.getItem('ams.settings.preferences');
     if (raw) {
       const parsed = JSON.parse(raw);
+      if (parsed.language === 'en') return 'en';
       if (parsed.language === 'vi') return 'vi';
     }
   } catch (error) {
     // Ignore parse errors
   }
-  return 'en';
+  return 'vi';
 };
 
 i18n
@@ -28,8 +29,8 @@ i18n
         translation: viTranslations,
       },
     },
-    lng: getInitialLanguage(), // Default language
-    fallbackLng: 'en',
+    lng: getInitialLanguage(), // Default language: Vietnamese
+    fallbackLng: 'vi',
     interpolation: {
       escapeValue: false, // React already escapes by default
     },

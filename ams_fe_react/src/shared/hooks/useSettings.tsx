@@ -59,7 +59,7 @@ const DEFAULT_STATE: SettingsState = {
   theme: 'light',
   compactSidebar: false,
   reduceMotion: false,
-  language: 'en',
+  language: 'vi',
   gracePeriod: 15,
   autoAbsentThreshold: 60,
   roundingRule: 15,
@@ -81,7 +81,7 @@ function readPersistedState(): SettingsState {
         typeof parsed.reduceMotion === 'boolean'
           ? parsed.reduceMotion
           : DEFAULT_STATE.reduceMotion,
-      language: parsed.language === 'vi' ? 'vi' : DEFAULT_STATE.language,
+      language: parsed.language === 'en' ? 'en' : 'vi',
       gracePeriod: [5, 10, 15].includes(parsed.gracePeriod as number) ? (parsed.gracePeriod as GracePeriod) : DEFAULT_STATE.gracePeriod,
       autoAbsentThreshold: [30, 60, 90, 120].includes(parsed.autoAbsentThreshold as number) ? (parsed.autoAbsentThreshold as AutoAbsentThreshold) : DEFAULT_STATE.autoAbsentThreshold,
       roundingRule: [0, 15, 30].includes(parsed.roundingRule as number) ? (parsed.roundingRule as RoundingRule) : DEFAULT_STATE.roundingRule,
