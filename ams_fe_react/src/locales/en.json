@@ -202,7 +202,13 @@
     "toastEmailSuccess": "✅ Sent report emails to all employees!",
     "toastEmailError": "Failed to send email.",
     "toastExportSuccess": "✅ Exported Excel file successfully!",
-    "toastExportError": "Failed to export file."
+    "toastExportError": "Failed to export file.",
+    "searchPlaceholder": "Search by name, code, email...",
+    "itemsPerPage": "Items per page:",
+    "showingEmployees": "Showing {{count}} of {{total}} employees",
+    "pageOf": "Page {{current}} of {{total}}",
+    "prev": "Prev",
+    "next": "Next"
   },
   "leaveManagement": {
     "title": "Leave Management",

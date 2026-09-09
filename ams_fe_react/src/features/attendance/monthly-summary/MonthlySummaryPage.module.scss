@@ -390,7 +390,7 @@
   color: var(--nm-danger);
 }
 
-/* ── Table Footer ─────────────────────────────────────────────────────────── */
+/* ── Table Footer & Pagination ───────────────────────────────────────────── */
 .tableFooter {
   display: flex;
   align-items: center;
@@ -401,5 +401,136 @@
   font-size: var(--fs-sm);
   color: var(--nm-text-secondary);
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pageSizeGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageSizeLabel {
+  font-size: var(--fs-xs);
+  color: var(--nm-text-muted);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+}
+
+.pageSizeSelect {
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-sm);
+  box-shadow: var(--nm-shadow-in);
+  border: none;
+  padding: 5px 8px;
+  font-family: var(--font-primary);
+  font-size: var(--fs-xs);
+  color: var(--nm-text);
+  outline: none;
+  cursor: pointer;
+}
+
+.pageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--nm-surface);
+  color: var(--nm-text);
+  box-shadow: var(--nm-shadow-out);
+  border: none;
+  border-radius: var(--nm-radius-sm);
+  padding: 6px 12px;
+  font-family: var(--font-primary);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: var(--nm-transition);
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  &:not(:disabled):hover {
+    box-shadow: var(--nm-shadow-raised);
+    transform: translateY(-1px);
+  }
+}
+
+.pageIndicator {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--nm-text-secondary);
+}
+
+/* ── Search Input ────────────────────────────────────────────────────────── */
+.searchInputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+  max-width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--nm-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  background: var(--nm-surface);
+  border-radius: var(--nm-radius-md);
+  box-shadow: var(--nm-shadow-in);
+  border: none;
+  padding: 8px 34px 8px 36px;
+  font-family: var(--font-primary);
+  font-size: var(--fs-sm);
+  color: var(--nm-text);
+  transition: var(--nm-transition);
+  outline: none;
+
+  &:focus {
+    box-shadow:
+      inset 4px 4px 10px var(--nm-dark),
+      inset -4px -4px 10px var(--nm-light),
+      0 0 0 2px rgba(0, 102, 102, 0.2);
+  }
+
+  &::placeholder {
+    color: var(--nm-text-muted);
+  }
+}
+
+.clearSearchBtn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--nm-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--nm-text);
+  }
+}
+

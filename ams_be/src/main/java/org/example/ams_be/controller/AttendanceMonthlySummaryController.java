@@ -35,7 +35,11 @@ public class AttendanceMonthlySummaryController {
     // GET /api/monthly-summary/admin?month=2026-07
     @GetMapping("/admin")
     public List<MonthlyAttendanceEmailDto> adminGetSummary(@RequestParam String month) {
-        return attendanceSummaryMonthlyRepository.findAllEmailSummaryByMonth(month);
+        List<MonthlyAttendanceEmailDto> list = attendanceSummaryMonthlyRepository.findAllSummaryByMonth(month);
+        if (list == null || list.isEmpty()) {
+            list = attendanceSummaryMonthlyRepository.findRealtimeSummaryByMonth(month);
+        }
+        return list;
     }
 
     // MỚI — xem summary 1 nhân viên cụ thể

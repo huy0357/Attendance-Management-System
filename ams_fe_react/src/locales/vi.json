@@ -202,7 +202,13 @@
     "toastEmailSuccess": "✅ Đã gửi email báo cáo cho toàn bộ nhân viên!",
     "toastEmailError": "Không thể gửi email.",
     "toastExportSuccess": "✅ Xuất file Excel thành công!",
-    "toastExportError": "Không thể xuất file."
+    "toastExportError": "Không thể xuất file.",
+    "searchPlaceholder": "Tìm kiếm theo tên, mã NV, email...",
+    "itemsPerPage": "Số dòng / trang:",
+    "showingEmployees": "Hiển thị {{count}} / {{total}} nhân viên",
+    "pageOf": "Trang {{current}} / {{total}}",
+    "prev": "Trước",
+    "next": "Sau"
   },
   "leaveManagement": {
     "title": "Quản lý nghỉ phép",

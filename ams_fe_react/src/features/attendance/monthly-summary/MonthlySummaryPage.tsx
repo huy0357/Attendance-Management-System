@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
@@ -13,6 +13,10 @@ import {
   Calendar,
   Users,
   AlertTriangle,
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -69,7 +73,15 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
   const colSpanCount: number = showAdminView ? 9 : 7;
 
   const [selectedMonth, setSelectedMonth] = useState(getMonthVal(new Date()));
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  // Reset page when search term, page size or month changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, pageSize, selectedMonth]);
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg });
@@ -97,10 +109,37 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
     ? [data]
     : [];
 
-  // --- Aggregate stats (Admin mode) ---
-  const totalWorkDays = rows.reduce((s, r) => s + (Number(r.workDays) || 0), 0);
-  const totalAbsent = rows.reduce((s, r) => s + (Number(r.absentDays) || 0), 0);
-  const totalOT = rows.reduce((s, r) => s + (r.otMinutes || 0), 0);
+  // Filter and sort alphabetically by employee name
+  const filteredRows = useMemo(() => {
+    let result = [...rows];
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      result = result.filter(
+        (r) =>
+          (r.employeeName && r.employeeName.toLowerCase().includes(term)) ||
+          (r.employeeCode && r.employeeCode.toLowerCase().includes(term)) ||
+          (r.email && r.email.toLowerCase().includes(term))
+      );
+    }
+    result.sort((a, b) =>
+      (a.employeeName || '').localeCompare(b.employeeName || '', 'vi', { sensitivity: 'base' })
+    );
+    return result;
+  }, [rows, searchTerm]);
+
+  // --- Aggregate stats (Admin mode) - calculated on filteredRows (reflects current view/search accurately) ---
+  const totalEmployees = filteredRows.length;
+  const totalWorkDays = filteredRows.reduce((s, r) => s + (Number(r.workDays) || 0), 0);
+  const totalAbsent = filteredRows.reduce((s, r) => s + (Number(r.absentDays) || 0), 0);
+  const totalOT = filteredRows.reduce((s, r) => s + (r.otMinutes || 0), 0);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const paginatedRows = useMemo(() => {
+    if (isPersonalMode) return filteredRows;
+    const start = page * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize, isPersonalMode]);
 
   // --- Mutations ---
   const generateMutation = useMutation({
@@ -218,7 +257,7 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
         )}
       </div>
 
-      {/* ── Month Picker ─────────────────────────────────────────────── */}
+      {/* ── Filter Bar ─────────────────────────────────────────────── */}
       <div className={styles.filterBar}>
         <div className={styles.filterGroup}>
           <label htmlFor="monthly-summary-month-picker" className={styles.filterLabel}>
@@ -233,14 +272,38 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
             disabled={isBusy}
           />
         </div>
+
+        {showAdminView && (
+          <div className={styles.searchInputWrap}>
+            <Search className={styles.searchIcon} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('monthlySummary.searchPlaceholder') || 'Tìm kiếm theo tên, mã NV, email...'}
+              className={styles.searchInput}
+              disabled={isBusy}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className={styles.clearSearchBtn}
+                onClick={() => setSearchTerm('')}
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Stats (Admin aggregate) ───────────────────────────────────── */}
-      {showAdminView && rows.length > 0 && (
+      {showAdminView && filteredRows.length > 0 && (
         <div className={styles.statsGrid}>
           <StatCard
             label={t('monthlySummary.statTotalEmp')}
-            value={rows.length}
+            value={searchTerm.trim() ? `${filteredRows.length} / ${rows.length}` : totalEmployees}
             icon={<Users className="w-5 h-5" />}
             color="var(--nm-primary)"
           />
@@ -334,7 +397,19 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
               </tr>
             ) : null}
 
-            {/* Empty */}
+            {/* Empty search results */}
+            {(!isLoading && !error && rows.length > 0 && filteredRows.length === 0) ? (
+              <tr>
+                <td colSpan={colSpanCount} className={styles.emptyCell}>
+                  <AlertCircle className="w-8 h-8" style={{ color: 'var(--nm-text-muted)' }} />
+                  <span style={{ color: 'var(--nm-text-muted)', fontWeight: '500' }}>
+                    Không tìm thấy nhân viên nào khớp với &quot;{searchTerm}&quot;
+                  </span>
+                </td>
+              </tr>
+            ) : null}
+
+            {/* Empty month data */}
             {(!isLoading && !error && rows.length === 0) ? (
               <tr>
                 <td colSpan={colSpanCount} className={styles.emptyCellWrapper}>
@@ -361,7 +436,7 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
 
             {/* Data rows */}
             {!isLoading &&
-              rows.map((row) => {
+              paginatedRows.map((row) => {
                 const workDays = Number(row.workDays) || 0;
                 const leaveDays = Number(row.leaveDays) || 0;
                 const absentDays = Number(row.absentDays) || 0;
@@ -383,8 +458,12 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
                           </div>
                           <div>
                             <span className={styles.employeeName}>{row.employeeName}</span>
-                            {row.email && (
+                            {row.email ? (
                               <span className={styles.employeeEmail}>{row.email}</span>
+                            ) : (
+                              <span className={styles.employeeEmail} style={{ fontStyle: 'italic', opacity: 0.6 }}>
+                                (Chưa có email)
+                              </span>
                             )}
                           </div>
                         </div>
@@ -440,17 +519,69 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
           </tbody>
         </table>
 
-        {/* Footer info */}
-        {!isLoading && rows.length > 0 && (
+        {/* ── Footer & Pagination ── */}
+        {!isLoading && filteredRows.length > 0 && (
           <div className={styles.tableFooter}>
-            <span>
-              Hiển thị <strong>{rows.length}</strong> nhân viên — Tháng:{' '}
-              <strong>{selectedMonth}</strong>
-            </span>
-            {isAdmin && (
-              <span style={{ fontSize: 12, opacity: 0.7 }}>
-                * Dữ liệu tự động fallback tính realtime nếu tháng chưa được chốt.
+            <div>
+              <span>
+                Hiển thị{' '}
+                <strong>
+                  {showAdminView
+                    ? `${page * pageSize + 1} - ${Math.min((page + 1) * pageSize, filteredRows.length)}`
+                    : filteredRows.length}
+                </strong>{' '}
+                / <strong>{filteredRows.length}</strong> nhân viên
+                {rows.length !== filteredRows.length && (
+                  <span style={{ opacity: 0.7 }}> (lọc từ tổng số {rows.length})</span>
+                )}
+                {' — '}Tháng: <strong>{selectedMonth}</strong>
               </span>
+            </div>
+
+            {showAdminView && (
+              <div className={styles.paginationControls}>
+                <div className={styles.pageSizeGroup}>
+                  <label htmlFor="page-size-select" className={styles.pageSizeLabel}>
+                    {t('monthlySummary.itemsPerPage') || 'Số dòng:'}
+                  </label>
+                  <select
+                    id="page-size-select"
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className={styles.pageSizeSelect}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.pageBtn}
+                  disabled={page <= 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  {t('monthlySummary.prev') || 'Trước'}
+                </button>
+
+                <span className={styles.pageIndicator}>
+                  {t('monthlySummary.pageOf', { current: page + 1, total: totalPages }) ||
+                    `Trang ${page + 1} / ${totalPages}`}
+                </span>
+
+                <button
+                  type="button"
+                  className={styles.pageBtn}
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                >
+                  {t('monthlySummary.next') || 'Sau'}
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
           </div>
         )}

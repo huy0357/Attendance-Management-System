@@ -150,6 +150,81 @@ public class AttendanceSummaryMonthlyRepository {
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
+    public List<MonthlyAttendanceEmailDto> findAllSummaryByMonth(String monthKey) {
+        String sql = """
+            SELECT
+                m.employee_id,
+                e.employee_code,
+                e.full_name,
+                e.email,
+                m.month_key,
+                m.work_days,
+                m.leave_days,
+                m.absent_days,
+                m.late_minutes,
+                m.early_leave_minutes,
+                m.ot_minutes
+            FROM attendance_summary_monthly m
+            JOIN employees e ON e.employee_id = m.employee_id
+            WHERE m.month_key = ?
+            ORDER BY e.full_name ASC, m.employee_id ASC
+            """;
+
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+                        MonthlyAttendanceEmailDto.builder()
+                                .employeeId(rs.getLong("employee_id"))
+                                .employeeCode(rs.getString("employee_code"))
+                                .employeeName(rs.getString("full_name"))
+                                .email(rs.getString("email"))
+                                .monthKey(rs.getString("month_key"))
+                                .workDays(rs.getBigDecimal("work_days"))
+                                .leaveDays(rs.getBigDecimal("leave_days"))
+                                .absentDays(rs.getBigDecimal("absent_days"))
+                                .lateMinutes(rs.getInt("late_minutes"))
+                                .earlyLeaveMinutes(rs.getInt("early_leave_minutes"))
+                                .otMinutes(rs.getInt("ot_minutes"))
+                                .build()
+                , monthKey);
+    }
+
+    public List<MonthlyAttendanceEmailDto> findRealtimeSummaryByMonth(String monthKey) {
+        String sql = """
+            SELECT
+                e.employee_id,
+                e.employee_code,
+                e.full_name,
+                e.email,
+                ? AS month_key,
+                COALESCE(SUM(CASE WHEN ad.status = 'PRESENT' THEN 1 ELSE 0 END), 0) AS work_days,
+                COALESCE(SUM(CASE WHEN ad.status = 'LEAVE' THEN 1 ELSE 0 END), 0) AS leave_days,
+                COALESCE(SUM(CASE WHEN ad.status = 'ABSENT' THEN 1 ELSE 0 END), 0) AS absent_days,
+                COALESCE(SUM(ad.late_minutes), 0) AS late_minutes,
+                COALESCE(SUM(ad.early_leave_minutes), 0) AS early_leave_minutes,
+                COALESCE(SUM(COALESCE(ad.ot_minutes_before, 0) + COALESCE(ad.ot_minutes_after, 0) + COALESCE(ad.ot_minutes_holiday, 0)), 0) AS ot_minutes
+            FROM employees e
+            LEFT JOIN attendance_daily ad ON e.employee_id = ad.employee_id AND DATE_FORMAT(ad.work_date, '%Y-%m') = ?
+            WHERE e.status = 'ACTIVE'
+            GROUP BY e.employee_id, e.employee_code, e.full_name, e.email
+            ORDER BY e.full_name ASC, e.employee_id ASC
+            """;
+
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+                        MonthlyAttendanceEmailDto.builder()
+                                .employeeId(rs.getLong("employee_id"))
+                                .employeeCode(rs.getString("employee_code"))
+                                .employeeName(rs.getString("full_name"))
+                                .email(rs.getString("email"))
+                                .monthKey(rs.getString("month_key"))
+                                .workDays(rs.getBigDecimal("work_days"))
+                                .leaveDays(rs.getBigDecimal("leave_days"))
+                                .absentDays(rs.getBigDecimal("absent_days"))
+                                .lateMinutes(rs.getInt("late_minutes"))
+                                .earlyLeaveMinutes(rs.getInt("early_leave_minutes"))
+                                .otMinutes(rs.getInt("ot_minutes"))
+                                .build(),
+                monthKey, monthKey);
+    }
+
     public List<MonthlyAttendanceEmailDto> findAllEmailSummaryByMonth(String monthKey) {
         String sql = """
             SELECT
@@ -169,7 +244,7 @@ public class AttendanceSummaryMonthlyRepository {
             WHERE m.month_key = ?
               AND e.email IS NOT NULL
               AND TRIM(e.email) <> ''
-            ORDER BY m.employee_id
+            ORDER BY e.full_name ASC, m.employee_id ASC
             """;
 
         return jdbcTemplate.query(sql, (rs, rowNum) ->

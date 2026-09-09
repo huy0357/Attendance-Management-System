@@ -35,7 +35,7 @@ public class AttendanceExportRepository {
             FROM attendance_summary_monthly m
             JOIN employees e ON e.employee_id = m.employee_id
             WHERE m.month_key = ?
-            ORDER BY m.employee_id
+            ORDER BY e.full_name ASC, m.employee_id ASC
             """;
 
         return jdbcTemplate.query(sql, (rs, rowNum) ->
