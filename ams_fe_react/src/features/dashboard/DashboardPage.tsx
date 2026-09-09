@@ -56,7 +56,7 @@ const translateExceptionText = (text?: any, language?: string): string => {
   if (str.includes('has been late')) {
     return str.replace(/Employee has been late (\d+) times this month/, 'Nhân viên đã đi muộn $1 lần trong tháng này');
   }
-  if (str.includes('Anti-spoofing system detected')) {
+  if (str.includes('Anti-spoofing system detected') || str.includes('potential fraud attempt')) {
     return 'Hệ thống phát hiện nghi vấn gian lận chấm công';
   }
   if (str.includes('checked in but forgot to check out')) {
@@ -65,12 +65,42 @@ const translateExceptionText = (text?: any, language?: string): string => {
   if (str.includes('Personal leave request')) {
     return str.replace(/Personal leave request for (\d+) days/, 'Yêu cầu nghỉ phép cá nhân $1 ngày');
   }
+  if (str.includes('did not check in and no leave request found')) {
+    return 'Vắng mặt không phép / chưa nộp đơn xin nghỉ';
+  }
   if (str === 'LATE_CHECKIN') return 'Đi muộn';
-  if (str === 'MISSING_CHECKOUT') return 'Thiếu check-out';
-  if (str === 'LOCATION_MISMATCH') return 'Sai vị trí chấm công';
-  if (str === 'FACE_UNMATCHED') return 'Khuôn mặt không khớp';
+  if (str === 'MISSING_CHECKOUT' || str === 'MISSING_CHECK_OUT') return 'Quên check-out cuối ngày';
+  if (str === 'LOCATION_MISMATCH') return 'Sai vị trí chấm công quy định';
+  if (str === 'FACE_UNMATCHED') return 'Khuôn mặt không khớp nhận diện';
+  if (str === 'NO_CHECK_IN_NO_LEAVE' || str === 'UNAUTHORIZED_ABSENCE') return 'Vắng mặt không phép / chưa nộp đơn nghỉ';
+  if (str === 'DUPLICATE_CHECKIN') return 'Phát hiện quẹt thẻ chấm công trùng lặp';
+  if (str === 'SICK_LEAVE') return 'Nghỉ ốm đột xuất';
+  if (str === 'FREQUENT_LATE') return 'Đi muộn nhiều lần trong tuần/tháng';
+  if (str === 'SYSTEM_ERROR') return 'Lỗi hệ thống máy chấm công';
+  if (str === 'MANUAL_ADJUSTMENT') return 'Cần điều chỉnh công thủ công';
 
   return str;
+};
+
+const formatLocation = (location?: string | null, branchId?: string | null): string => {
+  const loc = (location || '').trim();
+  const br = (branchId || '').trim();
+  
+  // If location is already a human readable Vietnamese name, return it
+  if (loc && !loc.startsWith('HQ_') && !loc.startsWith('BR_') && !loc.startsWith('BR0')) {
+    return loc;
+  }
+  
+  const target = br || loc;
+  if (!target) return 'Trụ sở chính (HQ)';
+  
+  const upper = target.toUpperCase();
+  if (upper.includes('HQ')) return 'Trụ sở chính (HQ)';
+  if (upper.includes('BR001') || upper.includes('BR_001') || upper === 'BR01') return 'Chi nhánh 1 (BR01)';
+  if (upper.includes('BR002') || upper.includes('BR_002') || upper === 'BR02') return 'Chi nhánh 2 (BR02)';
+  if (upper.includes('BR003') || upper.includes('BR_003') || upper === 'BR03') return 'Chi nhánh 3 (BR03)';
+  
+  return loc || br || 'Trụ sở chính (HQ)';
 };
 
 const formatDateTime = (iso: string | null): string => {
@@ -463,7 +493,7 @@ const DashboardPage: React.FC = () => {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-1.5 text-slate-500">
                               <MapPin className="h-4 w-4 opacity-40" />
-                              <span className="text-[13px] font-semibold font-sans">{rec.branchId || rec.location || 'HQ'}</span>
+                              <span className="text-[13px] font-semibold font-sans">{formatLocation(rec.location, rec.branchId)}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4">
