@@ -7,6 +7,8 @@ export interface ProfileDto {
   position: string | null;
   departmentId: number | null;
   departmentName: string | null;
+  managerId?: number;
+  managerName?: string | null;
   avatar: string | null;
   avatarUrl?: string | null;
   avatarLabel?: string;

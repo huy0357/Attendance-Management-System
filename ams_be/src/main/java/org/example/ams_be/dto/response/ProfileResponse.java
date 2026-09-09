@@ -24,7 +24,10 @@ public class ProfileResponse {
     private String role;
     private String status;
     private Long departmentId;
+    private String departmentName;
     private Long positionId;
+    private Long managerId;
+    private String managerName;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
 }

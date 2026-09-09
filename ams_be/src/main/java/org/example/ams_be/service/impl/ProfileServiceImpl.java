@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.ams_be.dto.EmployeeDto;
 import org.example.ams_be.dto.request.EmployeeRequest;
 import org.example.ams_be.entity.Account;
+import org.example.ams_be.entity.Department;
 import org.example.ams_be.repository.AccountRepository;
+import org.example.ams_be.repository.DepartmentRepository;
 import org.example.ams_be.repository.EmployeeRepository;
 import org.example.ams_be.service.ProfileService;
 import org.example.ams_be.service.StorageService;
@@ -28,6 +30,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final AccountRepository accountRepository;
     private final EmployeeRepository employeeRepository;
+    private final DepartmentRepository departmentRepository;
     private final StorageService storageService;
 
     @Value("${file.upload-dir}")
@@ -158,8 +161,26 @@ public class ProfileServiceImpl implements ProfileService {
         response.put("isActive", account.getIsActive());
         response.put("status", employee.status);
         response.put("departmentId", employee.departmentId);
+
+        String departmentName = null;
+        if (employee.departmentId != null) {
+            departmentName = departmentRepository.findById(employee.departmentId)
+                    .map(Department::getDepartmentName)
+                    .orElse(null);
+        }
+        response.put("departmentName", departmentName);
+
         response.put("positionId", employee.positionId);
         response.put("managerId", employee.managerId);
+
+        String managerName = null;
+        if (employee.managerId != null) {
+            managerName = employeeRepository.findById(employee.managerId)
+                    .map(m -> m.fullName)
+                    .orElse(null);
+        }
+        response.put("managerName", managerName);
+
         response.put("hireDate", employee.hireDate);
         response.put("terminatedDate", employee.terminatedDate);
         response.put("avatarUrl", employee.avatarUrl);

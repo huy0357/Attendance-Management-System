@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Camera, Edit2, Save, X, Mail, Phone, Calendar, MapPin, Building2, Briefcase, Clock, Shield } from 'lucide-react';
-import { profileApi } from '../api/hrm.api';
+import { profileApi, employeeApi } from '../api/hrm.api';
 import { useAuth } from '../../../core/auth/AuthContext';
 import { useToast } from '../../../core/toast/ToastContext';
 import styles from './EmployeePortalPage.module.scss';
@@ -22,6 +22,19 @@ const EmployeePortalPage: React.FC = () => {
     queryKey: ['myProfile'],
     queryFn: () => profileApi.getMyProfile(),
     refetchOnWindowFocus: false,
+  });
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => employeeApi.getDepartments(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: managerEmployee } = useQuery({
+    queryKey: ['managerEmployee', profile?.managerId],
+    queryFn: () => (profile?.managerId ? employeeApi.getById(profile.managerId) : null),
+    enabled: !!profile?.managerId && !profile?.managerName,
+    staleTime: 5 * 60 * 1000,
   });
 
   const updateMutation = useMutation({
@@ -72,6 +85,16 @@ const EmployeePortalPage: React.FC = () => {
 
   if (isLoading) return <div style={{ padding: '32px', textAlign: 'center', opacity: 0.6, fontWeight: 'bold' }}>Loading profile data...</div>;
   if (isError || !profile) return <div style={{ padding: '32px', textAlign: 'center', color: 'var(--nm-danger)', fontWeight: 'bold' }}>Failed to load profile.</div>;
+
+  const departmentDisplayName =
+    profile.departmentName ||
+    departments.find((d: any) => d.departmentId === profile.departmentId)?.departmentName ||
+    (profile.departmentId ? `Phòng ban #${profile.departmentId}` : (t('profile.notAssigned') || 'Chưa phân bổ'));
+
+  const managerDisplayName =
+    profile.managerName ||
+    managerEmployee?.fullName ||
+    (profile.managerId ? `Quản lý #${profile.managerId}` : (t('profile.directReport') || 'Báo cáo trực tiếp (Không có quản lý)'));
 
   return (
     <div style={{ maxWidth: '1024px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '24px' }}>
@@ -237,14 +260,14 @@ const EmployeePortalPage: React.FC = () => {
                   <Building2 className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
                   <div>
                     <p className={styles.label}>{t('profile.department')}</p>
-                    <p className={styles.value}>{profile.departmentId ? `Dept ID: ${profile.departmentId}` : 'Not assigned'}</p>
+                    <p className={styles.value}>{departmentDisplayName}</p>
                   </div>
                 </div>
                 <div className={styles.contactItem} style={{ marginBottom: 0 }}>
                   <Briefcase className="h-5 w-5" style={{ color: 'var(--nm-info)' }} />
                   <div>
                     <p className={styles.label}>{t('profile.manager')}</p>
-                    <p className={styles.value}>{profile.managerId ? `Manager ID: ${profile.managerId}` : 'Direct Report to Admin'}</p>
+                    <p className={styles.value}>{managerDisplayName}</p>
                   </div>
                 </div>
                 <div className={styles.contactItem} style={{ marginBottom: 0 }}>

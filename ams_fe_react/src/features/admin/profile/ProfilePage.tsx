@@ -294,6 +294,18 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
               <div className={styles.fieldGroup}>
+                <label>Department</label>
+                <div className={styles.nmInputReadonly}>
+                  {profile.departmentName || '-'}
+                </div>
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Manager</label>
+                <div className={styles.nmInputReadonly}>
+                  {profile.managerName || '-'}
+                </div>
+              </div>
+              <div className={styles.fieldGroup}>
                 <label>Hire Date</label>
                 <div className={styles.nmInputReadonly}>
                   {profile.hireDate ? profile.hireDate.slice(0, 10) : '-'}

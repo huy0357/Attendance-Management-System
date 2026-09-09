@@ -469,7 +469,9 @@
     "manager": "MANAGER",
     "hireDate": "HIRE DATE",
     "status": "STATUS",
-    "notice": "Notice: Employment details are managed by HR. If you see any discrepancies, please contact your administrator."
+    "notice": "Notice: Employment details are managed by HR. If you see any discrepancies, please contact your administrator.",
+    "notAssigned": "Not assigned",
+    "directReport": "Direct Report to Admin"
   },
   "common": {
     "showingUsers": "Showing {{count}} of {{total}} users",

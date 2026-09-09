@@ -469,7 +469,9 @@
     "manager": "QUẢN LÝ",
     "hireDate": "NGÀY VÀO LÀM",
     "status": "TRẠNG THÁI",
-    "notice": "Lưu ý: Thông tin công việc do bộ phận Nhân sự quản lý. Nếu có sai sót, vui lòng liên hệ quản trị viên."
+    "notice": "Lưu ý: Thông tin công việc do bộ phận Nhân sự quản lý. Nếu có sai sót, vui lòng liên hệ quản trị viên.",
+    "notAssigned": "Chưa phân bổ",
+    "directReport": "Báo cáo trực tiếp (Không có quản lý)"
   },
   "common": {
     "showingUsers": "Hiển thị {{count}} / {{total}} tài khoản",
