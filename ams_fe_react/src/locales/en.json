@@ -326,6 +326,7 @@
     "gridView": "Grid",
     "colEmp": "Employee",
     "colCode": "Employee Code",
+    "colDepartment": "Department",
     "colStatus": "Status",
     "colActions": "Actions",
     "statusActive": "ACTIVE",

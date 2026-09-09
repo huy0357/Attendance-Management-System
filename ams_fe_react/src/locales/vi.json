@@ -326,6 +326,7 @@
     "gridView": "Lưới",
     "colEmp": "Nhân viên",
     "colCode": "Mã nhân viên",
+    "colDepartment": "Phòng ban",
     "colStatus": "Trạng thái",
     "colActions": "Thao tác",
     "statusActive": "ĐANG HOẠT ĐỘNG",

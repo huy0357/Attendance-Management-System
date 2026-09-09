@@ -405,15 +405,17 @@ const EmployeesPage: React.FC = () => {
         <div className={styles.nmTableWrapper}>
           <table className={styles.nmTable}>
             <colgroup>
-              <col style={{ width: '40%' }} />
-              <col style={{ width: '25%' }} />
+              <col style={{ width: '30%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '22%' }} />
               <col style={{ width: '15%' }} />
-              <col style={{ width: '20%' }} />
+              <col style={{ width: '15%' }} />
             </colgroup>
             <thead>
               <tr>
                 <th>{t('employees.colEmp')}</th>
                 <th>{t('employees.colCode')}</th>
+                <th>{t('employees.colDepartment') || 'Phòng ban'}</th>
                 <th>{t('employees.colStatus')}</th>
                 <th style={{ textAlign: 'right' }}>{t('employees.colActions')}</th>
               </tr>
@@ -434,6 +436,11 @@ const EmployeesPage: React.FC = () => {
                   </td>
                   <td><span style={{ fontFamily: 'var(--font-mono)' }}>{employee.employeeCode || '-'}</span></td>
                   <td>
+                    <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--nm-text-secondary)' }}>
+                      {getDepartmentName(employee.departmentId)}
+                    </span>
+                  </td>
+                  <td>
                     <span className={cn(styles.nmBadge, getStatusColorClass(employee.status))}>
                       {getStatusLabel(employee.status)}
                     </span>
@@ -452,7 +459,7 @@ const EmployeesPage: React.FC = () => {
               ))}
               {isLoading && (
                  <tr>
-                    <td colSpan={4} style={{ padding: '16px' }}>
+                    <td colSpan={5} style={{ padding: '16px' }}>
                       {[1, 2, 3].map(i => (
                         <div key={i} className={styles.skeletonRow}></div>
                       ))}
@@ -460,7 +467,7 @@ const EmployeesPage: React.FC = () => {
                  </tr>
               )}
               {!isLoading && employees.length === 0 && (
-                 <tr><td colSpan={4} style={{ textAlign: 'center' }}>No employees found.</td></tr>
+                 <tr><td colSpan={5} style={{ textAlign: 'center' }}>No employees found.</td></tr>
               )}
             </tbody>
           </table>
