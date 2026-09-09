@@ -43,5 +43,31 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
             @Param("employeeId") Long employeeId,
             @Param("workDate") LocalDate workDate
     );
+
+    @Query("""
+        select new org.example.ams_be.dto.response.EmployeeScheduleDayResponse(
+            es.scheduleId,
+            es.employeeId,
+            es.workDate,
+            st.shiftId,
+            st.shiftCode,
+            st.shiftName,
+            st.startTime,
+            st.endTime,
+            st.breakMinutes,
+            st.isNightShift,
+            es.scheduleSource,
+            es.note
+        )
+        from EmployeeSchedule es
+        join ShiftTemplate st on st.shiftId = es.shiftId
+        where es.workDate between :startDate and :endDate
+        order by es.employeeId asc, es.workDate asc, st.startTime asc
+    """)
+    List<EmployeeScheduleDayResponse> findRangeSchedules(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
     List<EmployeeSchedule> findByWorkDate(LocalDate workDate);
 }

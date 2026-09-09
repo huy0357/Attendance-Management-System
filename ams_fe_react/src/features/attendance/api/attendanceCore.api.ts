@@ -210,34 +210,25 @@ export const scheduleApi = {
     const normalizedStart = new Date(weekStart);
     normalizedStart.setHours(0, 0, 0, 0);
 
-    const weekDates = Array.from({ length: 7 }).map((_, dt) => {
-      const d = new Date(normalizedStart);
-      d.setDate(normalizedStart.getDate() + dt);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    });
+    const endDate = new Date(normalizedStart);
+    endDate.setDate(normalizedStart.getDate() + 6);
 
-    // Make concurrent requests for all selected employees and all 7 days
-    const promises = [];
-    for (const empId of employeeIds) {
-      for (const date of weekDates) {
-        promises.push(
-          axiosInstance.get(`${API_BASE}/schedules/by-employee/day`, {
-            params: new URLSearchParams({ employeeId: empId.toString(), date })
-          }).then(res => ({
-             employeeId: empId,
-             date,
-             data: extractArray(res)
-          })).catch(() => ({ employeeId: empId, date, data: [] }))
-        );
-      }
-    }
+    const startDateStr = `${normalizedStart.getFullYear()}-${String(normalizedStart.getMonth() + 1).padStart(2, '0')}-${String(normalizedStart.getDate()).padStart(2, '0')}`;
+    const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
-    const results = await Promise.all(promises);
-    
-    // Process results into standard Shift array
-    const shifts: Shift[] = [];
-    results.forEach(res => {
-      res.data.forEach((item: any) => {
+    try {
+      // Single bulk request for entire week across all employees
+      const res = await axiosInstance.get(`${API_BASE}/schedules/by-range`, {
+        params: new URLSearchParams({ startDate: startDateStr, endDate: endDateStr })
+      });
+      const data = extractArray(res);
+
+      const empIdSet = new Set(employeeIds.map(String));
+      const shifts: Shift[] = [];
+
+      data.forEach((item: any) => {
+        if (!empIdSet.has(String(item.employeeId))) return;
+
         const itemDate = new Date(`${item.workDate}T00:00:00`);
         const itemTimeMs = itemDate.getTime() - normalizedStart.getTime();
         const dayDiff = Math.round(itemTimeMs / (1000 * 60 * 60 * 24));
@@ -261,9 +252,11 @@ export const scheduleApi = {
           workDate: item.workDate,
         });
       });
-    });
-    
-    return shifts.filter(s => s.day >= 0 && s.day <= 6);
+
+      return shifts.filter(s => s.day >= 0 && s.day <= 6);
+    } catch {
+      return [];
+    }
   }
 };
 

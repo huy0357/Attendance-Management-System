@@ -176,4 +176,8 @@ public class EmployeeScheduleService {
     public List<EmployeeScheduleDayResponse> getEmployeeScheduleByDay(Long employeeId, LocalDate date) {
         return scheduleRepo.findDaySchedules(employeeId, date);
     }
+
+    public List<EmployeeScheduleDayResponse> getEmployeeSchedulesByRange(LocalDate startDate, LocalDate endDate) {
+        return scheduleRepo.findRangeSchedules(startDate, endDate);
+    }
 }

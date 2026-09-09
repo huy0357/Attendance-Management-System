@@ -31,4 +31,11 @@ public class EmployeeScheduleController {
         return service.getEmployeeScheduleByDay(employeeId, date);
     }
 
+    @GetMapping("/by-range")
+    public List<EmployeeScheduleDayResponse> getByRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        return service.getEmployeeSchedulesByRange(startDate, endDate);
+    }
 }
