@@ -36,6 +36,27 @@ const formatMinutes = (mins?: number | null): string => {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 };
 
+const getPaginationRange = (current: number, total: number): (number | string)[] => {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i);
+  }
+  const range: (number | string)[] = [];
+  range.push(0);
+  if (current > 2) {
+    range.push('dots-1');
+  }
+  const start = Math.max(1, current - 1);
+  const end = Math.min(total - 2, current + 1);
+  for (let i = start; i <= end; i++) {
+    range.push(i);
+  }
+  if (current < total - 3) {
+    range.push('dots-2');
+  }
+  range.push(total - 1);
+  return range;
+};
+
 // --- Sub-components ---
 interface StatCardProps {
   label: string;
@@ -562,23 +583,37 @@ const MonthlySummaryPage: React.FC<MonthlySummaryPageProps> = ({ isPersonalOnly:
                   className={styles.pageBtn}
                   disabled={page <= 0}
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  title={t('monthlySummary.prev') || 'Trước'}
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
-                  {t('monthlySummary.prev') || 'Trước'}
+                  <span>{t('monthlySummary.prev') || 'Trước'}</span>
                 </button>
 
-                <span className={styles.pageIndicator}>
-                  {t('monthlySummary.pageOf', { current: page + 1, total: totalPages }) ||
-                    `Trang ${page + 1} / ${totalPages}`}
-                </span>
+                {getPaginationRange(page, totalPages).map((p, idx) =>
+                  typeof p === 'number' ? (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`${styles.pageBtn} ${page === p ? styles['pageBtn--active'] : ''}`}
+                      onClick={() => setPage(p)}
+                    >
+                      {p + 1}
+                    </button>
+                  ) : (
+                    <span key={`dots-${idx}`} className={styles.pageDots}>
+                      ...
+                    </span>
+                  )
+                )}
 
                 <button
                   type="button"
                   className={styles.pageBtn}
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  title={t('monthlySummary.next') || 'Sau'}
                 >
-                  {t('monthlySummary.next') || 'Sau'}
+                  <span>{t('monthlySummary.next') || 'Sau'}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>

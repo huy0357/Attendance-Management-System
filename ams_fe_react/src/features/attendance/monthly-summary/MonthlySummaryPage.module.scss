@@ -463,12 +463,30 @@
     box-shadow: var(--nm-shadow-raised);
     transform: translateY(-1px);
   }
+
+  &--active {
+    background: var(--nm-primary) !important;
+    color: #ffffff !important;
+    font-weight: var(--fw-bold) !important;
+    box-shadow: 0 2px 8px rgba(0, 102, 102, 0.4) !important;
+  }
+}
+
+.pageDots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  color: var(--nm-text-muted);
+  font-size: var(--fs-xs);
+  user-select: none;
 }
 
 .pageIndicator {
   font-size: var(--fs-xs);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-semibold);
   color: var(--nm-text-secondary);
+  margin-left: 4px;
 }
 
 /* ── Search Input ────────────────────────────────────────────────────────── */

@@ -20,22 +20,35 @@ public class AttendanceExportRepository {
     public List<AttendanceMonthlyExportDto> findMonthlySummaryByMonth(String monthKey) {
         String sql = """
             SELECT
-                m.month_key,
-                m.employee_id,
+                ? AS month_key,
+                e.employee_id,
                 e.employee_code,
                 e.full_name,
                 e.email,
-                m.department_id,
-                m.work_days,
-                m.leave_days,
-                m.absent_days,
-                m.late_minutes,
-                m.ot_minutes,
-                m.generated_at
-            FROM attendance_summary_monthly m
-            JOIN employees e ON e.employee_id = m.employee_id
-            WHERE m.month_key = ?
-            ORDER BY e.full_name ASC, m.employee_id ASC
+                e.department_id,
+                COALESCE(m.work_days, daily.work_days, 0) AS work_days,
+                COALESCE(m.leave_days, daily.leave_days, 0) AS leave_days,
+                COALESCE(m.absent_days, daily.absent_days, 0) AS absent_days,
+                COALESCE(m.late_minutes, daily.late_minutes, 0) AS late_minutes,
+                COALESCE(m.ot_minutes, daily.ot_minutes, 0) AS ot_minutes,
+                COALESCE(m.generated_at, NOW()) AS generated_at
+            FROM employees e
+            LEFT JOIN attendance_summary_monthly m 
+                   ON e.employee_id = m.employee_id AND m.month_key = ?
+            LEFT JOIN (
+                SELECT
+                    ad.employee_id,
+                    SUM(CASE WHEN ad.status = 'PRESENT' THEN 1 ELSE 0 END) AS work_days,
+                    SUM(CASE WHEN ad.status = 'LEAVE' THEN 1 ELSE 0 END) AS leave_days,
+                    SUM(CASE WHEN ad.status = 'ABSENT' THEN 1 ELSE 0 END) AS absent_days,
+                    SUM(COALESCE(ad.late_minutes, 0)) AS late_minutes,
+                    SUM(COALESCE(ad.ot_minutes_before, 0) + COALESCE(ad.ot_minutes_after, 0) + COALESCE(ad.ot_minutes_holiday, 0)) AS ot_minutes
+                FROM attendance_daily ad
+                WHERE DATE_FORMAT(ad.work_date, '%Y-%m') = ?
+                GROUP BY ad.employee_id
+            ) daily ON e.employee_id = daily.employee_id AND m.employee_id IS NULL
+            WHERE e.status = 'ACTIVE' OR e.status IS NULL
+            ORDER BY e.full_name ASC, e.employee_id ASC
             """;
 
         return jdbcTemplate.query(sql, (rs, rowNum) ->
@@ -53,7 +66,7 @@ public class AttendanceExportRepository {
                                 .otMinutes(rs.getObject("ot_minutes", Integer.class))
                                 .generatedAt(rs.getObject("generated_at", LocalDateTime.class))
                                 .build()
-                , monthKey);
+                , monthKey, monthKey, monthKey);
     }
 
     public List<AttendanceEmployeeDailyExportDto> findEmployeeDailyByMonth(String monthKey, Long employeeId) {
