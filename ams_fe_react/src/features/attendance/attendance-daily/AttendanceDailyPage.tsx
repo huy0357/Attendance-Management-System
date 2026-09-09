@@ -74,6 +74,9 @@ export const AttendanceDailyPage: React.FC = () => {
 
   // --- Queries ---
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+
   // 1. Employees Dictionary
   const { data: employeesList } = useQuery({
     queryKey: ['scheduleEmployees'],
@@ -96,7 +99,18 @@ export const AttendanceDailyPage: React.FC = () => {
     return map;
   }, [employeesList]);
 
+  const departmentsList = useMemo(() => {
+    if (!employeesList) return [];
+    const depts = new Set<string>();
+    employeesList.forEach(emp => {
+      if (emp.department) depts.add(emp.department);
+    });
+    return Array.from(depts).sort();
+  }, [employeesList]);
+
   const getEmployeeName = (empId: number) => employeesMap.get(empId)?.name || `Employee #${empId}`;
+  const getEmployeeCode = (empId: number) => employeesMap.get(empId)?.employeeCode || `EMP${empId}`;
+  const getEmployeeDept = (empId: number) => employeesMap.get(empId)?.department || '—';
   const getEmployeeInitial = (empId: number) => {
     const name = getEmployeeName(empId);
     return name ? name.charAt(0).toUpperCase() : 'E';
@@ -140,6 +154,26 @@ export const AttendanceDailyPage: React.FC = () => {
   const totalPages = recordsPage?.totalPages || 0;
   const currentPage = page + 1;
   const isLastPage = totalPages > 0 && page >= totalPages - 1;
+
+  const filteredRecords = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return records.filter((rec: any) => {
+      const emp = employeesMap.get(rec.employeeId);
+      const name = (emp?.name || '').toLowerCase();
+      const code = (emp?.employeeCode || `vdp-${rec.employeeId}`).toLowerCase();
+      const dept = (emp?.department || '').toLowerCase();
+
+      if (selectedDepartment && emp?.department !== selectedDepartment) {
+        return false;
+      }
+
+      if (term) {
+        const matchesTerm = name.includes(term) || code.includes(term) || dept.includes(term) || String(rec.employeeId).includes(term);
+        if (!matchesTerm) return false;
+      }
+      return true;
+    });
+  }, [records, employeesMap, searchTerm, selectedDepartment]);
 
   // --- Formatting Helpers ---
   const formatWorkDate = (val?: string | null) => val ? val.slice(0, 10) : '-';
@@ -278,7 +312,7 @@ export const AttendanceDailyPage: React.FC = () => {
 
       {/* ──────────────────────────────── TOOLBAR ──────────────────────────────── */}
       <div className={styles.filterBar}>
-        <div className={styles.filterGroup}>
+        <div className={styles.filterGroup} style={{ flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--nm-text-muted)', textTransform: 'uppercase' }}>{t('attendanceDaily.range')}</span>
             <input 
@@ -299,6 +333,44 @@ export const AttendanceDailyPage: React.FC = () => {
               style={{ width: 'auto' }}
             />
           </div>
+
+          {/* Search Box */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              placeholder={t('attendanceDaily.searchPlaceholder') || 'Tìm theo tên, mã NV, phòng ban...'}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.nmInput}
+              style={{ paddingLeft: '34px', minWidth: '260px' }}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nm-text-muted)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Department Filter */}
+          {departmentsList.length > 0 && (
+            <div>
+              <select
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className={styles.nmInput}
+                style={{ padding: '8px 12px' }}
+              >
+                <option value="">{t('attendanceDaily.filterDepartment') || 'Tất cả phòng ban'}</option>
+                {departmentsList.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         
         {/* Admin Actions */}
@@ -328,7 +400,13 @@ export const AttendanceDailyPage: React.FC = () => {
           <thead>
             <tr>
               <th>{t('attendanceDaily.colDate')}</th>
-              {isAdminRoute && <th>{t('attendanceDaily.colEmp')}</th>}
+              {isAdminRoute && (
+                <>
+                  <th>{t('attendanceDaily.colEmp') || 'Mã NV'}</th>
+                  <th>{t('attendanceDaily.colEmpName') || 'Họ và tên'}</th>
+                  <th>{t('attendanceDaily.colDepartment') || 'Phòng ban'}</th>
+                </>
+              )}
               <th>{t('attendanceDaily.colCheckIn')}</th>
               <th>{t('attendanceDaily.colCheckOut')}</th>
               <th>{t('attendanceDaily.colWorkHours')}</th>
@@ -340,7 +418,7 @@ export const AttendanceDailyPage: React.FC = () => {
             {/* LOADING STATE */}
             {isLoading && (
               <tr>
-                 <td colSpan={isAdminRoute ? 6 : 5} style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>
+                 <td colSpan={isAdminRoute ? 8 : 5} style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                        <Loader2 className="animate-spin w-5 h-5" />
                        <span>{t('attendanceDaily.loading')}</span>
@@ -350,9 +428,9 @@ export const AttendanceDailyPage: React.FC = () => {
             )}
             
             {/* EMPTY STATE */}
-            {!isLoading && records.length === 0 && (
+            {!isLoading && filteredRecords.length === 0 && (
               <tr>
-                 <td colSpan={isAdminRoute ? 6 : 5} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
+                 <td colSpan={isAdminRoute ? 8 : 5} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                      <Search className="text-gray-400 w-12 h-12 mb-2" />
                      <p style={{ fontWeight: 'bold' }}>{t('attendanceDaily.emptyTitle')}</p>
@@ -363,7 +441,7 @@ export const AttendanceDailyPage: React.FC = () => {
             )}
 
             {/* DATA ROWS */}
-            {!isLoading && records.length > 0 && records.map((record: any) => {
+            {!isLoading && filteredRecords.length > 0 && filteredRecords.map((record: any) => {
               const status = getDisplayStatus(record);
               let statusClass = styles.nmBadgeNeutral;
               if (status === 'PRESENT') statusClass = styles.nmBadgeSuccess;
@@ -375,22 +453,55 @@ export const AttendanceDailyPage: React.FC = () => {
                 <tr key={record.attendanceId}>
                   <td style={{ fontWeight: 'bold' }}>{formatWorkDate(record.workDate)}</td>
                   {isAdminRoute && (
-                    <td>
-                      <div 
-                        style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: (isAdmin && !employeeId) ? 'pointer' : 'default' }}
-                        onClick={() => {
-                          if (isAdmin && !employeeId) {
-                            navigate(`/attendance/attendance-daily/employee/${record.employeeId}`);
-                          }
-                        }}
-                      >
-                        <div className={styles.nmAvatar}>{getEmployeeInitial(record.employeeId)}</div>
-                        <div>
-                          <span style={{ display: 'block', fontWeight: 'bold' }}>{getEmployeeName(record.employeeId)}</span>
-                          <span style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>VDP-{record.employeeId}</span>
+                    <>
+                      {/* Mã NV */}
+                      <td>
+                        <span 
+                          style={{ 
+                            fontFamily: 'var(--font-mono)', 
+                            fontWeight: '600', 
+                            fontSize: '13px', 
+                            color: 'var(--nm-primary)',
+                            cursor: (isAdmin && !employeeId) ? 'pointer' : 'default' 
+                          }}
+                          onClick={() => {
+                            if (isAdmin && !employeeId) {
+                              navigate(`/attendance/attendance-daily/employee/${record.employeeId}`);
+                            }
+                          }}
+                        >
+                          {getEmployeeCode(record.employeeId)}
+                        </span>
+                      </td>
+
+                      {/* Họ và tên */}
+                      <td>
+                        <div 
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: (isAdmin && !employeeId) ? 'pointer' : 'default' }}
+                          onClick={() => {
+                            if (isAdmin && !employeeId) {
+                              navigate(`/attendance/attendance-daily/employee/${record.employeeId}`);
+                            }
+                          }}
+                        >
+                          <div className={styles.nmAvatar} style={{ width: '32px', height: '32px', fontSize: '13px' }}>
+                            {getEmployeeInitial(record.employeeId)}
+                          </div>
+                          <div>
+                            <span style={{ display: 'block', fontWeight: 'bold', fontSize: '14px' }}>
+                              {getEmployeeName(record.employeeId)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
+
+                      {/* Phòng ban */}
+                      <td>
+                        <span style={{ fontSize: '13px', color: 'var(--nm-text-secondary)', fontWeight: '500' }}>
+                          {getEmployeeDept(record.employeeId)}
+                        </span>
+                      </td>
+                    </>
                   )}
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{formatTime(record.firstInTime)}</td>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{formatTime(record.lastOutTime)}</td>
