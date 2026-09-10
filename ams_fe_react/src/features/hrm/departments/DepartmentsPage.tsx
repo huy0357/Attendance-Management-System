@@ -10,7 +10,16 @@ import ModalPortal from '../../../shared/components/ModalPortal';
 import { cn } from '../../../shared/utils/cn';
 
 // Recursive Tree Node Component
-const TreeNode: React.FC<{ node: DepartmentDto; level?: number }> = ({ node, level = 0 }) => {
+interface TreeNodeProps {
+  node: DepartmentDto;
+  level?: number;
+  canManageDepts?: boolean;
+  onEdit?: (dept: DepartmentDto) => void;
+  onDelete?: (dept: DepartmentDto) => void;
+}
+
+const TreeNode: React.FC<TreeNodeProps> = ({ node, level = 0, canManageDepts, onEdit, onDelete }) => {
+  const { t } = useTranslation();
   const hasChildren = node.children && node.children.length > 0;
   return (
     <div style={{ marginLeft: `${level * 1.5}rem`, marginBottom: '12px' }}>
@@ -22,16 +31,47 @@ const TreeNode: React.FC<{ node: DepartmentDto; level?: number }> = ({ node, lev
           <p style={{ fontWeight: 'bold' }}>{node.departmentName}</p>
           {node.departmentCode && <p style={{ fontSize: '12px', color: 'var(--nm-text-muted)' }}>Code: {node.departmentCode}</p>}
         </div>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span className={cn(styles.nmBadge, node.isActive ? styles.nmBadgeActive : styles.nmBadgeInactive)}>
-            {node.isActive ? 'Active' : 'Inactive'}
+            {node.isActive ? (t('departments.statusActive') || 'Active') : (t('departments.statusInactive') || 'Inactive')}
           </span>
+          {canManageDepts && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(node);
+                }}
+                className={styles.nmBtnIcon}
+                title="Edit Department"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(node);
+                }}
+                className={cn(styles.nmBtnIcon, 'danger')}
+                title="Delete Department"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {hasChildren && (
         <div style={{ marginTop: '8px', paddingLeft: '16px', borderLeft: '2px solid rgba(0,0,0,0.05)' }}>
           {node.children!.map((child) => (
-            <TreeNode key={child.departmentId} node={child} level={level + 1} />
+            <TreeNode
+              key={child.departmentId}
+              node={child}
+              level={level + 1}
+              canManageDepts={canManageDepts}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
           ))}
         </div>
       )}
@@ -47,11 +87,8 @@ const DepartmentsPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   // --- UI State ---
-  const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
 
   // Modal Visibility States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -75,24 +112,42 @@ const DepartmentsPage: React.FC = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setPage(1);
     }, 400);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
   // --- Queries ---
-  const { data: pageData, isLoading } = useQuery({
-    queryKey: ['departments', debouncedSearch, page, pageSize],
-    queryFn: () => departmentApi.getAll(page, pageSize, debouncedSearch, 'departmentId', 'desc'),
-    enabled: activeTab === 'list',
-    refetchOnWindowFocus: false,
-  });
-
   const { data: treeData = [], isLoading: isLoadingTree } = useQuery({
     queryKey: ['departments', 'tree'],
     queryFn: () => departmentApi.getTree(),
     refetchOnWindowFocus: false,
   });
+
+  // Filter tree nodes by search query
+  const filteredTreeData = useMemo(() => {
+    if (!debouncedSearch.trim()) return treeData;
+    const q = debouncedSearch.toLowerCase().trim();
+
+    const filterNode = (node: DepartmentDto): DepartmentDto | null => {
+      const matchSelf =
+        (Boolean(node.departmentName) && node.departmentName.toLowerCase().includes(q)) ||
+        (Boolean(node.departmentCode) && node.departmentCode.toLowerCase().includes(q));
+
+      const filteredChildren = node.children
+        ? (node.children.map(filterNode).filter(Boolean) as DepartmentDto[])
+        : [];
+
+      if (matchSelf || filteredChildren.length > 0) {
+        return {
+          ...node,
+          children: filteredChildren,
+        };
+      }
+      return null;
+    };
+
+    return treeData.map(filterNode).filter(Boolean) as DepartmentDto[];
+  }, [treeData, debouncedSearch]);
 
   // Flat list for Parent Dropdown (from tree by flattening)
   const allFlattenedDepartments = useMemo(() => {
@@ -117,10 +172,6 @@ const DepartmentsPage: React.FC = () => {
     const root = treeData.length;
     return { total, active, inactive, root };
   }, [allFlattenedDepartments, treeData]);
-
-  const departmentsList = pageData?.items || [];
-  const totalItems = pageData?.totalItems || 0;
-  const totalPages = pageData?.totalPages || Math.ceil(totalItems / pageSize) || 1;
 
   // Modal Handlers
   const openAdd = () => {
@@ -168,37 +219,13 @@ const DepartmentsPage: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: (data: DepartmentRequest) => departmentApi.update(selectedDept!.departmentId, data),
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['departments', debouncedSearch, page, pageSize] });
-      await queryClient.cancelQueries({ queryKey: ['departments', 'tree'] });
-      
-      const prevListData = queryClient.getQueryData(['departments', debouncedSearch, page, pageSize]);
-      
-      if (prevListData) {
-        queryClient.setQueryData(['departments', debouncedSearch, page, pageSize], (old: any) => {
-          if (!old || !old.items) return old;
-          return {
-            ...old,
-            items: old.items.map((d: DepartmentDto) => 
-              d.departmentId === selectedDept?.departmentId ? { ...d, ...newData } : d
-            )
-          };
-        });
-      }
-      closeEdit();
-      return { prevListData };
-    },
-    onError: (_err, _newData, context: any) => {
-      if (context?.prevListData) {
-        queryClient.setQueryData(['departments', debouncedSearch, page, pageSize], context.prevListData);
-      }
-      toast.error('Unable to update department.');
-    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      closeEdit();
       toast.success('Department updated successfully');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
+    onError: () => {
+      toast.error('Unable to update department.');
     }
   });
 
@@ -292,146 +319,43 @@ const DepartmentsPage: React.FC = () => {
 
       {/* MAIN CONTENT AREA */}
       <div className={cn(styles.nmCard, 'p-6')}>
-        <div className={styles.nmTabs}>
-          <button
-            onClick={() => setActiveTab('list')}
-            className={activeTab === 'list' ? styles.active : ''}
-          >
-            {t('departments.listView')}
-          </button>
-          <button
-            onClick={() => setActiveTab('tree')}
-            className={activeTab === 'tree' ? styles.active : ''}
-          >
-            {t('departments.treeView')}
-          </button>
+        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
+          <div className={styles.searchWrapper}>
+            <Search className="h-4 w-4" />
+            <input
+              type="text"
+              placeholder={t('departments.searchPlaceholder')}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className={styles.nmInput}
+            />
+          </div>
         </div>
 
-        {activeTab === 'list' && (
-          <>
-            <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center' }}>
-              <div className={styles.searchWrapper}>
-                <Search className="h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder={t('departments.searchPlaceholder')}
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className={styles.nmInput}
+        <div className={styles.nmCardInset} style={{ minHeight: '300px' }}>
+          {isLoadingTree ? (
+            <div style={{ padding: '32px', textAlign: 'center', opacity: 0.6 }}>Loading organizational tree...</div>
+          ) : filteredTreeData.length === 0 ? (
+            <div style={{ padding: '48px', textAlign: 'center', opacity: 0.6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <AlertTriangle className="h-10 w-10 text-gray-400 mb-3" />
+                <p style={{ fontWeight: 'bold' }}>{t('departments.empty')}</p>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '16px 0' }}>
+              {filteredTreeData.map(node => (
+                <TreeNode
+                  key={node.departmentId}
+                  node={node}
+                  canManageDepts={canManageDepts}
+                  onEdit={openEdit}
+                  onDelete={openDelete}
                 />
-              </div>
+              ))}
             </div>
-
-            <div className={styles.nmTableWrapper}>
-              <table className={styles.nmTable}>
-                <thead>
-                  <tr>
-                    <th>{t('departments.colId')}</th>
-                    <th>{t('departments.colCode')}</th>
-                    <th>{t('departments.colName')}</th>
-                    <th>{t('departments.colParent')}</th>
-                    <th>{t('departments.colStatus')}</th>
-                    {canManageDepts && <th style={{ textAlign: 'right' }}>{t('departments.colActions')}</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {isLoading && (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '32px', opacity: 0.6 }}>{t('departments.loading')}</td>
-                    </tr>
-                  )}
-                  {!isLoading && departmentsList.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '48px', opacity: 0.6 }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <AlertTriangle className="h-10 w-10 text-gray-400 mb-3" />
-                          <p style={{ fontWeight: 'bold' }}>{t('departments.empty')}</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {!isLoading && departmentsList.map((dept: DepartmentDto) => (
-                    <tr key={dept.departmentId}>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>#{dept.departmentId}</td>
-                      <td style={{ fontWeight: 'bold' }}>{dept.departmentCode || '-'}</td>
-                      <td>{dept.departmentName}</td>
-                      <td>{dept.parentDepartmentId || '-'}</td>
-                      <td>
-                        <span className={cn(styles.nmBadge, dept.isActive ? styles.nmBadgeActive : styles.nmBadgeInactive)}>
-                          {dept.isActive ? t('departments.statusActive') : t('departments.statusInactive')}
-                        </span>
-                      </td>
-                      {canManageDepts && (
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                            <button
-                              onClick={() => openEdit(dept)}
-                              className={styles.nmBtnIcon}
-                              title="Edit Department"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => openDelete(dept)}
-                              className={cn(styles.nmBtnIcon, 'danger')}
-                              title="Delete Department"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className={styles.nmPagination}>
-                <div>
-                  {t('common.showingResults', { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, totalItems), total: totalItems })}
-                </div>
-                <div className={styles.paginationActions}>
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className={styles.nmBtnSecondary} style={{ padding: '8px 12px' }}
-                  >
-                    Previous
-                  </button>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold', padding: '0 8px' }}>
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className={styles.nmBtnSecondary} style={{ padding: '8px 12px' }}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === 'tree' && (
-          <div className={styles.nmCardInset} style={{ minHeight: '300px' }}>
-            {isLoadingTree ? (
-               <div style={{ padding: '32px', textAlign: 'center', opacity: 0.6 }}>Loading organizational tree...</div>
-            ) : treeData.length === 0 ? (
-               <div style={{ padding: '32px', textAlign: 'center', opacity: 0.6 }}>No departments defined yet.</div>
-            ) : (
-               <div style={{ padding: '16px 0' }}>
-                 {treeData.map(node => (
-                   <TreeNode key={node.departmentId} node={node} />
-                 ))}
-               </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* --- ADD MODAL --- */}
