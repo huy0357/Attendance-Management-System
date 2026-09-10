@@ -61,4 +61,23 @@ class EmployeeScheduleControllerTest {
         assertEquals(expected, response);
         verify(service).getEmployeeScheduleByDay(5L, date);
     }
+
+    @Test
+    void deleteScheduleDelegates() {
+        Map<String, Object> response = controller.deleteSchedule(10L);
+
+        assertEquals(true, response.get("success"));
+        assertEquals(10L, response.get("deletedScheduleId"));
+        verify(service).deleteSchedule(10L);
+    }
+
+    @Test
+    void deleteByEmployeeDayDelegates() {
+        LocalDate date = LocalDate.of(2026, 3, 18);
+        Map<String, Object> response = controller.deleteByEmployeeDay(5L, date);
+
+        assertEquals(true, response.get("success"));
+        assertEquals(5L, response.get("employeeId"));
+        verify(service).deleteScheduleByEmployeeAndDate(5L, date);
+    }
 }

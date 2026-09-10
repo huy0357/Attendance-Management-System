@@ -180,4 +180,39 @@ public class EmployeeScheduleService {
     public List<EmployeeScheduleDayResponse> getEmployeeSchedulesByRange(LocalDate startDate, LocalDate endDate) {
         return scheduleRepo.findRangeSchedules(startDate, endDate);
     }
+
+    @Transactional
+    public void deleteSchedule(Long scheduleId) {
+        EmployeeSchedule schedule = scheduleRepo.findById(scheduleId)
+                .orElseThrow(() -> new RuntimeException("Schedule not found: " + scheduleId));
+
+        scheduleRepo.delete(schedule);
+
+        auditLogService.saveAuditLog(
+                "DELETE_SCHEDULE",
+                "EMPLOYEE_SCHEDULE",
+                schedule.getEmployeeId(),
+                getCurrentActorId(),
+                Map.of("scheduleId", schedule.getScheduleId(), "workDate", schedule.getWorkDate().toString(), "shiftId", schedule.getShiftId()),
+                Map.of("status", "DELETED")
+        );
+    }
+
+    @Transactional
+    public void deleteScheduleByEmployeeAndDate(Long employeeId, LocalDate date) {
+        Optional<EmployeeSchedule> scheduleOpt = scheduleRepo.findByEmployeeIdAndWorkDate(employeeId, date);
+        if (scheduleOpt.isPresent()) {
+            EmployeeSchedule schedule = scheduleOpt.get();
+            scheduleRepo.delete(schedule);
+
+            auditLogService.saveAuditLog(
+                    "DELETE_SCHEDULE",
+                    "EMPLOYEE_SCHEDULE",
+                    schedule.getEmployeeId(),
+                    getCurrentActorId(),
+                    Map.of("scheduleId", schedule.getScheduleId(), "workDate", schedule.getWorkDate().toString(), "shiftId", schedule.getShiftId()),
+                    Map.of("status", "DELETED")
+            );
+        }
+    }
 }

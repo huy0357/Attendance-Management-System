@@ -122,6 +122,33 @@ const SchedulingPage: React.FC = () => {
     onError: () => toast.error('Không thể phân ca làm việc.')
   });
 
+  const deleteScheduleMutation = useMutation({
+    mutationFn: (shiftToDelete: Shift) => scheduleApi.deleteSchedule(Number(shiftToDelete.id)),
+    onMutate: async (shiftToDelete) => {
+      await queryClient.cancelQueries({ queryKey: ['scheduleShifts'] });
+      const qk = ['scheduleShifts', employeeIds, formatDate(weekStart)];
+      const previousShifts = queryClient.getQueryData<Shift[]>(qk);
+      queryClient.setQueryData<Shift[]>(qk, (old) =>
+        old ? old.filter((s) => s.id !== shiftToDelete.id) : []
+      );
+      return { previousShifts, qk };
+    },
+    onError: (_err, _shift, context) => {
+      if (context?.previousShifts && context?.qk) {
+        queryClient.setQueryData(context.qk, context.previousShifts);
+      }
+      toast.error('Không thể hủy gán ca làm việc.');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduleShifts'] });
+      toast.success('Đã hủy gán ca làm việc thành công.');
+    },
+  });
+
+  const handleRemoveShift = (shift: Shift) => {
+    deleteScheduleMutation.mutate(shift);
+  };
+
   const templates: MappedTemplate[] = useMemo(() => {
     return rawTemplates.map(t => ({
       ...t,
@@ -382,6 +409,9 @@ const SchedulingPage: React.FC = () => {
                               onDragOver={e => { e.preventDefault(); setDragOver({ day: dayIndex, employeeId: employee.id }); }}
                               onDragLeave={() => setDragOver(null)}
                               onDrop={() => handleDrop(employee.id, dayIndex)}
+                              onDoubleClick={() => {
+                                if (shift) handleRemoveShift(shift);
+                              }}
                               style={{
                                 textAlign: 'center',
                                 padding: '8px',
@@ -391,7 +421,15 @@ const SchedulingPage: React.FC = () => {
                               }}
                             >
                               {shift ? (
-                                <div className={cn(styles.shiftTag, styles[deriveShiftType(Boolean(shift.isNightShift), shift.startTime)])}>
+                                <div 
+                                  className={cn(styles.shiftTag, styles[deriveShiftType(Boolean(shift.isNightShift), shift.startTime)])}
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveShift(shift);
+                                  }}
+                                  title="Nháy đúp để xóa ca làm việc này"
+                                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                                >
                                   {shift.scheduleSource === 'IMPORT' && (
                                     <span style={{ position: 'absolute', top: '-6px', right: '-4px', background: 'var(--nm-dark)', color: 'white', fontSize: '8px', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold' }}>
                                       IMPORT

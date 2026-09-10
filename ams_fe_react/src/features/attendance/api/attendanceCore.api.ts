@@ -178,6 +178,13 @@ export const scheduleApi = {
     const res = await axiosInstance.get(`${API_BASE}/schedules/by-employee/day`, { params });
     return extractArray(res);
   },
+  deleteSchedule: async (scheduleId: number): Promise<void> => {
+    await axiosInstance.delete(`${API_BASE}/schedules/${scheduleId}`);
+  },
+  deleteScheduleByEmployeeDay: async (employeeId: number, date: string): Promise<void> => {
+    const params = new URLSearchParams({ employeeId: employeeId.toString(), date });
+    await axiosInstance.delete(`${API_BASE}/schedules/by-employee/day`, { params });
+  },
   // In the real system, employees and departments are fetched. Here we compose them via API calls.
   getScheduleEmployees: async (): Promise<ScheduleEmployee[]> => {
     // Note: We'll compose this within the scheduling component via TanStack Query to let React Query manage the cache,

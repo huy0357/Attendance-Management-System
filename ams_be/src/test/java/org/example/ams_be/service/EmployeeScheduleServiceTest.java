@@ -222,6 +222,55 @@ class EmployeeScheduleServiceTest {
                 assertSame(expected, actual);
         }
 
+        @Test
+        void deleteScheduleDeletesEntityAndAudits() {
+                LocalDate date = LocalDate.of(2026, 3, 18);
+                EmployeeSchedule schedule = EmployeeSchedule.builder()
+                                .scheduleId(99L)
+                                .employeeId(1L)
+                                .shiftId(10L)
+                                .workDate(date)
+                                .scheduleSource(EmployeeSchedule.ScheduleSource.MANUAL)
+                                .build();
+                when(scheduleRepo.findById(99L)).thenReturn(Optional.of(schedule));
+
+                employeeScheduleService.deleteSchedule(99L);
+
+                verify(scheduleRepo).delete(schedule);
+                verify(auditLogService).saveAuditLog(
+                                org.mockito.ArgumentMatchers.eq("DELETE_SCHEDULE"),
+                                org.mockito.ArgumentMatchers.eq("EMPLOYEE_SCHEDULE"),
+                                org.mockito.ArgumentMatchers.eq(1L),
+                                org.mockito.ArgumentMatchers.isNull(),
+                                org.mockito.ArgumentMatchers.any(),
+                                org.mockito.ArgumentMatchers.any()
+                );
+        }
+
+        @Test
+        void deleteScheduleThrowsWhenNotFound() {
+                when(scheduleRepo.findById(999L)).thenReturn(Optional.empty());
+
+                assertThrows(RuntimeException.class, () -> employeeScheduleService.deleteSchedule(999L));
+        }
+
+        @Test
+        void deleteScheduleByEmployeeAndDateDeletesWhenFound() {
+                LocalDate date = LocalDate.of(2026, 3, 18);
+                EmployeeSchedule schedule = EmployeeSchedule.builder()
+                                .scheduleId(99L)
+                                .employeeId(1L)
+                                .shiftId(10L)
+                                .workDate(date)
+                                .scheduleSource(EmployeeSchedule.ScheduleSource.MANUAL)
+                                .build();
+                when(scheduleRepo.findByEmployeeIdAndWorkDate(1L, date)).thenReturn(Optional.of(schedule));
+
+                employeeScheduleService.deleteScheduleByEmployeeAndDate(1L, date);
+
+                verify(scheduleRepo).delete(schedule);
+        }
+
         private void assertTrueContains(String actual, String expectedPart) {
                 org.junit.jupiter.api.Assertions.assertTrue(actual.contains(expectedPart));
         }

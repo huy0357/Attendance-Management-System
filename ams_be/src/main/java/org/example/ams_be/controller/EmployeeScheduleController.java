@@ -38,4 +38,19 @@ public class EmployeeScheduleController {
     ) {
         return service.getEmployeeSchedulesByRange(startDate, endDate);
     }
+
+    @DeleteMapping("/{scheduleId}")
+    public Map<String, Object> deleteSchedule(@PathVariable Long scheduleId) {
+        service.deleteSchedule(scheduleId);
+        return Map.of("success", true, "deletedScheduleId", scheduleId);
+    }
+
+    @DeleteMapping("/by-employee/day")
+    public Map<String, Object> deleteByEmployeeDay(
+            @RequestParam Long employeeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        service.deleteScheduleByEmployeeAndDate(employeeId, date);
+        return Map.of("success", true, "employeeId", employeeId, "date", date.toString());
+    }
 }
