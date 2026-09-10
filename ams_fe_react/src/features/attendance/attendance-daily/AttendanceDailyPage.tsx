@@ -88,6 +88,7 @@ export const AttendanceDailyPage: React.FC = () => {
         return [];
       }
     },
+    enabled: isAdminRoute,
     staleTime: 5 * 60 * 1000, // 5 min cache
   });
 
@@ -156,6 +157,9 @@ export const AttendanceDailyPage: React.FC = () => {
   const isLastPage = totalPages > 0 && page >= totalPages - 1;
 
   const filteredRecords = useMemo(() => {
+    if (!isAdminRoute || employeeId) {
+      return records;
+    }
     const term = searchTerm.trim().toLowerCase();
     return records.filter((rec: any) => {
       const emp = employeesMap.get(rec.employeeId);
@@ -173,7 +177,7 @@ export const AttendanceDailyPage: React.FC = () => {
       }
       return true;
     });
-  }, [records, employeesMap, searchTerm, selectedDepartment]);
+  }, [records, employeesMap, searchTerm, selectedDepartment, isAdminRoute, employeeId]);
 
   // --- Formatting Helpers ---
   const formatWorkDate = (val?: string | null) => val ? val.slice(0, 10) : '-';
@@ -334,42 +338,47 @@ export const AttendanceDailyPage: React.FC = () => {
             />
           </div>
 
-          {/* Search Box */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
-            <input
-              type="text"
-              placeholder={t('attendanceDaily.searchPlaceholder') || 'Tìm theo tên, mã NV, phòng ban...'}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles.nmInput}
-              style={{ paddingLeft: '34px', minWidth: '260px' }}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nm-text-muted)' }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+          {/* Search Box & Department Filter: Only for Admin / Manager managing all employees */}
+          {isAdminRoute && !employeeId && (
+            <>
+              {/* Search Box */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder={t('attendanceDaily.searchPlaceholder') || 'Tìm theo tên, mã NV, phòng ban...'}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={styles.nmInput}
+                  style={{ paddingLeft: '34px', minWidth: '260px' }}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nm-text-muted)' }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
 
-          {/* Department Filter */}
-          {departmentsList.length > 0 && (
-            <div>
-              <select
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-                className={styles.nmInput}
-                style={{ padding: '8px 12px' }}
-              >
-                <option value="">{t('attendanceDaily.filterDepartment') || 'Tất cả phòng ban'}</option>
-                {departmentsList.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
-            </div>
+              {/* Department Filter */}
+              {departmentsList.length > 0 && (
+                <div>
+                  <select
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className={styles.nmInput}
+                    style={{ padding: '8px 12px' }}
+                  >
+                    <option value="">{t('attendanceDaily.filterDepartment') || 'Tất cả phòng ban'}</option>
+                    {departmentsList.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
           )}
         </div>
         
