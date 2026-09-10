@@ -386,7 +386,9 @@ const LoginPage: React.FC = () => {
                       {...register('rememberMe')}
                       className={styles.checkbox}
                     />
-                    <span className={styles.checkBox} aria-hidden="true" />
+                    <span className={styles.checkBox} aria-hidden="true">
+                      <Check size={11} strokeWidth={3.5} className={styles.checkIcon} />
+                    </span>
                   </span>
                   <span>{t('login.rememberMe')}</span>
                 </label>

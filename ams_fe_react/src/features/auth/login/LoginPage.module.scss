@@ -326,7 +326,9 @@
 }
 
 .checkBox {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
   border-radius: 4px;
@@ -335,9 +337,21 @@
   transition: var(--nm-transition);
 }
 
+.checkIcon {
+  color: #ffffff;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
 .checkbox:checked + .checkBox {
   background: var(--nm-primary);
   box-shadow: inset 2px 2px 5px rgba(0, 50, 50, 0.4);
+
+  .checkIcon {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .forgotBtn {
